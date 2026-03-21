@@ -1,0 +1,52 @@
+[
+  {
+    "name": "linear_5q",
+    "num_qubits": 5,
+    "num_edges": 4,
+    "diameter": 4,
+    "avg_shortest_path": 2.0,
+    "avg_degree": 1.6,
+    "max_degree": 2,
+    "min_degree": 1
+  },
+  {
+    "name": "ring_5q",
+    "num_qubits": 5,
+    "num_edges": 5,
+    "diameter": 2,
+    "avg_shortest_path": 1.5,
+    "avg_degree": 2.0,
+    "max_degree": 2,
+    "min_degree": 2
+  },
+  {
+    "name": "grid_3x3",
+    "num_qubits": 9,
+    "num_edges": 12,
+    "diameter": 4,
+    "avg_shortest_path": 2.0,
+    "avg_degree": 2.67,
+    "max_degree": 4,
+    "min_degree": 2
+  },
+  {
+    "name": "heavy_hex_15q",
+    "num_qubits": 19,
+    "num_edges": 20,
+    "diameter": 8,
+    "avg_shortest_path": 3.92,
+    "avg_degree": 2.11,
+    "max_degree": 3,
+    "min_degree": 1
+  },
+  {
+    "name": "full_5q",
+    "num_qubits": 5,
+    "num_edges": 10,
+    "diameter": 1,
+    "avg_shortest_path": 1.0,
+    "avg_degree": 4.0,
+    "max_degree": 4,
+    "min_degree": 4
+  }
+]
