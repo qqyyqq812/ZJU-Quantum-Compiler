@@ -119,8 +119,8 @@ class QuantumRoutingEnv(gym.Env):
         else:
             self._mapping = {i: i for i in range(self._n_logical)}
 
-        executed = self._dag.execute_executable(self._mapping, self.coupling_map)
-        self._total_gates_executed += executed
+        executed_gates = self._dag.execute_executable(self._mapping, self.coupling_map)
+        self._total_gates_executed += len(executed_gates)
 
         return self._get_obs(), self._get_info()
 
@@ -133,9 +133,11 @@ class QuantumRoutingEnv(gym.Env):
         ext_dist_before = self._compute_extended_distance()
 
         if action == self.PASS_ACTION:
-            executed = self._dag.execute_executable(self._mapping, self.coupling_map)
+            executed_gates = self._dag.execute_executable(self._mapping, self.coupling_map)
+            executed = len(executed_gates)
             if executed > 0:
                 reward += executed * self.reward_gate
+                reward -= self._compute_crosstalk_penalty(executed_gates)
             else:
                 reward += self.penalty_useless_pass
             self._total_gates_executed += executed
@@ -145,9 +147,11 @@ class QuantumRoutingEnv(gym.Env):
             self._total_swaps += 1
             reward += self.penalty_swap
 
-            executed = self._dag.execute_executable(self._mapping, self.coupling_map)
+            executed_gates = self._dag.execute_executable(self._mapping, self.coupling_map)
+            executed = len(executed_gates)
             self._total_gates_executed += executed
             reward += executed * self.reward_gate
+            reward -= self._compute_crosstalk_penalty(executed_gates)
 
         # 距离缩减奖励 (前沿 + look-ahead)
         dist_after = self._compute_front_distance()
@@ -311,3 +315,30 @@ class QuantumRoutingEnv(gym.Env):
                 'coupling': extract_coupling_data(self.coupling_map)
             }
         }
+
+    def _compute_crosstalk_penalty(self, executed_gates: list) -> float:
+        """V4: 并行调度产生的硬件串扰(Crosstalk)惩罚。
+        如果多个双比特门在相同的或相邻的物理比特上并行执行，给予误差惩罚。
+        """
+        if len(executed_gates) <= 1:
+            return 0.0
+        
+        penalty = 0.0
+        active_phys = set()
+        
+        for g in executed_gates:
+            if g.is_two_qubit:
+                p0 = self._mapping.get(g.qubits[0], g.qubits[0])
+                p1 = self._mapping.get(g.qubits[1], g.qubits[1])
+                # Crosstalk: 简单的模型，当并行超过1个2比特门时，每个额外门有基础0.5单位的Penalty
+                penalty += 0.5
+                
+                # 若拓扑距离太近(物理相邻),串扰翻倍
+                for act_p in active_phys:
+                    if self._dist_matrix[p0][act_p] <= 1 or self._dist_matrix[p1][act_p] <= 1:
+                        penalty += 1.0
+                
+                active_phys.add(p0)
+                active_phys.add(p1)
+                
+        return penalty

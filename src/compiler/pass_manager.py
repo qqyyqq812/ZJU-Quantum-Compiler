@@ -19,6 +19,7 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from src.compiler.dag import CircuitDAG
 from src.compiler.env import QuantumRoutingEnv
 from src.compiler.policy import PolicyNetwork
+from src.compiler.mcts import RouterMCTS
 
 
 class AIRouter:
@@ -29,10 +30,11 @@ class AIRouter:
         model_path: 训练好的模型文件路径 (可选, 无则用随机策略)
     """
 
-    def __init__(self, coupling_map: CouplingMap, model_path: Optional[str] = None, use_gnn: bool = False):
+    def __init__(self, coupling_map: CouplingMap, model_path: Optional[str] = None, use_gnn: bool = False, use_mcts: bool = False):
         self.coupling_map = coupling_map
         self.env = QuantumRoutingEnv(coupling_map=coupling_map)
         self.use_gnn = use_gnn
+        self.use_mcts = use_mcts
 
         self.policy = PolicyNetwork(
             obs_dim=self.env.observation_space.shape[0],
@@ -78,7 +80,11 @@ class AIRouter:
             if self._has_model:
                 mask = self.env.get_action_mask()
                 info = self.env._get_info()
-                action, _, _ = self.policy.get_action(obs, action_mask=mask, gnn_input=info.get("gnn_input"))
+                if self.use_mcts:
+                    mcts = RouterMCTS(policy=self.policy, num_simulations=30, c_puct=1.5)
+                    action = mcts.search(self.env, obs, info)
+                else:
+                    action, _, _ = self.policy.get_action(obs, action_mask=mask, gnn_input=info.get("gnn_input"))
             else:
                 action = self.env.action_space.sample()
 
@@ -151,7 +157,11 @@ class AIRouter:
             if self._has_model:
                 mask = self.env.get_action_mask()
                 info = self.env._get_info()
-                action, _, _ = self.policy.get_action(obs, action_mask=mask, gnn_input=info.get("gnn_input"))
+                if self.use_mcts:
+                    mcts = RouterMCTS(policy=self.policy, num_simulations=30, c_puct=1.5)
+                    action = mcts.search(self.env, obs, info)
+                else:
+                    action, _, _ = self.policy.get_action(obs, action_mask=mask, gnn_input=info.get("gnn_input"))
             else:
                 action = self.env.action_space.sample()
 

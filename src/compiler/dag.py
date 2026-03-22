@@ -180,7 +180,7 @@ class CircuitDAG:
         self._gates[gate_id].executed = True
 
     def execute_executable(self, mapping: dict[int, int],
-                           coupling_map: CouplingMap) -> int:
+                           coupling_map: CouplingMap) -> list:
         """执行前沿层中所有满足拓扑约束的门。
 
         Args:
@@ -190,22 +190,22 @@ class CircuitDAG:
             执行的门数
         """
         edges = set(tuple(e) for e in coupling_map.get_edges())
-        executed_count = 0
+        executed_gates = []
 
         for gate in self.get_front_layer():
             if not gate.is_two_qubit:
                 # 单比特门无拓扑约束
                 self.execute_gate(gate.gate_id)
-                executed_count += 1
+                executed_gates.append(gate)
             else:
                 # 双比特门需要检查物理连通性
                 p0 = mapping[gate.qubits[0]]
                 p1 = mapping[gate.qubits[1]]
                 if (p0, p1) in edges or (p1, p0) in edges:
                     self.execute_gate(gate.gate_id)
-                    executed_count += 1
+                    executed_gates.append(gate)
 
-        return executed_count
+        return executed_gates
 
     @staticmethod
     def apply_swap(q1: int, q2: int, mapping: dict[int, int]) -> dict[int, int]:
