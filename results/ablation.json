@@ -1,0 +1,18 @@
+{
+  "baseline_100ep": {
+    "avg_reward": 29.149999999999977,
+    "avg_swaps": 33.5
+  },
+  "higher_penalty": {
+    "avg_reward": 20.866666666666667,
+    "avg_swaps": 36.666666666666664
+  },
+  "lower_lr": {
+    "avg_reward": 26.93999999999998,
+    "avg_swaps": 40.86666666666667
+  },
+  "more_training": {
+    "avg_reward": 30.33999999999999,
+    "avg_swaps": 26.866666666666667
+  }
+}
