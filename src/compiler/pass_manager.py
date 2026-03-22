@@ -29,13 +29,15 @@ class AIRouter:
         model_path: 训练好的模型文件路径 (可选, 无则用随机策略)
     """
 
-    def __init__(self, coupling_map: CouplingMap, model_path: Optional[str] = None):
+    def __init__(self, coupling_map: CouplingMap, model_path: Optional[str] = None, use_gnn: bool = False):
         self.coupling_map = coupling_map
         self.env = QuantumRoutingEnv(coupling_map=coupling_map)
+        self.use_gnn = use_gnn
 
         self.policy = PolicyNetwork(
             obs_dim=self.env.observation_space.shape[0],
             n_actions=self.env.action_space.n,
+            use_gnn=self.use_gnn
         )
 
         if model_path and Path(model_path).exists():
@@ -74,7 +76,9 @@ class AIRouter:
         step = 0
         while not dag.is_done() and step < max_steps:
             if self._has_model:
-                action, _, _ = self.policy.get_action(obs)
+                mask = self.env.get_action_mask()
+                info = self.env._get_info()
+                action, _, _ = self.policy.get_action(obs, action_mask=mask, gnn_input=info.get("gnn_input"))
             else:
                 action = self.env.action_space.sample()
 
@@ -145,7 +149,9 @@ class AIRouter:
         step = 0
         while not dag.is_done() and step < max_steps:
             if self._has_model:
-                action, _, _ = self.policy.get_action(obs)
+                mask = self.env.get_action_mask()
+                info = self.env._get_info()
+                action, _, _ = self.policy.get_action(obs, action_mask=mask, gnn_input=info.get("gnn_input"))
             else:
                 action = self.env.action_space.sample()
 

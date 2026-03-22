@@ -297,10 +297,17 @@ class QuantumRoutingEnv(gym.Env):
         return obs
 
     def _get_info(self) -> dict[str, Any]:
+        from src.compiler.gnn_extractor import extract_dag_data, extract_coupling_data
+        from qiskit import QuantumCircuit
+        dag_data = extract_dag_data(self._dag) if self._dag else extract_dag_data(CircuitDAG(QuantumCircuit(1)))
         return {
             'total_swaps': self._total_swaps,
             'total_gates_executed': self._total_gates_executed,
             'remaining_gates': self._dag.remaining_gates() if self._dag else 0,
             'step_count': self._step_count,
             'front_distance': self._compute_front_distance(),
+            'gnn_input': {
+                'dag': dag_data,
+                'coupling': extract_coupling_data(self.coupling_map)
+            }
         }

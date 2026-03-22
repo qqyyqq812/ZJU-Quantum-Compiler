@@ -27,8 +27,13 @@ class PolicyNetwork(nn.Module):
         hidden_dim: 隐藏层维度
     """
 
-    def __init__(self, obs_dim: int, n_actions: int, hidden_dim: int = 256):
+    def __init__(self, obs_dim: int, n_actions: int, hidden_dim: int = 256, use_gnn: bool = False):
         super().__init__()
+        self.use_gnn = use_gnn
+        if use_gnn:
+            from src.compiler.gnn_encoder import CircuitEncoder
+            self.gnn = CircuitEncoder(hidden_dim=128, embed_dim=128)
+            obs_dim += 128
 
         # 共享特征提取
         self.shared = nn.Sequential(
@@ -64,16 +69,15 @@ class PolicyNetwork(nn.Module):
         dist = Categorical(logits=logits)
         return dist, value
 
-    def get_action(self, obs: np.ndarray, action_mask: np.ndarray | None = None) -> tuple[int, float, float]:
-        """采样一个动作 (用于数据收集)。
-
-        V3: 支持 action_mask —— 将无效动作 logit 设为 -inf。
-
-        Returns:
-            (action, log_prob, value)
-        """
+    def get_action(self, obs: np.ndarray, action_mask: np.ndarray | None = None, gnn_input=None) -> tuple[int, float, float]:
         with torch.no_grad():
             obs_t = torch.FloatTensor(obs).unsqueeze(0)
+            if self.use_gnn and gnn_input is not None:
+                from torch_geometric.data import Batch
+                d_b = Batch.from_data_list([gnn_input['dag']])
+                c_b = Batch.from_data_list([gnn_input['coupling']])
+                gnn_feat = self.gnn(d_b, c_b)
+                obs_t = torch.cat([obs_t, gnn_feat], dim=-1)
             features = self.shared(obs_t)
             logits = self.actor(features)
             value = self.critic(features).squeeze(-1)
@@ -89,14 +93,10 @@ class PolicyNetwork(nn.Module):
         return action.item(), log_prob.item(), value.item()
 
     def evaluate(self, obs: torch.Tensor, actions: torch.Tensor,
-                 action_masks: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """评估一批 (obs, action) 对 (用于 PPO 更新)。
-
-        V3: 支持 action_masks 批量处理。
-
-        Returns:
-            (log_probs, values, entropy)
-        """
+                 action_masks: torch.Tensor | None = None, gnn_input=None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        if self.use_gnn and gnn_input is not None:
+            gnn_feat = self.gnn(gnn_input['dag'], gnn_input['coupling'])
+            obs = torch.cat([obs, gnn_feat], dim=-1)
         features = self.shared(obs)
         logits = self.actor(features)
         values = self.critic(features).squeeze(-1)
@@ -119,18 +119,20 @@ class RolloutBuffer:
     log_probs: list
     values: list
     dones: list
+    gnn_inputs: list
 
     @staticmethod
-    def create() -> RolloutBuffer:
-        return RolloutBuffer([], [], [], [], [], [])
+    def create() -> 'RolloutBuffer':
+        return RolloutBuffer([], [], [], [], [], [], [])
 
-    def add(self, obs, action, reward, log_prob, value, done):
+    def add(self, obs, action, reward, log_prob, value, done, gnn_input=None):
         self.observations.append(obs)
         self.actions.append(action)
         self.rewards.append(reward)
         self.log_probs.append(log_prob)
         self.values.append(value)
         self.dones.append(done)
+        self.gnn_inputs.append(gnn_input)
 
     def __len__(self):
         return len(self.observations)
@@ -210,8 +212,15 @@ class PPOTrainer:
         total_value_loss = 0.0
         total_entropy = 0.0
 
+        gnn_input_batch = None
+        if self.policy.use_gnn and len(buffer.gnn_inputs) > 0 and buffer.gnn_inputs[0] is not None:
+            from torch_geometric.data import Batch
+            d_b = Batch.from_data_list([g['dag'] for g in buffer.gnn_inputs])
+            c_b = Batch.from_data_list([g['coupling'] for g in buffer.gnn_inputs])
+            gnn_input_batch = {'dag': d_b, 'coupling': c_b}
+
         for _ in range(self.epochs_per_update):
-            log_probs, values, entropy = self.policy.evaluate(obs, actions)
+            log_probs, values, entropy = self.policy.evaluate(obs, actions, None, gnn_input_batch)
 
             # Policy loss (PPO clip)
             ratio = (log_probs - old_log_probs).exp()
