@@ -135,6 +135,31 @@ class CircuitDAG:
         """获取前沿层中的双比特门 (路由的核心关注对象)。"""
         return [g for g in self.get_front_layer() if g.is_two_qubit]
 
+
+    def get_extended_front(self, depth: int = 2) -> list[GateNode]:
+        """V3 Look-Ahead: 前沿 + 后续 depth 层的双比特门。"""
+        result = list(self.get_two_qubit_front())
+        seen = {g.gate_id for g in result}
+        sim_done = {gid for gid, g in self._gates.items() if g.executed}
+        for g in self.get_front_layer():
+            if not g.is_two_qubit:
+                sim_done.add(g.gate_id)
+        for _ in range(depth):
+            nxt = []
+            for gid, node in self._gates.items():
+                if gid in sim_done or gid in seen:
+                    continue
+                if all(p in sim_done or p in seen
+                       for p in self._graph.predecessors(gid)):
+                    nxt.append(node)
+            for g in nxt:
+                if g.is_two_qubit:
+                    result.append(g)
+                    seen.add(g.gate_id)
+                else:
+                    sim_done.add(g.gate_id)
+        return result
+
     def execute_gate(self, gate_id: int) -> None:
         """标记一个门为已执行。
 

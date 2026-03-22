@@ -64,26 +64,47 @@ class PolicyNetwork(nn.Module):
         dist = Categorical(logits=logits)
         return dist, value
 
-    def get_action(self, obs: np.ndarray) -> tuple[int, float, float]:
+    def get_action(self, obs: np.ndarray, action_mask: np.ndarray | None = None) -> tuple[int, float, float]:
         """采样一个动作 (用于数据收集)。
+
+        V3: 支持 action_mask —— 将无效动作 logit 设为 -inf。
 
         Returns:
             (action, log_prob, value)
         """
         with torch.no_grad():
             obs_t = torch.FloatTensor(obs).unsqueeze(0)
-            dist, value = self(obs_t)
+            features = self.shared(obs_t)
+            logits = self.actor(features)
+            value = self.critic(features).squeeze(-1)
+
+            # V3: Action Masking
+            if action_mask is not None:
+                mask_t = torch.FloatTensor(action_mask).unsqueeze(0)
+                logits = logits.masked_fill(mask_t == 0, -1e8)
+
+            dist = Categorical(logits=logits)
             action = dist.sample()
             log_prob = dist.log_prob(action)
         return action.item(), log_prob.item(), value.item()
 
-    def evaluate(self, obs: torch.Tensor, actions: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def evaluate(self, obs: torch.Tensor, actions: torch.Tensor,
+                 action_masks: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """评估一批 (obs, action) 对 (用于 PPO 更新)。
+
+        V3: 支持 action_masks 批量处理。
 
         Returns:
             (log_probs, values, entropy)
         """
-        dist, values = self(obs)
+        features = self.shared(obs)
+        logits = self.actor(features)
+        values = self.critic(features).squeeze(-1)
+
+        if action_masks is not None:
+            logits = logits.masked_fill(action_masks == 0, -1e8)
+
+        dist = Categorical(logits=logits)
         log_probs = dist.log_prob(actions)
         entropy = dist.entropy()
         return log_probs, values, entropy
