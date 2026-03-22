@@ -149,10 +149,15 @@ class AIRouter:
                 action = self.env.action_space.sample()
 
             obs, _, terminated, truncated, _ = self.env.step(action)
-            p1, p2 = self.env.swap_edges[action]
-            mapping = CircuitDAG.apply_swap(p1, p2, mapping)
-            dag.execute_executable(mapping, self.coupling_map)
-            total_swaps += 1
+
+            # V2: 跳过 PASS 动作
+            if action < self.env.n_swap_actions:
+                p1, p2 = self.env.swap_edges[action]
+                mapping = CircuitDAG.apply_swap(p1, p2, mapping)
+                dag.execute_executable(mapping, self.coupling_map)
+                total_swaps += 1
+            else:
+                dag.execute_executable(mapping, self.coupling_map)
 
             step += 1
             if terminated or truncated:
