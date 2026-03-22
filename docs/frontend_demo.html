@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Router Pro - 交互式教程演示</title>
+    <!-- 引入 Driver.js CSS 和 JS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background-color: #1e293b;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #38bdf8;
+        }
+        .start-tour-btn {
+            background-color: #0ea5e9;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .start-tour-btn:hover { background-color: #0284c7; }
+        .container {
+            display: flex;
+            gap: 2rem;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .panel {
+            background-color: #1e293b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            flex: 1;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            border: 1px solid #334155;
+        }
+        .panel h2 {
+            margin-top: 0;
+            font-size: 1.25rem;
+            color: #e2e8f0;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 0.5rem;
+        }
+        .input-group {
+            margin-bottom: 1rem;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #94a3b8;
+        }
+        select, textarea, button.submit {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #0f172a;
+            border: 1px solid #475569;
+            color: white;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+        button.submit {
+            background-color: #22c55e;
+            font-weight: bold;
+            margin-top: 1rem;
+            cursor: pointer;
+        }
+        button.submit:hover { background-color: #16a34a; }
+        
+        .circuit-vis {
+            height: 200px;
+            background-color: #0f172a;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #475569;
+            border: 1px dashed #475569;
+            margin-top: 1rem;
+        }
+        
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🪐 Quantum Router Pro</h1>
+    <button class="start-tour-btn" id="start-tour">✨ 开启新手教程</button>
+</div>
+
+<div class="container">
+    <!-- 左侧：参数配置区 -->
+    <div class="panel" id="config-panel">
+        <h2>🛠️ 编译配置</h2>
+        <div class="input-group" id="select-topology">
+            <label>目标硬件拓扑</label>
+            <select>
+                <option>IBM QX20 (Tokyo)</option>
+                <option>Google Sycamore (53Q)</option>
+                <option>Linear 5-Qubit</option>
+            </select>
+        </div>
+        <div class="input-group" id="input-circuit">
+            <label>输入量子电路 (QASM)</label>
+            <textarea rows="6">OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[3];
+cx q[0], q[2];
+cx q[1], q[2];</textarea>
+        </div>
+        <button class="submit" id="run-compiler">▶️ 开始智能路由编译</button>
+    </div>
+
+    <!-- 右侧：结果展示区 -->
+    <div class="panel" id="result-panel">
+        <h2>📊 路由结果分析</h2>
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+            <div style="flex: 1; background: #0f172a; padding: 1rem; border-radius: 6px; text-align: center;">
+                <div style="color: #94a3b8; font-size: 0.875rem;">SABRE SWAP数</div>
+                <div style="font-size: 1.5rem; color: #ef4444; font-weight: bold;">16</div>
+            </div>
+            <div style="flex: 1; background: #0f172a; padding: 1rem; border-radius: 6px; text-align: center;" id="ai-result">
+                <div style="color: #94a3b8; font-size: 0.875rem;">AI SWAP数</div>
+                <div style="font-size: 1.5rem; color: #22c55e; font-weight: bold;">11</div>
+            </div>
+            <div style="flex: 1; background: #0f172a; padding: 1rem; border-radius: 6px; text-align: center;" id="ratio-result">
+                <div style="color: #94a3b8; font-size: 0.875rem;">优化比率</div>
+                <div style="font-size: 1.5rem; color: #38bdf8; font-weight: bold;">1.45x</div>
+            </div>
+        </div>
+        <label style="color: #94a3b8;">映射后物理电路 DAG</label>
+        <div class="circuit-vis" id="dag-vis">
+            [ 可视化渲染区 ]
+        </div>
+    </div>
+</div>
+
+<script>
+    // 初始化 Driver.js
+    const driver = window.driver.js.driver({
+        showProgress: true,
+        animate: true,
+        doneBtnText: '完成体验',
+        closeBtnText: '跳过',
+        nextBtnText: '下一步 ➜',
+        prevBtnText: '向后',
+        steps: [
+            { element: '.header h1', popover: { title: '欢迎来到 Quantum Router Pro', description: '这是基于深度强化学习的量子电路智能路由平台。接下来，只需一分钟，带您丝滑上手核心功能！', side: "bottom", align: 'start' } },
+            { element: '#config-panel', popover: { title: '第一步：配置参数', description: '您可以在左侧面板设置所有的编译参数，包括拓扑结构和输入电路。', side: "right", align: 'start' } },
+            { element: '#select-topology', popover: { title: '选择硬件拓扑', description: '在这里选择目标超导量子芯片的 Coupling Map（如 IBM Tokyo 或 Google Sycamore）。AI 模型将自适应目标平台的物理限制。', side: "top" } },
+            { element: '#input-circuit', popover: { title: '输入量子电路', description: '粘贴您的 OpenQASM 2.0 代码，我们的解析器会自动构建电路的有向无环图 (DAG)。', side: "bottom" } },
+            { element: '#run-compiler', popover: { title: '一键编译优化', description: '点击此按钮，背后部署的 PPO+GNN 智能体将在数秒内为您生成最优的 SWAP 门插入方案。', side: "bottom" } },
+            { element: '#result-panel', popover: { title: '第二步：查看分析报告', description: '编译完成后，右侧面板将为您提供直观的性能对比与渲染。', side: "left", align: 'start' } },
+            { element: '#ai-result', popover: { title: '碾压传统的优化率', description: '这里展示了 AI 路由的 SWAP 附加数量。比起传统的 SABRE 启发式算法，我们在多数电路中能取得极其显著的提升。', side: "bottom" } },
+            { element: '#dag-vis', popover: { title: '交互式可视化', description: '最后，您可以在此导出物理层电路图，或分析 SWAP 门的关键插入路径。', side: "top" } },
+            { popover: { title: '🎉 教程结束', description: '您已经掌握了基本操作！开始体验智能量子编译的魅力吧！' } }
+        ]
+    });
+
+    document.getElementById('start-tour').addEventListener('click', function() {
+        driver.drive();
+    });
+
+    // 页面加载完成后自动弹出教程
+    setTimeout(() => {
+        driver.drive();
+    }, 500);
+</script>
+
+</body>
+</html>
