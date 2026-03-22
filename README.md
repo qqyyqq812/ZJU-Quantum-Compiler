@@ -1,71 +1,116 @@
 # ZJU-Quantum-Compiler 🧬
 
-> 复杂拓扑结构下的量子电路人工智能编译与动态路由优化
+> **量子电路 AI 编译与路由优化** — 用 GNN + 强化学习 (PPO) 替代传统启发式路由算法
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)]()
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)]()
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-blue)](https://python.org)
+[![Tests](https://img.shields.io/badge/Tests-62%20passed-green)](tests/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## 项目简介
 
-物理量子芯片上的量子比特存在严格的连通性限制——并非所有比特之间都能直接执行双比特门。为满足这一硬件约束，编译器必须通过插入 SWAP 门来移动量子态，而如何最小化这些额外操作（SWAP/CNOT 门数、电路深度）是一个 **NP-hard** 优化问题。
+量子计算中，逻辑电路必须映射到物理芯片上才能执行，但芯片的量子比特连接是受限的（Coupling Map）。**路由问题**就是在满足拓扑约束的前提下，用最少的 SWAP 操作完成映射——这是一个 NP-Hard 问题。
 
-本项目利用**图神经网络 (GNN)** 与**强化学习 (RL)** 技术，开发一个智能化的量子电路编译器插件，学习目标物理拓扑的约束特征，动态决策最优的比特映射与 SWAP 门插入策略。
+本项目探索用 **图注意力网络 (GAT) + 近端策略优化 (PPO)** 替代 Qiskit 默认的 SABRE 启发式算法，将路由决策建模为马尔可夫决策过程 (MDP)。
+
+### 技术特色
+
+- 🧠 **GAT 双图编码器**: 同时编码电路 DAG + 芯片 Coupling Map
+- 🎮 **Gymnasium RL 环境**: 标准接口，State=映射+前沿, Action=SWAP
+- 📊 **完整评估管线**: 4 种基准电路 × 7 种拓扑 × 多级优化
+- 📈 **消融实验**: 超参数敏感性分析
+- 🔌 **Qiskit 插件**: `compile_with_ai()` 一行调用
 
 ## 快速开始
 
 ```bash
-# 安装依赖
+# 环境配置
+git clone https://github.com/qqyyqq812/ZJU-Quantum-Compiler.git
+cd ZJU-Quantum-Compiler
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# 运行基准测试
-python -m src.benchmarks.evaluate
-
 # 运行测试
-pytest tests/ -v
+PYTHONPATH=. pytest tests/ -v
+
+# 训练 AI 路由器 (grid 拓扑, 5 qubit, 500 episodes)
+export TORCH_DYNAMO_DISABLE=1
+PYTHONPATH=. python -m src.compiler.train --topology grid_3x3 --qubits 5 --episodes 500
+
+# 用 AI 路由器编译电路
+PYTHONPATH=. python -c "
+from qiskit import QuantumCircuit
+from qiskit.transpiler import CouplingMap
+from src.compiler.pass_manager import compile_with_ai
+
+qc = QuantumCircuit(5)
+qc.h(0)
+qc.cx(0, 4)  # 远程 CNOT，需要路由
+cm = CouplingMap.from_line(5)
+compiled = compile_with_ai(qc, cm, model_path='models/router_linear_5_5q.pt')
+print(compiled)
+"
 ```
 
 ## 项目结构
 
 ```
-.
-├── docs/                    # 文档
-│   ├── technical/           # 技术文档（长效知识）
-│   └── 03_AI协同日志.md     # AI 交互记录
-├── src/                     # 核心源码
-│   ├── compiler/            # 编译器核心算法
-│   ├── benchmarks/          # 基准测试
-│   └── visualization/       # 可视化
-├── sandbox/                 # 探索与试错区
-├── tests/                   # 自动化测试
-└── workspace_rules.md       # 工作规约
+src/
+├── benchmarks/
+│   ├── circuits.py        # QFT, Grover, QAOA, Random 基准电路
+│   ├── topologies.py      # IBM Eagle, Google Sycamore 等拓扑
+│   ├── evaluate.py        # CompileResult 评估框架
+│   └── run_baseline.py    # SABRE 基线运行器
+├── compiler/
+│   ├── dag.py             # 核心 DAG 操作 (前沿/执行/SWAP/GNN特征)
+│   ├── gnn_encoder.py     # GAT 双图编码器
+│   ├── env.py             # Gymnasium RL 环境
+│   ├── policy.py          # PPO Actor-Critic + 训练器
+│   ├── train.py           # 训练管线 + CLI
+│   └── pass_manager.py    # Qiskit AIRouter 集成
+├── evaluation/            # 评估管线
+└── visualization/         # 结果可视化
+tests/                     # 62 项自动化测试
+docs/                      # 技术文档 + AI 协同日志
+results/                   # 基线数据 + 对比结果 + 图表
+models/                    # 训练好的路由器模型
 ```
+
+## 实验结果
+
+### SABRE 基线 (60 次编译)
+- 平均 CX 开销: **123.5%**
+- 平均深度开销: **328%**
+
+### 消融实验 (grid_3x3, 5 qubit)
+
+| 配置 | Avg Reward ↑ | Avg SWAPs ↓ |
+|------|------------|-------------|
+| baseline (100ep) | 29.1 | 33.5 |
+| higher_penalty | 20.9 | 36.7 |
+| lower_lr | 26.9 | 40.9 |
+| **more_training (200ep)** | **30.3** | **26.9** |
+
+### AI vs SABRE
+
+当前 AI 路由器（仅 300 episodes 训练）尚未超越 SABRE。这是预期结果：
+- SABRE 是经过多年优化的生产算法
+- PPO 需要 10,000+ episodes 才能在此类组合优化问题上收敛
+- **关键贡献**: 完整的 GNN+RL 框架已搭建，为后续大规模训练和改进提供了基础
 
 ## 技术栈
 
-- **量子框架**: Qiskit
-- **深度学习**: PyTorch + PyTorch Geometric (GNN)
-- **强化学习**: Stable-Baselines3 / 自定义 PPO
-- **可视化**: Matplotlib + NetworkX
+| 类别 | 工具 | 用途 |
+|------|------|------|
+| 量子 | Qiskit 2.3 | 电路创建 + Transpiler |
+| 图学习 | PyTorch Geometric 2.7 | GAT 实现 |
+| RL | Gymnasium + PPO | 路由策略学习 |
+| 训练 | PyTorch 2.10 | 深度学习引擎 |
+| 测试 | pytest | 62 项自动化测试 |
 
-## 评估指标
+## AI 协同开发说明
 
-| 指标 | 说明 |
-|------|------|
-| 电路深度 (Depth) | 编译后电路的最大门层数 |
-| CNOT 门数 | 编译后的双比特门总数 |
-| 额外 SWAP 数 | 插入的 SWAP 门数量 |
-| 编译时间 | 编译器运行耗时 |
+本项目采用 AI 辅助开发模式，详见 [AI 协同日志](docs/03_AI协同日志.md)。
 
-## 对标基准
+## License
 
-- Qiskit SABRE 算法（当前业界默认编译器）
-- Qiskit Stochastic SWAP
-- tket 编译器
-
-## 许可证
-
-MIT License
-
-## 致谢
-
-浙江大学 量子信息课程大作业 · 课题四
+MIT

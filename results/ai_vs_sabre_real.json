@@ -1,0 +1,98 @@
+[
+  {
+    "circuit": "qft_5",
+    "topology": "linear_5",
+    "sabre_extra_swap": 16,
+    "sabre_compiled_cx": 50,
+    "ai_swaps": 26,
+    "ai_done": true
+  },
+  {
+    "circuit": "grover_5",
+    "topology": "linear_5",
+    "sabre_extra_swap": 4,
+    "sabre_compiled_cx": 20,
+    "ai_swaps": 51,
+    "ai_done": true
+  },
+  {
+    "circuit": "qaoa_5",
+    "topology": "linear_5",
+    "sabre_extra_swap": 3,
+    "sabre_compiled_cx": 19,
+    "ai_swaps": 19,
+    "ai_done": true
+  },
+  {
+    "circuit": "random_5",
+    "topology": "linear_5",
+    "sabre_extra_swap": 5,
+    "sabre_compiled_cx": 25,
+    "ai_swaps": 63,
+    "ai_done": true
+  },
+  {
+    "circuit": "qft_5",
+    "topology": "ring_5",
+    "sabre_extra_swap": 13,
+    "sabre_compiled_cx": 41,
+    "ai_swaps": 14,
+    "ai_done": true
+  },
+  {
+    "circuit": "grover_5",
+    "topology": "ring_5",
+    "sabre_extra_swap": 4,
+    "sabre_compiled_cx": 20,
+    "ai_swaps": 67,
+    "ai_done": true
+  },
+  {
+    "circuit": "qaoa_5",
+    "topology": "ring_5",
+    "sabre_extra_swap": 0,
+    "sabre_compiled_cx": 10,
+    "ai_swaps": 21,
+    "ai_done": true
+  },
+  {
+    "circuit": "random_5",
+    "topology": "ring_5",
+    "sabre_extra_swap": 1,
+    "sabre_compiled_cx": 13,
+    "ai_swaps": 21,
+    "ai_done": true
+  },
+  {
+    "circuit": "qft_5",
+    "topology": "grid_3x3",
+    "sabre_extra_swap": 12,
+    "sabre_compiled_cx": 38,
+    "ai_swaps": 28,
+    "ai_done": true
+  },
+  {
+    "circuit": "grover_5",
+    "topology": "grid_3x3",
+    "sabre_extra_swap": 0,
+    "sabre_compiled_cx": 8,
+    "ai_swaps": 40,
+    "ai_done": true
+  },
+  {
+    "circuit": "qaoa_5",
+    "topology": "grid_3x3",
+    "sabre_extra_swap": 1,
+    "sabre_compiled_cx": 13,
+    "ai_swaps": 44,
+    "ai_done": true
+  },
+  {
+    "circuit": "random_5",
+    "topology": "grid_3x3",
+    "sabre_extra_swap": 2,
+    "sabre_compiled_cx": 16,
+    "ai_swaps": 20,
+    "ai_done": true
+  }
+]
