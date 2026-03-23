@@ -1,56 +1,77 @@
+"""
+统一的拓扑感知图特征提取器 (V7)
+===============================
+将当前电路路由状态编码为以物理量子比特为节点的单一图结构。
+"""
+from __future__ import annotations
+
 import torch
 from torch_geometric.data import Data
-import numpy as np
-from src.compiler.dag import CircuitDAG
 from qiskit.transpiler import CouplingMap
+from src.compiler.dag import CircuitDAG
 
-def extract_coupling_data(coupling_map: CouplingMap) -> Data:
-    """提取拓扑图数据供 GNN。"""
+def extract_physical_graph(
+    coupling_map: CouplingMap,
+    mapping: dict[int, int],
+    dag: CircuitDAG | None
+) -> Data:
+    """提取基于物理拓扑的统一图表征。
+    
+    图定义:
+        节点: 物理量子比特 (0 to N-1)
+        边: CouplingMap 的物理连接
+        节点特征 (5维):
+            [
+                0: 物理节点的度数 (局部连接维度)
+                1: 是否被占用 (1 或 0)
+                2: 映射的逻辑比特索引 (-1 表示未映射)
+                3: 是否参与当前前沿双比特门 (1 或 0)
+                4: 是否参与 Look-ahead 扩展前沿门 (1 或 0)
+            ]
+    """
+    n_phys = coupling_map.size()
+    
+    # 构建边
     edges = list(coupling_map.get_edges())
-    if not edges:
-        return Data(x=torch.zeros((coupling_map.size(), 4)), edge_index=torch.empty((2, 0), dtype=torch.long))
-    
-    edge_index = torch.tensor(edges, dtype=torch.long).t().contiguous()
-    # 简单的物理节点特征: [degree, 0, 0, 0]
-    degrees = [0] * coupling_map.size()
-    for u, v in edges:
-        degrees[u] += 1
-        degrees[v] += 1
-    
-    x = torch.zeros((coupling_map.size(), 4), dtype=torch.float)
-    for i, d in enumerate(degrees):
-        x[i, 0] = d
-        
-    return Data(x=x, edge_index=edge_index)
-
-def extract_dag_data(dag: CircuitDAG) -> Data:
-    """提取 DAG 数据供 GNN。"""
-    x_np = dag.get_node_features()
-    if x_np.shape[0] == 0:
-        return Data(x=torch.zeros((1, 20)), edge_index=torch.empty((2, 0), dtype=torch.long))
-        
-    x = torch.tensor(x_np, dtype=torch.float)
-    # x 维度需要匹配 CircuitEncoder 默认值 (20)
-    # 目前 dag.get_node_features() 可能是不同的维度，自动 pad 到 20
-    if x.shape[1] < 20:
-        pad = torch.zeros((x.shape[0], 20 - x.shape[1]))
-        x = torch.cat([x, pad], dim=1)
-    elif x.shape[1] > 20:
-        x = x[:, :20]
-        
-    edges = []
-    # 重构未执行节点的边
-    active_gids = [gid for gid, node in dag._gates.items() if not node.executed]
-    active_nodes = set(active_gids)
-    gid_to_idx = {gid: i for i, gid in enumerate(active_gids)}
-    
-    for u, v in dag._graph.edges():
-        if u in active_nodes and v in active_nodes:
-            edges.append([gid_to_idx[u], gid_to_idx[v]])
-            
     if not edges:
         edge_index = torch.empty((2, 0), dtype=torch.long)
     else:
         edge_index = torch.tensor(edges, dtype=torch.long).t().contiguous()
         
+    # 构建节点特征
+    x = torch.zeros((n_phys, 5), dtype=torch.float)
+    
+    # 特征 0: Degree
+    for u, v in edges:
+        x[u, 0] += 1
+        x[v, 0] += 1
+        
+    # 特征 1, 2: Occupancy & Logical ID
+    phys_to_logical = {p: l for l, p in mapping.items()}
+    for p in range(n_phys):
+        if p in phys_to_logical:
+            x[p, 1] = 1.0
+            x[p, 2] = float(phys_to_logical[p])
+        else:
+            x[p, 1] = 0.0
+            x[p, 2] = -1.0
+            
+    # 特征 3, 4: Front Gate & Extended Front Gate
+    if dag is not None and not dag.is_done():
+        # Front
+        for gate in dag.get_two_qubit_front():
+            p0 = mapping.get(gate.qubits[0], gate.qubits[0])
+            p1 = mapping.get(gate.qubits[1], gate.qubits[1])
+            if p0 < n_phys: x[p0, 3] = 1.0
+            if p1 < n_phys: x[p1, 3] = 1.0
+            
+        # Extended Front (Look-ahead)
+        front_ids = {g.gate_id for g in dag.get_two_qubit_front()}
+        for gate in dag.get_extended_front(depth=2):
+            if gate.gate_id not in front_ids:
+                p0 = mapping.get(gate.qubits[0], gate.qubits[0])
+                p1 = mapping.get(gate.qubits[1], gate.qubits[1])
+                if p0 < n_phys: x[p0, 4] = 1.0
+                if p1 < n_phys: x[p1, 4] = 1.0
+                
     return Data(x=x, edge_index=edge_index)

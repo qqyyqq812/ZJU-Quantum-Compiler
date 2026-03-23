@@ -1,118 +1,227 @@
 """
-PPO 策略网络 + 训练管线
-========================
-Proximal Policy Optimization (PPO) 用于学习量子电路路由策略。
-
-简化但完整的 PPO 实现，可直接训练。
+残差 Actor-Critic 与 Edge-Scoring Attention Head (V7)
+=====================================================
+彻底重构结构：
+1. 双流输入：扁平张量 (obs) + 拓扑感知图 (gnn_input)
+2. 边级打分独立 Attention 头 (解决维度灾难和无序性)
+3. 独立的 Critic 头 (不共享 Actor 梯度)
+4. 多层 LayerNorm 和残差连接
 """
-
 from __future__ import annotations
-
-from dataclasses import dataclass
-from pathlib import Path
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Categorical
+from torch_geometric.data import Batch
+
+from src.compiler.gnn_encoder import GraphSAGEEncoder
+
+
+class ResidualMLP(nn.Module):
+    """带残差和 LayerNorm 的 MLP 块."""
+    def __init__(self, dim: int):
+        super().__init__()
+        self.fc1 = nn.Linear(dim, dim)
+        self.ln1 = nn.LayerNorm(dim)
+        self.fc2 = nn.Linear(dim, dim)
+        self.ln2 = nn.LayerNorm(dim)
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        res = x
+        x = F.relu(self.ln1(self.fc1(x)))
+        x = self.ln2(self.fc2(x))
+        return F.relu(x + res)
 
 
 class PolicyNetwork(nn.Module):
-    """Actor-Critic 策略网络。
+    """V7 芯片级 Actor-Critic 路由策略网络."""
 
-    Args:
-        obs_dim: 观测空间维度
-        n_actions: 动作空间大小
-        hidden_dim: 隐藏层维度
-    """
-
-    def __init__(self, obs_dim: int, n_actions: int, hidden_dim: int = 256, use_gnn: bool = False):
+    def __init__(self, obs_dim: int, n_actions: int, hidden_dim: int = 256):
         super().__init__()
-        self.use_gnn = use_gnn
-        if use_gnn:
-            from src.compiler.gnn_encoder import CircuitEncoder
-            self.gnn = CircuitEncoder(hidden_dim=128, embed_dim=128)
-            obs_dim += 128
-
-        # 共享特征提取
-        self.shared = nn.Sequential(
-            nn.Linear(obs_dim, hidden_dim),
+        self.n_actions = n_actions
+        self.hidden_dim = hidden_dim
+        
+        # ─── 1. 特征提取器 ───
+        # 1.1 GNN 拓扑图特征编码 (提取物理比特特征和全局拓扑特征)
+        self.gnn = GraphSAGEEncoder(in_channels=5, hidden_channels=128, out_channels=128)
+        
+        # 1.2 扁平标量状态特征编码 (obs_dim -> 128)
+        self.obs_encoder = nn.Sequential(
+            nn.Linear(obs_dim, 128),
+            nn.LayerNorm(128),
             nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.LayerNorm(128),
+            nn.ReLU()
         )
-
-        # Actor: 输出动作概率
-        self.actor = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim // 2),
+        
+        # ─── 2. 融合模块 ───
+        # 全局上下文特征 = obs_feature (128) + graph_mean (128) + graph_max (128) = 384 → 256
+        self.global_fusion = nn.Sequential(
+            nn.Linear(128 + 256, 256),
+            nn.LayerNorm(256),
             nn.ReLU(),
-            nn.Linear(hidden_dim // 2, n_actions),
+            ResidualMLP(256)
         )
-
-        # Critic: 输出状态价值
+        
+        # ─── 3. Action Critic (Value Network) ───
+        # 独立网络，不被 Actor 的高频变化干扰
         self.critic = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.Linear(256, 128),
             nn.ReLU(),
-            nn.Linear(hidden_dim // 2, 1),
+            nn.Linear(128, 1)
+        )
+        
+        # ─── 4. Attention Actor Heads ───
+        # Edge Scorer: 评估给定的两条物理边的打分
+        # 输入: target_node (128) + neighbor_node (128) + global_context (256) = 512 → 1
+        self.edge_scorer = nn.Sequential(
+            nn.Linear(128 + 128 + 256, 128),
+            nn.ReLU(),
+            nn.Linear(128, 1)
+        )
+        
+        # PASS Scorer: 独立的 PASS 动作估值
+        # 输入: global_context (256) → 1
+        self.pass_scorer = nn.Sequential(
+            nn.Linear(256, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1)
         )
 
-    def forward(self, obs: torch.Tensor) -> tuple[Categorical, torch.Tensor]:
-        """前向传播。
-
-        Returns:
-            (action_distribution, state_value)
+    def forward(self, obs: torch.Tensor, gnn_batch: Batch, swap_edges: list[list[tuple]]) -> tuple[Categorical, torch.Tensor]:
+        """批量前向提取。
+        
+        Args:
+            obs: (B, obs_dim)
+            gnn_batch: 包含物理图特征的 PyG Data Batch
+            swap_edges: 列表，长度为 B，每项为当前环境内所有的候选 SWAP edges (u, v)
         """
-        features = self.shared(obs)
-        logits = self.actor(features)
-        value = self.critic(features).squeeze(-1)
-        dist = Categorical(logits=logits)
-        return dist, value
+        B = obs.size(0)
+        
+        # 1. GNN Embeddings
+        # node_embed: (N_total, 128), global_graph_embed: (B, 256)
+        node_embed, global_graph_embed = self.gnn(gnn_batch.x, gnn_batch.edge_index, gnn_batch.batch)
+        
+        # 2. Obs Embeddings
+        obs_embed = self.obs_encoder(obs)  # (B, 128)
+        
+        # 3. Global Context
+        global_context = self.global_fusion(torch.cat([obs_embed, global_graph_embed], dim=-1)) # (B, 256)
+        
+        # 4. Values (Critic)
+        values = self.critic(global_context).squeeze(-1) # (B)
+        
+        # 5. Edge Action Scores (Actor)
+        # 为每批次独立构建动作分布
+        logits_list = []
+        node_split = node_embed.split(gnn_batch.ptr.diff().tolist()) # 拆分出每个子图的节点特征 [N_nodes x 128] * B
+        
+        for i in range(B):
+            n_features = node_split[i] # (N_phys, 128)
+            ctx = global_context[i]    # (256)
+            edges = swap_edges[i]      # [(u,v), ...]
+            
+            # PASS Score
+            pass_score = self.pass_scorer(ctx).unsqueeze(0) # (1, 1)
+            
+            if not edges: # 异常情况，返回全零
+                logits = torch.zeros(self.n_actions, device=obs.device)
+                logits_list.append(logits)
+                continue
+                
+            # Score each edge
+            # edge_src/dst: (NumEdges, 128)
+            src_idx = [e[0] for e in edges]
+            dst_idx = [e[1] for e in edges]
+            
+            # 有时可能边索引超出实际图节点数(脏数据/未及时reset)
+            num_nodes = n_features.size(0)
+            src_idx = [min(idx, num_nodes-1) for idx in src_idx]
+            dst_idx = [min(idx, num_nodes-1) for idx in dst_idx]
+            
+            src_feats = n_features[src_idx]
+            dst_feats = n_features[dst_idx]
+            
+            ctx_expand = ctx.unsqueeze(0).expand(len(edges), -1) # (NumEdges, 256)
+            edge_input = torch.cat([src_feats, dst_feats, ctx_expand], dim=-1) # (NumEdges, 512)
+            
+            scores = self.edge_scorer(edge_input).squeeze(-1) # (NumEdges)
+            
+            # Combine [scores, pass_score]
+            final_scores = torch.cat([scores, pass_score.squeeze(-1)]) # (NumEdges + 1)
+            
+            # Pad to max n_actions dimension
+            padded_scores = torch.full((self.n_actions,), -1e8, device=obs.device)
+            padded_scores[:len(final_scores)] = final_scores
+            
+            logits_list.append(padded_scores)
+            
+        logits_stacked = torch.stack(logits_list) # (B, n_actions)
+        dist = Categorical(logits=logits_stacked)
+        
+        return dist, values
 
-    def get_action(self, obs: np.ndarray, action_mask: np.ndarray | None = None, gnn_input=None) -> tuple[int, float, float]:
+    def get_action(self, obs: np.ndarray, action_mask: np.ndarray | None = None, gnn_input: dict | None = None) -> tuple[int, float, float]:
+        """单步推理 (Rollout使用)"""
         with torch.no_grad():
             obs_t = torch.FloatTensor(obs).unsqueeze(0)
-            if self.use_gnn and gnn_input is not None:
-                from torch_geometric.data import Batch
-                d_b = Batch.from_data_list([gnn_input['dag']])
-                c_b = Batch.from_data_list([gnn_input['coupling']])
-                gnn_feat = self.gnn(d_b, c_b)
-                obs_t = torch.cat([obs_t, gnn_feat], dim=-1)
-            features = self.shared(obs_t)
-            logits = self.actor(features)
-            value = self.critic(features).squeeze(-1)
-
-            # V3: Action Masking
+            
+            if gnn_input is None or 'graph' not in gnn_input:
+                # Fallback purely on random if not properly wired (safeguard)
+                logits = torch.zeros((1, self.n_actions))
+                values = torch.zeros(1)
+            else:
+                d_b = Batch.from_data_list([gnn_input['graph']])
+                swap_edges = [gnn_input['swap_edges']]
+                dist, values = self.forward(obs_t, d_b, swap_edges)
+                logits = dist.logits
+                
             if action_mask is not None:
                 mask_t = torch.FloatTensor(action_mask).unsqueeze(0)
                 logits = logits.masked_fill(mask_t == 0, -1e8)
-
+                
             dist = Categorical(logits=logits)
             action = dist.sample()
             log_prob = dist.log_prob(action)
-        return action.item(), log_prob.item(), value.item()
+            
+        return action.item(), log_prob.item(), values.item()
 
-    def evaluate(self, obs: torch.Tensor, actions: torch.Tensor,
-                 action_masks: torch.Tensor | None = None, gnn_input=None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        if self.use_gnn and gnn_input is not None:
-            gnn_feat = self.gnn(gnn_input['dag'], gnn_input['coupling'])
-            obs = torch.cat([obs, gnn_feat], dim=-1)
-        features = self.shared(obs)
-        logits = self.actor(features)
-        values = self.critic(features).squeeze(-1)
-
+    def evaluate(self, obs: torch.Tensor, actions: torch.Tensor, 
+                 action_masks: torch.Tensor | None = None, 
+                 gnn_inputs: list[dict] | None = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """批量评估 (PPO Update使用)"""
+        if gnn_inputs is None or len(gnn_inputs) == 0 or gnn_inputs[0] is None:
+            raise ValueError("V7 requires GNN inputs for training!")
+            
+        graphs = [gi['graph'] for gi in gnn_inputs]
+        edges = [gi['swap_edges'] for gi in gnn_inputs]
+        
+        d_b = Batch.from_data_list(graphs)
+        
+        dist, values = self.forward(obs, d_b, edges)
+        logits = dist.logits
+        
         if action_masks is not None:
             logits = logits.masked_fill(action_masks == 0, -1e8)
-
-        dist = Categorical(logits=logits)
+            dist = Categorical(logits=logits)
+            
         log_probs = dist.log_prob(actions)
         entropy = dist.entropy()
+        
         return log_probs, values, entropy
 
 
+# ====================================================================
+# PPO Trainer 等代码不需要大改，只需要把 update() 方法中的 gnn_inputs 透传。
+# ====================================================================
+
+from dataclasses import dataclass
+
 @dataclass
 class RolloutBuffer:
-    """存储一个 rollout 的数据。"""
     observations: list
     actions: list
     rewards: list
@@ -137,8 +246,7 @@ class RolloutBuffer:
     def __len__(self):
         return len(self.observations)
 
-    def compute_returns(self, gamma: float = 0.99, gae_lambda: float = 0.95) -> tuple[list, list]:
-        """计算 GAE 优势和回报。"""
+    def compute_returns(self, gamma: float = 0.99, gae_lambda: float = 0.95):
         advantages = []
         returns = []
         gae = 0.0
@@ -159,28 +267,9 @@ class RolloutBuffer:
 
 
 class PPOTrainer:
-    """PPO 训练器。
-
-    Args:
-        policy: 策略网络
-        lr: 学习率
-        clip_epsilon: PPO clip 范围
-        epochs_per_update: 每次数据收集后的训练轮数
-        entropy_coef: 熵正则化系数
-        value_coef: 价值损失系数
-        max_grad_norm: 梯度裁剪
-    """
-
-    def __init__(
-        self,
-        policy: PolicyNetwork,
-        lr: float = 3e-4,
-        clip_epsilon: float = 0.2,
-        epochs_per_update: int = 4,
-        entropy_coef: float = 0.01,
-        value_coef: float = 0.5,
-        max_grad_norm: float = 0.5,
-    ):
+    def __init__(self, policy: PolicyNetwork, lr: float = 3e-4, clip_epsilon: float = 0.2, 
+                 epochs_per_update: int = 4, entropy_coef: float = 0.01, 
+                 value_coef: float = 0.5, max_grad_norm: float = 0.5):
         self.policy = policy
         self.optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
         self.clip_epsilon = clip_epsilon
@@ -189,22 +278,15 @@ class PPOTrainer:
         self.value_coef = value_coef
         self.max_grad_norm = max_grad_norm
 
-    def update(self, buffer: RolloutBuffer) -> dict[str, float]:
-        """用收集的数据更新策略。
-
-        Returns:
-            训练指标 dict
-        """
+    def update(self, buffer: RolloutBuffer):
         advantages, returns = buffer.compute_returns()
 
-        # 转为 tensor
         obs = torch.FloatTensor(np.array(buffer.observations))
         actions = torch.LongTensor(buffer.actions)
         old_log_probs = torch.FloatTensor(buffer.log_probs)
         advantages_t = torch.FloatTensor(advantages)
         returns_t = torch.FloatTensor(returns)
 
-        # 标准化优势
         if len(advantages_t) > 1:
             advantages_t = (advantages_t - advantages_t.mean()) / (advantages_t.std() + 1e-8)
 
@@ -212,29 +294,20 @@ class PPOTrainer:
         total_value_loss = 0.0
         total_entropy = 0.0
 
-        gnn_input_batch = None
-        if self.policy.use_gnn and len(buffer.gnn_inputs) > 0 and buffer.gnn_inputs[0] is not None:
-            from torch_geometric.data import Batch
-            d_b = Batch.from_data_list([g['dag'] for g in buffer.gnn_inputs])
-            c_b = Batch.from_data_list([g['coupling'] for g in buffer.gnn_inputs])
-            gnn_input_batch = {'dag': d_b, 'coupling': c_b}
-
         for _ in range(self.epochs_per_update):
-            log_probs, values, entropy = self.policy.evaluate(obs, actions, None, gnn_input_batch)
+            # 将 buffer.gnn_inputs 直接传给 evaluate
+            log_probs, values, entropy = self.policy.evaluate(
+                obs=obs, actions=actions, action_masks=None, gnn_inputs=buffer.gnn_inputs
+            )
 
-            # Policy loss (PPO clip)
             ratio = (log_probs - old_log_probs).exp()
             surr1 = ratio * advantages_t
             surr2 = torch.clamp(ratio, 1.0 - self.clip_epsilon, 1.0 + self.clip_epsilon) * advantages_t
             policy_loss = -torch.min(surr1, surr2).mean()
 
-            # Value loss
             value_loss = F.mse_loss(values, returns_t)
-
-            # Entropy bonus
             entropy_loss = -entropy.mean()
 
-            # Total loss
             loss = policy_loss + self.value_coef * value_loss + self.entropy_coef * entropy_loss
 
             self.optimizer.zero_grad()
@@ -253,11 +326,10 @@ class PPOTrainer:
             'entropy': total_entropy / n,
         }
 
-    def save(self, path: str) -> None:
-        """保存模型。"""
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
+    def save(self, path: str):
+        import os
+        os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
         torch.save(self.policy.state_dict(), path)
 
-    def load(self, path: str) -> None:
-        """加载模型。"""
+    def load(self, path: str):
         self.policy.load_state_dict(torch.load(path, weights_only=True))
