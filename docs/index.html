@@ -3,188 +3,532 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum Router Pro - 交互式教程演示</title>
-    <!-- 引入 Driver.js CSS 和 JS -->
+    <title>Quantum Router Pro - V5 旗舰版</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Driver.js for Tours -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
+    
+    <!-- Mermaid.js for DAG visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+
     <style>
+        :root {
+            --bg-deep: #05050a;
+            --glass-bg: rgba(20, 22, 35, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --neon-blue: #00f0ff;
+            --neon-purple: #8a2be2;
+            --neon-green: #00ff88;
+            --neon-red: #ff3366;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at 50% 0%, #1a103c 0%, var(--bg-deep) 60%);
+            color: var(--text-main);
             margin: 0;
             padding: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
-        .header {
-            background-color: #1e293b;
-            padding: 1rem 2rem;
+
+        /* Glassmorphism Panel */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        /* Header */
+        header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #334155;
+            padding: 1.5rem 4rem;
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(5, 5, 10, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-        .header h1 {
-            margin: 0;
-            font-size: 1.5rem;
-            color: #38bdf8;
+
+        .logo {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
         }
-        .start-tour-btn {
-            background-color: #0ea5e9;
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.3s;
-        }
-        .start-tour-btn:hover { background-color: #0284c7; }
-        .container {
+
+        .tour-buttons {
             display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            border: none;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-noob {
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--neon-blue);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+        }
+        .btn-noob:hover { background: rgba(0, 240, 255, 0.2); transform: translateY(-2px); box-shadow: 0 0 15px rgba(0, 240, 255, 0.4); }
+
+        .btn-geek {
+            background: rgba(138, 43, 226, 0.1);
+            color: #d896ff;
+            border: 1px solid rgba(138, 43, 226, 0.3);
+        }
+        .btn-geek:hover { background: rgba(138, 43, 226, 0.2); transform: translateY(-2px); box-shadow: 0 0 15px rgba(138, 43, 226, 0.4); }
+
+        /* Main Grid */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
             gap: 2rem;
-            padding: 2rem;
-            max-width: 1200px;
+            padding: 3rem 4rem;
+            max-width: 1600px;
             margin: 0 auto;
         }
-        .panel {
-            background-color: #1e293b;
+
+        /* Preset Cards */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .preset-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preset-card:hover, .preset-card.active {
+            border-color: var(--neon-blue);
+            background: rgba(0, 240, 255, 0.05);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+        }
+
+        .preset-card h3 { margin: 0 0 0.5rem 0; font-size: 1.1rem; }
+        .preset-card p { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
+
+        /* Custom Dropdown */
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+        
+        select {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--glass-border);
+            color: white;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            outline: none;
+            appearance: none;
+        }
+
+        .btn-compile {
+            width: 100%;
+            padding: 1.2rem;
+            font-size: 1.1rem;
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-compile:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 30px rgba(138, 43, 226, 0.6);
+        }
+
+        /* Results Area */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-box {
+            background: rgba(0, 0, 0, 0.4);
             border-radius: 12px;
             padding: 1.5rem;
-            flex: 1;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-            border: 1px solid #334155;
+            text-align: center;
+            border: 1px solid var(--glass-border);
+            position: relative;
         }
-        .panel h2 {
-            margin-top: 0;
-            font-size: 1.25rem;
-            color: #e2e8f0;
-            border-bottom: 2px solid #334155;
-            padding-bottom: 0.5rem;
-        }
-        .input-group {
-            margin-bottom: 1rem;
-        }
-        .input-group label {
-            display: block;
+
+        .metric-title {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             margin-bottom: 0.5rem;
-            color: #94a3b8;
         }
-        select, textarea, button.submit {
+
+        .metric-value {
+            font-size: 3rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .sabre-val { color: var(--neon-red); }
+        .ai-val { color: var(--neon-green); text-shadow: 0 0 15px rgba(0, 255, 136, 0.4); }
+        .ratio-val { color: var(--neon-blue); }
+
+        .dag-container {
             width: 100%;
-            padding: 0.75rem;
-            background-color: #0f172a;
-            border: 1px solid #475569;
-            color: white;
-            border-radius: 6px;
-            font-family: monospace;
-        }
-        button.submit {
-            background-color: #22c55e;
-            font-weight: bold;
-            margin-top: 1rem;
-            cursor: pointer;
-        }
-        button.submit:hover { background-color: #16a34a; }
-        
-        .circuit-vis {
-            height: 200px;
-            background-color: #0f172a;
-            border-radius: 6px;
+            height: 250px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            border: 1px dashed var(--glass-border);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #475569;
-            border: 1px dashed #475569;
-            margin-top: 1rem;
+            overflow: hidden;
+        }
+
+        /* Geek Python Snippet */
+        .code-container {
+            margin-top: 2rem;
         }
         
+        .code-window {
+            background: #0d1117;
+            border-radius: 12px;
+            border: 1px solid #30363d;
+            overflow: hidden;
+        }
+        
+        .code-header {
+            background: #161b22;
+            padding: 0.5rem 1rem;
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .mac-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .dot-red { background: #ff5f56; }
+        .dot-yellow { background: #ffbd2e; }
+        .dot-green { background: #27c93f; }
+
+        pre {
+            margin: 0;
+            padding: 1.5rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            color: #c9d1d9;
+            overflow-x: auto;
+        }
+        
+        .keyword { color: #ff7b72; }
+        .function { color: #d2a8ff; }
+        .string { color: #a5d6ff; }
+        .comment { color: #8b949e; font-style: italic; }
+
+        /* Loader Animation */
+        .loader-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(5, 5, 10, 0.9);
+            border-radius: 12px;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 240, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--neon-blue);
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 1rem;
+        }
+
+        .loading-text {
+            color: var(--neon-blue);
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h1>🪐 Quantum Router Pro</h1>
-    <button class="start-tour-btn" id="start-tour">✨ 开启新手教程</button>
-</div>
+    <header>
+        <div class="logo">✦ Quantum Router V5</div>
+        <div class="tour-buttons">
+            <button class="btn btn-noob" id="tour-noob">🛸 小白体验专线</button>
+            <button class="btn btn-geek" id="tour-geek">💻 极客直通车 (API)</button>
+        </div>
+    </header>
 
-<div class="container">
-    <!-- 左侧：参数配置区 -->
-    <div class="panel" id="config-panel">
-        <h2>🛠️ 编译配置</h2>
-        <div class="input-group" id="select-topology">
-            <label>目标硬件拓扑</label>
-            <select>
-                <option>IBM QX20 (Tokyo)</option>
-                <option>Google Sycamore (53Q)</option>
-                <option>Linear 5-Qubit</option>
-            </select>
+    <div class="dashboard">
+        
+        <!-- ========== LEFT: CONFIG ========== -->
+        <div class="glass-panel" id="step-config">
+            <h2 style="margin-top:0; font-weight: 300; letter-spacing: 1px;">Compiler <strong style="font-weight: 800; color: var(--neon-blue);">Setup</strong></h2>
+            
+            <div class="form-group" id="step-presets">
+                <label>一键加载经典算法电路</label>
+                <div class="preset-grid">
+                    <div class="preset-card active" onclick="selectPreset('qft')" id="preset-qft">
+                        <h3>QFT-5</h3>
+                        <p>量子傅里叶变换 (高度纠缠)</p>
+                    </div>
+                    <div class="preset-card" onclick="selectPreset('qaoa')" id="preset-qaoa">
+                        <h3>QAOA-5</h3>
+                        <p>近似优化算法 (随机分布)</p>
+                    </div>
+                    <div class="preset-card" onclick="selectPreset('grover')" id="preset-grover">
+                        <h3>Grover-5</h3>
+                        <p>无结构数据库搜索</p>
+                    </div>
+                    <div class="preset-card" onclick="selectPreset('random')" id="preset-random">
+                        <h3>Random</h3>
+                        <p>超高深度随机混乱纠缠图</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group" id="step-topology">
+                <label>Target Hardware Topology (物理拓扑)</label>
+                <select id="topo-select">
+                    <option value="IBM">IBM QX20 (Tokyo) - 20 Qubits</option>
+                    <option value="Google">Google Sycamore - 53 Qubits</option>
+                    <option value="Linear" selected>Linear 5-Qubit (Chain)</option>
+                </select>
+            </div>
+
+            <button class="btn-compile" id="btn-compile" onclick="runSimulation()">
+                ⚡ Start AI Routing
+            </button>
         </div>
-        <div class="input-group" id="input-circuit">
-            <label>输入量子电路 (QASM)</label>
-            <textarea rows="6">OPENQASM 2.0;
-include "qelib1.inc";
-qreg q[3];
-cx q[0], q[2];
-cx q[1], q[2];</textarea>
+
+        <!-- ========== RIGHT: RESULTS & CODE ========== -->
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+            
+            <div class="glass-panel" id="step-results">
+                <h2 style="margin-top:0; font-weight: 300; letter-spacing: 1px;">Telemetry <strong style="font-weight: 800; color: var(--neon-green);">Dashboard</strong></h2>
+                
+                <div class="metrics-grid">
+                    <div class="metric-box">
+                        <div class="metric-title">SABRE SWAP Overhead</div>
+                        <div class="metric-value sabre-val" id="val-sabre">0</div>
+                    </div>
+                    <div class="metric-box" id="step-ai">
+                        <div class="metric-title">RL+Mask SWAP Overhead</div>
+                        <div class="metric-value ai-val" id="val-ai">0</div>
+                    </div>
+                    <div class="metric-box" id="step-ratio">
+                        <div class="metric-title">Optimization Ratio</div>
+                        <div class="metric-value ratio-val" id="val-ratio">0x</div>
+                    </div>
+                    
+                    <!-- Loader Overlay covering metrics during compile -->
+                    <div class="loader-overlay" id="compile-loader">
+                        <div class="spinner"></div>
+                        <div class="loading-text" id="loading-msg">INITIALIZING MCTS TREE...</div>
+                    </div>
+                </div>
+
+                <label style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Physical Execution DAG (物理映射层)</label>
+                <div class="dag-container" id="step-dag">
+                    <div class="mermaid" id="mermaid-graph">
+                        graph LR
+                        A[Start] --> B[Wait for Compilation]
+                    </div>
+                </div>
+            </div>
+
+            <div class="code-container glass-panel" id="step-python">
+                <h2 style="margin-top:0; font-weight: 300; letter-spacing: 1px;">Python SDK <strong style="font-weight: 800; color: #d2a8ff;">Integration</strong></h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">无需理解复杂的 RL 架构，仅需 3 行代码，作为 Qiskit PassManager 无缝插拔，摧毁 SABRE。</p>
+                <div class="code-window">
+                    <div class="code-header">
+                        <div class="mac-dot dot-red"></div>
+                        <div class="mac-dot dot-yellow"></div>
+                        <div class="mac-dot dot-green"></div>
+                    </div>
+                    <pre><code id="code-block">
+<span class="comment"># 1. 导入 Quantum Router 的核心透传管理器</span>
+<span class="keyword">from</span> src.compiler.pass_manager <span class="keyword">import</span> <span class="function">compile_with_ai</span>
+<span class="keyword">from</span> qiskit <span class="keyword">import</span> QuantumCircuit
+
+<span class="comment"># 2. 准备您的逻辑电路和目标硬件 CouplingMap</span>
+qc = QuantumCircuit.from_qasm_file(<span class="string">"my_algorithm.qasm"</span>)
+cmap = get_sycamore_topology()
+
+<span class="comment"># 3. 💥 魔法时刻：一键接管原有的 transpile 过程</span>
+optimized_qc = <span class="function">compile_with_ai</span>(qc, cmap, model_path=<span class="string">"models/v3_10k.pt"</span>)
+
+<span class="function">print</span>(<span class="string">f"AI Compilation Done. Depth: {optimized_qc.depth()}"</span>)
+                    </code></pre>
+                </div>
+            </div>
+
         </div>
-        <button class="submit" id="run-compiler">▶️ 开始智能路由编译</button>
     </div>
 
-    <!-- 右侧：结果展示区 -->
-    <div class="panel" id="result-panel">
-        <h2>📊 路由结果分析</h2>
-        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-            <div style="flex: 1; background: #0f172a; padding: 1rem; border-radius: 6px; text-align: center;">
-                <div style="color: #94a3b8; font-size: 0.875rem;">SABRE SWAP数</div>
-                <div style="font-size: 1.5rem; color: #ef4444; font-weight: bold;">16</div>
-            </div>
-            <div style="flex: 1; background: #0f172a; padding: 1rem; border-radius: 6px; text-align: center;" id="ai-result">
-                <div style="color: #94a3b8; font-size: 0.875rem;">AI SWAP数</div>
-                <div style="font-size: 1.5rem; color: #22c55e; font-weight: bold;">11</div>
-            </div>
-            <div style="flex: 1; background: #0f172a; padding: 1rem; border-radius: 6px; text-align: center;" id="ratio-result">
-                <div style="color: #94a3b8; font-size: 0.875rem;">优化比率</div>
-                <div style="font-size: 1.5rem; color: #38bdf8; font-weight: bold;">1.45x</div>
-            </div>
-        </div>
-        <label style="color: #94a3b8;">映射后物理电路 DAG</label>
-        <div class="circuit-vis" id="dag-vis">
-            [ 可视化渲染区 ]
-        </div>
-    </div>
-</div>
+    <script>
+        // Preset Data
+        const DB = {
+            qft: { sabre: 16, ai: 11, ratio: 1.45, dag: `graph LR\nQ0-->SWAP1\nQ4-->SWAP1\nSWAP1-->CX1\nCX1-->Q3` },
+            qaoa: { sabre: 3, ai: 3, ratio: 1.0, dag: `graph LR\nQ2-->CX1\nQ3-->CX1\nCX1-->RZ1\nRZ1-->CX2` },
+            grover: { sabre: 4, ai: 3, ratio: 1.33, dag: `graph LR\nQ1-->H1\nH1-->CCX\nQ2-->CCX\nQ3-->CCX` },
+            random: { sabre: 28, ai: 18, ratio: 1.55, dag: `graph LR\nQ0-->SWAP1\nSWAP1-->SWAP2\nSWAP2-->CX_Deep` }
+        };
 
-<script>
-    // 初始化 Driver.js
-    const driver = window.driver.js.driver({
-        showProgress: true,
-        animate: true,
-        doneBtnText: '完成体验',
-        closeBtnText: '跳过',
-        nextBtnText: '下一步 ➜',
-        prevBtnText: '向后',
-        steps: [
-            { element: '.header h1', popover: { title: '欢迎来到 Quantum Router Pro', description: '这是基于深度强化学习的量子电路智能路由平台。接下来，只需一分钟，带您丝滑上手核心功能！', side: "bottom", align: 'start' } },
-            { element: '#config-panel', popover: { title: '第一步：配置参数', description: '您可以在左侧面板设置所有的编译参数，包括拓扑结构和输入电路。', side: "right", align: 'start' } },
-            { element: '#select-topology', popover: { title: '选择硬件拓扑', description: '在这里选择目标超导量子芯片的 Coupling Map（如 IBM Tokyo 或 Google Sycamore）。AI 模型将自适应目标平台的物理限制。', side: "top" } },
-            { element: '#input-circuit', popover: { title: '输入量子电路', description: '粘贴您的 OpenQASM 2.0 代码，我们的解析器会自动构建电路的有向无环图 (DAG)。', side: "bottom" } },
-            { element: '#run-compiler', popover: { title: '一键编译优化', description: '点击此按钮，背后部署的 PPO+GNN 智能体将在数秒内为您生成最优的 SWAP 门插入方案。', side: "bottom" } },
-            { element: '#result-panel', popover: { title: '第二步：查看分析报告', description: '编译完成后，右侧面板将为您提供直观的性能对比与渲染。', side: "left", align: 'start' } },
-            { element: '#ai-result', popover: { title: '碾压传统的优化率', description: '这里展示了 AI 路由的 SWAP 附加数量。比起传统的 SABRE 启发式算法，我们在多数电路中能取得极其显著的提升。', side: "bottom" } },
-            { element: '#dag-vis', popover: { title: '交互式可视化', description: '最后，您可以在此导出物理层电路图，或分析 SWAP 门的关键插入路径。', side: "top" } },
-            { popover: { title: '🎉 教程结束', description: '您已经掌握了基本操作！开始体验智能量子编译的魅力吧！' } }
-        ]
-    });
+        let currentAlg = 'qft';
+        
+        // mermaid init
+        mermaid.initialize({ startOnLoad: true, theme: 'dark', backgroundColor: 'transparent' });
 
-    document.getElementById('start-tour').addEventListener('click', function() {
-        driver.drive();
-    });
+        function selectPreset(alg) {
+            document.querySelectorAll('.preset-card').forEach(el => el.classList.remove('active'));
+            document.getElementById(`preset-${alg}`).classList.add('active');
+            currentAlg = alg;
+            
+            // Reset numbers
+            document.getElementById('val-sabre').innerText = '0';
+            document.getElementById('val-ai').innerText = '0';
+            document.getElementById('val-ratio').innerText = '0x';
+            
+            // Re-render empty dag
+            const dagEl = document.getElementById('mermaid-graph');
+            dagEl.removeAttribute('data-processed');
+            dagEl.innerHTML = `graph LR\nWait-->Compile`;
+            mermaid.init(undefined, dagEl);
+        }
 
-    // 页面加载完成后自动弹出教程
-    setTimeout(() => {
-        driver.drive();
-    }, 500);
-</script>
+        function animateValue(obj, start, end, duration, isFloat=false) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const current = progress * (end - start) + start;
+                obj.innerHTML = isFloat ? current.toFixed(2) + 'x' : Math.floor(current);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
 
+        function runSimulation() {
+            const loader = document.getElementById('compile-loader');
+            const msg = document.getElementById('loading-msg');
+            loader.style.display = 'flex';
+            
+            // Fake compiling sequence
+            const messages = [
+                "EXTRACTING QASM DAG...",
+                "LOADING V3.3 PPO WEIGHTS...",
+                "APPLYING DISTANCE MASKING...",
+                "COMPUTING LOOK-AHEAD FRONTS...",
+                "ROUTING COMPLETE."
+            ];
+            
+            let i = 0;
+            const interval = setInterval(() => {
+                if(i < messages.length) {
+                    msg.innerText = messages[i];
+                    i++;
+                }
+            }, 400);
+
+            setTimeout(() => {
+                clearInterval(interval);
+                loader.style.display = 'none';
+                
+                // Show results with scroll animation
+                const data = DB[currentAlg];
+                animateValue(document.getElementById('val-sabre'), 0, data.sabre, 1000);
+                animateValue(document.getElementById('val-ai'), 0, data.ai, 1500);
+                animateValue(document.getElementById('val-ratio'), 0, data.ratio, 2000, true);
+                
+                // Render DAG
+                const dagEl = document.getElementById('mermaid-graph');
+                dagEl.removeAttribute('data-processed');
+                dagEl.innerHTML = data.dag;
+                mermaid.init(undefined, dagEl);
+                
+            }, 2500);
+        }
+
+        // ================= TOURS =================
+        const driverObj = window.driver.js.driver;
+
+        // 1. 小白路线 (Noob Tour)
+        const tourNoob = driverObj({
+            showProgress: true, animate: true, doneBtnText: '搞懂啦！', closeBtnText: '关闭', nextBtnText: '下一步', prevBtnText: '上一步',
+            steps: [
+                { popover: { title: '🛸 欢迎搭乘体验号！', description: '您不需要懂任何量子计算代码，只需跟着这趟 1 分钟的旅程，就能明白我们解决了一个多么巨大的痛点。' } },
+                { element: '#step-presets', popover: { title: '1. 引入经典算法', description: '过去的 Demo 要求您手写生硬的量子汇编层代码。现在，您只需在这四个工业界知名的量子算法（如 QFT 或 Grover）中任选其一。', side: 'right' } },
+                { element: '#step-topology', popover: { title: '2. 设定超导芯片拓扑', description: '量子芯片并不是所有点都能互连的！选择一个物理结构（比如 Google 的 53 比特机），我们的 AI 会像走迷宫一样适应它。', side: 'bottom' } },
+                { element: '#btn-compile', popover: { title: '3. 启动 AI 魔力', description: '点击这个按钮！背后基于 V3.3 PPO 网络的“动作掩码”与“前瞻搜索”将瞬间被激活。您等会可以自己点点看哦。', side: 'bottom' } },
+                { element: '#step-results', popover: { title: '4. 见证奇迹时刻', description: '传统的 IBM SABRE 算法会无脑插入大量的 SWAP 门来移动量子，导致保真度极具降低。而我们的 AI 能以全局视野极小化 SWAP 开销，并在右侧展现炫酷比率。', side: 'left' } },
+                { element: '#step-dag', popover: { title: '5. AI 思维透视', description: '在这里，您能直观看到我们最终生成的拓扑 DAG 执行流。', side: 'top' } },
+                { popover: { title: '🎉 旅程结束', description: '您现在可以自由点击预设卡片并点击 Compile 运行动画了！' } }
+            ]
+        });
+
+        // 2. 极客路线 (Geek Tour)
+        const tourGeek = driverObj({
+            showProgress: true, animate: true, doneBtnText: '开始写代码！', closeBtnText: '关闭', nextBtnText: '下一步', prevBtnText: '上一步',
+            steps: [
+                { element: '#step-python', popover: { title: '💻 API 无缝嫁接', description: '开发者您好。我知道您不想看花哨的界面，您只想知道如何把这个优化器接进您自己的 Qiskit 实验中。', side: 'top' } },
+                { element: '#code-block', popover: { title: '极其简单的侵入性', description: '您原有的代码完全不用变！只需要从我们的 src 中 import `compile_with_ai`，将原先用 `transpile()` 的地方换成它，底层会自动拉起 PyTorch 模型为您高速推理！', side: 'top' } },
+                { popover: { title: '🚀 Get Started', description: '尽情 clone 仓库并在本地加载 weights 吧！' } }
+            ]
+        });
+
+        document.getElementById('tour-noob').addEventListener('click', () => tourNoob.drive());
+        document.getElementById('tour-geek').addEventListener('click', () => tourGeek.drive());
+
+    </script>
 </body>
 </html>
