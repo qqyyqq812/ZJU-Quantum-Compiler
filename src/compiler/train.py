@@ -166,12 +166,13 @@ def train(
         # === Rollout 收集 ===
         for _ in range(rollout_steps):
             mask = env.get_action_mask()
-            action, log_prob, value = policy.get_action(obs, action_mask=mask)
-            next_obs, reward, terminated, truncated, info = env.step(action)
+            action, log_prob, value = policy.get_action(obs, action_mask=mask, gnn_input=info.get('gnn_input'))
+            next_obs, reward, terminated, truncated, next_info = env.step(action)
 
-            buffer.add(obs, action, reward, log_prob, value, terminated or truncated)
+            buffer.add(obs, action, reward, log_prob, value, terminated or truncated, gnn_input=info.get('gnn_input'))
             episode_reward += reward
             obs = next_obs
+            info = next_info
 
             if terminated or truncated:
                 break
