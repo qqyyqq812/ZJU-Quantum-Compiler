@@ -1,13 +1,18 @@
 """
-课程学习调度器 V7
+课程学习调度器 V7.1
 ==================
 5 阶段渐进式训练课程 + 自适应升级条件。
 
+V7.1 修订：
+- 阈值基于 SABRE 在同规模电路上的实际 SWAP 数 (~1.2x SABRE 水平)
+- 降低 min_episodes_per_stage 以加速早期课程迭代
+- 增加 promotion_patience: 如果长时间卡住则自动放宽阈值
+
 阶段 0: Warm-up    — 3Q, 1-2 CX, 学基本 SWAP 意识
-阶段 1: Elementary — 5Q, depth 3, 学多步规划
-阶段 2: Standard   — 5Q, depth 5, 全套 QFT/QAOA/Grover
-阶段 3: Challenge  — 10Q, depth 8, 大规模电路
-阶段 4: Master     — 20Q, depth 15, 芯片级真实挑战
+阶段 1: Elementary — 5Q, depth 2-4, 学多步规划
+阶段 2: Standard   — 5Q, depth 4-6, 全套 QFT/QAOA/Grover
+阶段 3: Challenge  — 10Q, depth 6-10, 大规模电路
+阶段 4: Master     — 20Q, depth 10-20, 芯片级真实挑战
 """
 
 from __future__ import annotations
@@ -29,12 +34,19 @@ class StageConfig:
     promotion_threshold: float  # 平均 SWAP 数低于此值时升级
 
 
+# 阈值设计原理:
+#   SABRE 在 linear_5 拓扑上的实际表现:
+#     3Q depth 1-2: ~0-1 SWAP   →  阈值 2.0 (宽松，让 warm-up 快速通过)
+#     5Q depth 2-4: ~3-8 SWAP   →  阈值 8.0 (AI 只需达到 SABRE 水平)
+#     5Q depth 4-6: ~5-12 SWAP  →  阈值 12.0
+#    10Q depth 6-10: ~15-25 SWAP → 阈值 25.0
+#    20Q depth 10-20: ~30-60 SWAP → 阈值 50.0
 STAGES = [
-    StageConfig("warm-up",     3,  20, (1, 2), False, 1.5),
-    StageConfig("elementary",  5,  30, (2, 4), True,  4.0),
-    StageConfig("standard",    5,  40, (4, 6), True,  6.0),
-    StageConfig("challenge",  10,  50, (6, 10), True, 12.0),
-    StageConfig("master",     20,  60, (10, 20), True, 25.0),
+    StageConfig("warm-up",     3,  20, (1, 2), False, 2.0),
+    StageConfig("elementary",  5,  30, (2, 4), True,  8.0),
+    StageConfig("standard",    5,  40, (4, 6), True, 12.0),
+    StageConfig("challenge",  10,  50, (6, 10), True, 25.0),
+    StageConfig("master",     20,  60, (10, 20), True, 50.0),
 ]
 
 
@@ -60,18 +72,24 @@ def build_stage_circuits(stage: int, seed: int = 42) -> list[QuantumCircuit]:
 
 
 class CurriculumScheduler:
-    """自适应课程调度器。
+    """自适应课程调度器 V7.1。
 
-    基于滑动窗口平均 SWAP 数来决定是否升级到下一阶段。
+    改进：
+    - 基于 SABRE 基线的合理阈值
+    - 自动宽限机制：如果在某阶段停留过久 (>patience ep)，自动放宽阈值 20%
+    - 滑动窗口平均 SWAP 数来决定是否升级
     """
 
-    def __init__(self, window_size: int = 50, min_episodes_per_stage: int = 500):
+    def __init__(self, window_size: int = 50, min_episodes_per_stage: int = 300,
+                 promotion_patience: int = 5000):
         self.current_stage = 0
         self.window_size = window_size
         self.min_episodes_per_stage = min_episodes_per_stage
+        self.promotion_patience = promotion_patience
         self._swap_history: list[float] = []
         self._stage_episode_count = 0
         self._circuits = build_stage_circuits(0)
+        self._relaxation_factor = 1.0  # 阈值放宽因子
 
     @property
     def stage_config(self) -> StageConfig:
@@ -100,10 +118,17 @@ class CurriculumScheduler:
         if len(self._swap_history) < self.window_size:
             return False
 
-        recent_avg = sum(self._swap_history[-self.window_size:]) / self.window_size
-        threshold = self.stage_config.promotion_threshold
+        # 自动宽限：如果卡住太久，逐步放宽阈值
+        if self._stage_episode_count > self.promotion_patience:
+            self._relaxation_factor = 1.0 + 0.2 * (
+                (self._stage_episode_count - self.promotion_patience) / self.promotion_patience
+            )
+            self._relaxation_factor = min(self._relaxation_factor, 2.0)  # 最多放宽 2 倍
 
-        if recent_avg <= threshold:
+        recent_avg = sum(self._swap_history[-self.window_size:]) / self.window_size
+        effective_threshold = self.stage_config.promotion_threshold * self._relaxation_factor
+
+        if recent_avg <= effective_threshold:
             return self._promote()
 
         return False
@@ -113,5 +138,6 @@ class CurriculumScheduler:
         self.current_stage += 1
         self._swap_history.clear()
         self._stage_episode_count = 0
+        self._relaxation_factor = 1.0  # 重置宽限
         self._circuits = build_stage_circuits(self.current_stage)
         return True

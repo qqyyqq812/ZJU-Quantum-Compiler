@@ -41,7 +41,7 @@ class QuantumRoutingEnv(gym.Env):
         reward_done: float = 10.0,
         distance_reward_coef: float = 0.5,
         lookahead_coef: float = 0.2,
-        max_steps: int = 200,
+        max_steps: int = 500,
         initial_mapping_fn=None,
     ):
         super().__init__()
@@ -137,7 +137,7 @@ class QuantumRoutingEnv(gym.Env):
             executed = len(executed_gates)
             if executed > 0:
                 reward += executed * self.reward_gate
-                reward -= self._compute_crosstalk_penalty(executed_gates)
+                # reward -= self._compute_crosstalk_penalty(executed_gates)  # V7.1: 暂禁，先学基本路由
             else:
                 reward += self.penalty_useless_pass
             self._total_gates_executed += executed
@@ -151,7 +151,7 @@ class QuantumRoutingEnv(gym.Env):
             executed = len(executed_gates)
             self._total_gates_executed += executed
             reward += executed * self.reward_gate
-            reward -= self._compute_crosstalk_penalty(executed_gates)
+            # reward -= self._compute_crosstalk_penalty(executed_gates)  # V7.1: 暂禁，先学基本路由
 
         # 距离缩减奖励 (前沿 + look-ahead)
         dist_after = self._compute_front_distance()

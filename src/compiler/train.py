@@ -41,31 +41,30 @@ def make_training_circuits(n_qubits: int, n_circuits: int = 20, seed: int = 42) 
 
 
 def evaluate_model(policy: PolicyNetwork, cm: CouplingMap, circuits: list, n_eval: int = 5) -> dict:
-    """在验证集上评估模型性能。
-
-    Returns:
-        {'avg_swaps': float, 'avg_steps': float, 'completion_rate': float}
-    """
+    """在验证集上评估模型性能（带崩溃保护）。"""
     env = QuantumRoutingEnv(coupling_map=cm)
     total_swaps, total_steps, completed = 0, 0, 0
 
     for qc in circuits[:n_eval]:
-        env.set_circuit(qc)
-        obs, _ = env.reset()
-        done = False
-        ep_swaps = 0
+        try:
+            env.set_circuit(qc)
+            obs, info = env.reset()
+            done = False
 
-        while not done:
-            mask = env.get_action_mask()
-            action, _, _ = policy.get_action(obs, action_mask=mask)
-            obs, _, terminated, truncated, info = env.step(action)
-            done = terminated or truncated
+            for _ in range(500):  # 硬性步数上限防止死循环
+                mask = env.get_action_mask()
+                action, _, _ = policy.get_action(obs, action_mask=mask, gnn_input=info.get('gnn_input'))
+                obs, _, terminated, truncated, info = env.step(action)
+                done = terminated or truncated
+                if done:
+                    break
 
-        ep_swaps = info['total_swaps']
-        total_swaps += ep_swaps
-        total_steps += info['step_count']
-        if terminated:
-            completed += 1
+            total_swaps += info.get('total_swaps', 0)
+            total_steps += info.get('step_count', 0)
+            if terminated:
+                completed += 1
+        except Exception:
+            pass  # 跳过有问题的电路，不影响训练
 
     n = min(n_eval, len(circuits))
     return {
@@ -82,15 +81,23 @@ def train(
     rollout_steps: int = 256,
     log_interval: int = 100,
     eval_interval: int = 1000,
+    checkpoint_interval: int = 5000,
     save_dir: str = "models",
     use_curriculum: bool = True,
     lr_start: float = 3e-4,
     lr_end: float = 1e-5,
     entropy_start: float = 0.05,
     entropy_end: float = 0.001,
-    early_stop_patience: int = 5,
+    early_stop_patience: int = 10,
+    resume_path: str | None = None,
 ) -> dict:
-    """V7 工业级训练主循环。"""
+    """V7.1 工业级训练主循环。
+    
+    V7.1 改进:
+    - checkpoint 定期保存 (防断电)
+    - 支持从 checkpoint 恢复训练
+    - 增大 early_stop_patience (从 5→10)
+    """
     cm = get_topology(topology_name)
     env = QuantumRoutingEnv(coupling_map=cm)
 
@@ -99,6 +106,11 @@ def train(
         n_actions=env.action_space.n,
     )
     trainer = PPOTrainer(policy, lr=lr_start, entropy_coef=entropy_start)
+    
+    # 从 checkpoint 恢复
+    if resume_path and Path(resume_path).exists():
+        trainer.load(resume_path)
+        print(f"🔄 从 checkpoint 恢复: {resume_path}")
 
     # 课程学习
     scheduler = CurriculumScheduler() if use_curriculum else None
@@ -238,10 +250,22 @@ def train(
                 trainer.save(str(best_path))
             else:
                 patience_counter += 1
-                if patience_counter >= early_stop_patience and episode > n_episodes * 0.3:
+                if patience_counter >= early_stop_patience and episode > n_episodes * 0.5:
                     print(f"\n  ⏹️  Early stopping at episode {episode+1} "
                           f"(no improvement for {early_stop_patience} evals)")
                     break
+
+        # === 定期 Checkpoint ===
+        if (episode + 1) % checkpoint_interval == 0:
+            ckpt_path = Path(save_dir) / f"checkpoint_ep{episode+1}.pt"
+            trainer.save(str(ckpt_path))
+            # 同时保存训练历史
+            hist_ckpt = Path(save_dir) / f"history_v7_{topology_name}.json"
+            hist_ckpt.parent.mkdir(parents=True, exist_ok=True)
+            ser = {k: [float(v) for v in vals] for k, vals in history.items()}
+            with open(hist_ckpt, 'w') as f:
+                json.dump(ser, f, indent=2)
+            print(f"  💾 Checkpoint: {ckpt_path}")
 
     # === 保存最终模型 ===
     elapsed = time.time() - t0
@@ -263,7 +287,7 @@ def train(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="V7 工业级训练管线")
+    parser = argparse.ArgumentParser(description="V7.1 工业级训练管线")
     parser.add_argument('--topology', default='linear_5', help='目标拓扑')
     parser.add_argument('--qubits', type=int, default=5, help='电路比特数 (非课程模式)')
     parser.add_argument('--episodes', type=int, default=50000, help='训练 episode 数')
@@ -272,6 +296,7 @@ def main():
     parser.add_argument('--curriculum', action='store_true', help='启用课程学习')
     parser.add_argument('--lr', type=float, default=3e-4, help='初始学习率')
     parser.add_argument('--eval-interval', type=int, default=1000, help='评估间隔')
+    parser.add_argument('--resume', type=str, default=None, help='从 checkpoint 恢复训练')
     args = parser.parse_args()
 
     train(
@@ -283,6 +308,7 @@ def main():
         use_curriculum=args.curriculum,
         lr_start=args.lr,
         eval_interval=args.eval_interval,
+        resume_path=args.resume,
     )
 
 

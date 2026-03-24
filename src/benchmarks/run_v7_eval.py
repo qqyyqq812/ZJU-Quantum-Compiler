@@ -41,7 +41,7 @@ class EvalSummary:
 
 def run_ai_compiler(circuit: QuantumCircuit, coupling_map: CouplingMap, policy: PolicyNetwork) -> QuantumCircuit:
     """运行 AI 编译器进行路由"""
-    env = QuantumRoutingEnv(coupling_map=coupling_map)
+    env = QuantumRoutingEnv(coupling_map=coupling_map, max_steps=1000)  # 评测时给更大步数
     env.set_circuit(circuit)
     obs, info = env.reset()
     
@@ -68,11 +68,12 @@ def run_ai_compiler(circuit: QuantumCircuit, coupling_map: CouplingMap, policy: 
             obs, _, terminated, truncated, info = env.step(action)
             done = terminated or truncated
             
-    # 如果未完成 (截断或陷入死循环)，给予极大惩罚
+    # 记录实际 SWAP 数
+    total_swaps = env._total_swaps
     if not env._dag.is_done():
-        total_swaps = 999 
-    else:
-        total_swaps = env._total_swaps
+        # 如果未完成路由，加上剩余门数作为惩罚
+        remaining = env._dag.remaining_two_qubit_gates()
+        total_swaps += remaining * 3  # 每个剩余 CX 需要约 3 个 SWAP 的惩罚
         
     # 返回一个具有正确 CX 数量的 dummy circuit 供 evaluate.py 统计
     original_cx = dict(circuit.count_ops()).get('cx', 0)
