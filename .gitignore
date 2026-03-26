@@ -27,6 +27,9 @@ models/v7_linear_5_best.pt
 # Agent 配置 (不需要上传)
 .agent/
 
+# 交接文档 (内部使用)
+docs/handover/
+
 # 临时文件
 sandbox/
 nohup.out
