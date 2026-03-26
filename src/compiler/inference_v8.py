@@ -305,18 +305,25 @@ def compile_greedy(
 # ─── CLI 入口 ─── #
 
 def load_policy(model_path: str, topology_name: str = "linear_5") -> PolicyNetwork:
-    """加载模型。"""
+    """加载模型（自动检测 obs_dim，兼容 V7/V8/V9）。"""
     cm = get_topology(topology_name)
     env = QuantumRoutingEnv(coupling_map=cm)
+
+    # 自动从 checkpoint 推断 obs_dim（兼容新旧格式）
+    ckpt = torch.load(model_path, map_location="cpu", weights_only=False)
+    if isinstance(ckpt, dict) and 'model_state' in ckpt:
+        state_dict = ckpt['model_state']
+    else:
+        state_dict = ckpt
+    obs_dim = state_dict['obs_encoder.0.weight'].shape[1]
+
     policy = PolicyNetwork(
-        obs_dim=env.observation_space.shape[0],
+        obs_dim=obs_dim,
         n_actions=env.action_space.n,
     )
-    policy.load_state_dict(
-        torch.load(model_path, map_location="cpu", weights_only=True)
-    )
+    policy.load_state_dict(state_dict)
     policy.eval()
-    return policy
+    return policy, obs_dim
 
 
 def run_ablation(model_path: str, topology_name: str = "linear_5"):
@@ -326,7 +333,7 @@ def run_ablation(model_path: str, topology_name: str = "linear_5"):
     )
     
     cm = get_topology(topology_name)
-    policy = load_policy(model_path, topology_name)
+    policy, obs_dim = load_policy(model_path, topology_name)
     
     circuits = [
         ("random_5_d2", generate_random(5, depth=2, seed=42)),
