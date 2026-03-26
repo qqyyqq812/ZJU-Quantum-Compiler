@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Router V9 — AI-Powered Compilation Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --bg:#05050a;--glass:rgba(18,20,32,.55);--border:rgba(255,255,255,.07);
+            --cyan:#00f0ff;--purple:#8a2be2;--green:#00ff88;--red:#ff3366;
+            --txt:#f0f2f8;--muted:#7b8da6;
+        }
+        body{font-family:'Outfit',sans-serif;background:radial-gradient(ellipse at 50% -10%,#1a103c 0%,var(--bg) 55%);color:var(--txt);min-height:100vh;overflow-x:hidden}
+
+        /* ── Header ── */
+        header{display:flex;justify-content:space-between;align-items:center;padding:1.2rem 3rem;border-bottom:1px solid var(--border);background:rgba(5,5,10,.85);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100}
+        .logo{font-size:1.6rem;font-weight:800;background:linear-gradient(90deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .tour-btns{display:flex;gap:.8rem}
+        .tbtn{padding:.55rem 1.1rem;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);font-family:inherit;font-weight:600;cursor:pointer;transition:.25s}
+        .tbtn:hover{transform:translateY(-2px);box-shadow:0 0 18px rgba(0,240,255,.25)}
+        .tbtn-noob{color:var(--cyan);border-color:rgba(0,240,255,.3)}
+        .tbtn-geek{color:#d896ff;border-color:rgba(138,43,226,.3)}
+
+        /* ── Glass Panel ── */
+        .glass{background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:16px;padding:2rem;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+
+        /* ── Dashboard Grid ── */
+        .dash{display:grid;grid-template-columns:1fr 1.3fr;gap:2rem;padding:2.5rem 3rem;max-width:1600px;margin:0 auto}
+
+        /* ── Preset Cards ── */
+        .preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin:1rem 0 1.5rem}
+        .pcard{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:1.1rem;cursor:pointer;transition:.2s}
+        .pcard:hover,.pcard.active{border-color:var(--cyan);background:rgba(0,240,255,.04);box-shadow:0 0 20px rgba(0,240,255,.08)}
+        .pcard h3{font-size:1.05rem;margin-bottom:.35rem}
+        .pcard p{font-size:.8rem;color:var(--muted)}
+        .pcard .tag{display:inline-block;font-size:.65rem;padding:2px 6px;border-radius:4px;margin-top:.4rem;background:rgba(0,240,255,.1);color:var(--cyan)}
+
+        /* ── Form ── */
+        .fg{margin-bottom:1.2rem}
+        .fg label{display:block;margin-bottom:.4rem;color:var(--muted);font-size:.82rem;text-transform:uppercase;letter-spacing:1px}
+        select{width:100%;padding:.75rem 1rem;background:rgba(0,0,0,.5);border:1px solid var(--border);color:#fff;border-radius:8px;font-family:inherit;font-size:.95rem;outline:none;appearance:none}
+
+        .btn-go{width:100%;padding:1.1rem;font-size:1.05rem;background:linear-gradient(45deg,var(--cyan),var(--purple));color:#fff;border:none;border-radius:12px;font-weight:800;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:.2s;position:relative;overflow:hidden}
+        .btn-go:hover{transform:scale(1.02);box-shadow:0 0 30px rgba(138,43,226,.5)}
+        .btn-go:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+
+        /* ── Metrics ── */
+        .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin-bottom:1.5rem}
+        .mbox{background:rgba(0,0,0,.35);border-radius:12px;padding:1.3rem;text-align:center;border:1px solid var(--border)}
+        .mbox .label{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:.4rem}
+        .mbox .val{font-size:2.8rem;font-weight:800;font-variant-numeric:tabular-nums}
+        .c-red{color:var(--red)}.c-green{color:var(--green);text-shadow:0 0 12px rgba(0,255,136,.35)}.c-cyan{color:var(--cyan)}
+
+        /* ── Loader ── */
+        .loader-wrap{display:none;flex-direction:column;align-items:center;justify-content:center;padding:3rem 0}
+        .loader-wrap.show{display:flex}
+        .spinner{width:44px;height:44px;border:3px solid rgba(0,240,255,.25);border-radius:50%;border-top-color:var(--cyan);animation:spin .8s linear infinite;margin-bottom:1rem}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .load-msg{color:var(--cyan);font-family:'Fira Code',monospace;font-size:.85rem;letter-spacing:1.5px;text-align:center}
+
+        /* ── Console ── */
+        .console{background:#0a0e17;border:1px solid #1e2533;border-radius:10px;padding:1rem 1.2rem;font-family:'Fira Code',monospace;font-size:.78rem;color:#8fc;max-height:260px;overflow-y:auto;white-space:pre-wrap;line-height:1.6;margin-top:1rem}
+        .console:empty::before{content:'// 编译日志将在此实时输出...';color:#3a4a5a}
+
+        /* ── Code Window ── */
+        .code-win{background:#0d1117;border-radius:12px;border:1px solid #30363d;overflow:hidden;margin-top:1rem}
+        .code-hdr{background:#161b22;padding:.5rem 1rem;display:flex;gap:.5rem;align-items:center;border-bottom:1px solid #30363d}
+        .dot{width:11px;height:11px;border-radius:50%}.d-r{background:#ff5f56}.d-y{background:#ffbd2e}.d-g{background:#27c93f}
+        .code-hdr span{margin-left:auto;font-size:.75rem;color:#8b949e;font-family:'Fira Code',monospace}
+        pre{margin:0;padding:1.2rem;font-family:'Fira Code',monospace;font-size:.85rem;color:#c9d1d9;overflow-x:auto;line-height:1.7}
+        .kw{color:#ff7b72}.fn{color:#d2a8ff}.str{color:#a5d6ff}.cm{color:#8b949e;font-style:italic}
+
+        .btn-run{display:inline-flex;align-items:center;gap:.5rem;margin-top:.8rem;padding:.6rem 1.2rem;background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.25);color:var(--green);border-radius:8px;font-family:inherit;font-weight:600;cursor:pointer;transition:.2s}
+        .btn-run:hover{background:rgba(0,255,136,.18);box-shadow:0 0 15px rgba(0,255,136,.3)}
+
+        /* ── Sandbox Console ── */
+        .sandbox-console{background:#0a0e17;border:1px solid #1e2533;border-radius:10px;padding:1rem 1.2rem;font-family:'Fira Code',monospace;font-size:.78rem;color:#8fc;max-height:260px;overflow-y:auto;white-space:pre-wrap;line-height:1.6;margin-top:.8rem;display:none}
+
+        /* ── Mode Badge ── */
+        .mode-badge{display:inline-block;font-size:.7rem;padding:3px 10px;border-radius:20px;margin-left:.8rem;font-weight:400}
+        .mode-live{background:rgba(0,255,136,.12);color:var(--green);border:1px solid rgba(0,255,136,.3)}
+        .mode-demo{background:rgba(255,180,0,.1);color:#ffbd2e;border:1px solid rgba(255,180,0,.25)}
+
+        /* ── Section Title ── */
+        .sec-title{margin-top:0;font-weight:300;letter-spacing:1px;margin-bottom:.3rem}
+        .sec-title strong{font-weight:800}
+
+        /* ── Responsive ── */
+        @media(max-width:900px){.dash{grid-template-columns:1fr}.preset-grid{grid-template-columns:1fr 1fr}}
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">✦ Quantum Router V9</div>
+    <div class="tour-btns">
+        <button class="tbtn tbtn-noob" id="tour-noob" onclick="startNoobTour()">🛸 小白体验专线</button>
+        <button class="tbtn tbtn-geek" id="tour-geek" onclick="startGeekTour()">💻 极客代码直通车</button>
+    </div>
+</header>
+
+<div class="dash">
+
+    <!-- ═══ LEFT: CONFIG ═══ -->
+    <div class="glass" id="step-config">
+        <h2 class="sec-title">Compiler <strong style="color:var(--cyan)">Setup</strong></h2>
+        <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">选择量子算法与目标芯片，体验基于 GNN+PPO 的次世代编译引擎。</p>
+
+        <div class="fg" id="step-presets">
+            <label>一键加载经典 20Q 算法电路</label>
+            <div class="preset-grid">
+                <div class="pcard active" data-alg="qft20" onclick="pick(this)">
+                    <h3>QFT-20</h3><p>量子傅里叶变换</p><span class="tag">高密纠缠</span>
+                </div>
+                <div class="pcard" data-alg="qaoa20" onclick="pick(this)">
+                    <h3>QAOA-20</h3><p>参数化优化算法</p><span class="tag">层式结构</span>
+                </div>
+                <div class="pcard" data-alg="grover20" onclick="pick(this)">
+                    <h3>Grover-20</h3><p>无结构搜索</p><span class="tag">深度 Oracle</span>
+                </div>
+                <div class="pcard" data-alg="random20" onclick="pick(this)">
+                    <h3>Random-20</h3><p>深度随机纠缠图</p><span class="tag">极端压力</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="fg" id="step-topology">
+            <label>Target Hardware Topology</label>
+            <select id="sel-topo">
+                <option value="ibm_tokyo" selected>IBM QX20 (Tokyo) — 20 Qubits</option>
+                <option value="grid_5x4">Grid 5x4 Array (Google) — 20 Qubits</option>
+                <option value="heavy_hex">IBM Heavy Hex — 20 Qubits</option>
+            </select>
+        </div>
+
+        <button class="btn-go" id="btn-compile" onclick="runCompile()">
+            ⚡ Start Topology-Agnostic Routing
+        </button>
+    </div>
+
+    <!-- ═══ RIGHT: RESULTS + CODE ═══ -->
+    <div style="display:flex;flex-direction:column;gap:1.8rem">
+
+        <!-- Results Panel -->
+        <div class="glass" id="step-results">
+            <h2 class="sec-title">Telemetry <strong style="color:var(--green)">Dashboard</strong>
+                <span class="mode-badge mode-demo" id="mode-badge">DEMO 模式</span>
+            </h2>
+
+            <!-- Loader -->
+            <div class="loader-wrap" id="loader">
+                <div class="spinner"></div>
+                <div class="load-msg" id="load-msg">INITIALIZING MTx100 ENGINE...</div>
+            </div>
+
+            <!-- Metrics -->
+            <div class="metrics" id="metrics-area">
+                <div class="mbox"><div class="label">SABRE Overhead</div><div class="val c-red" id="v-sabre">—</div></div>
+                <div class="mbox" id="step-ai"><div class="label">AI Router Overhead</div><div class="val c-green" id="v-ai">—</div></div>
+                <div class="mbox" id="step-ratio"><div class="label">Optimization Ratio</div><div class="val c-cyan" id="v-ratio">—</div></div>
+            </div>
+
+            <!-- Console Log -->
+            <label style="color:var(--muted);font-size:.82rem;text-transform:uppercase;letter-spacing:1px">Engine Log (实时终端)</label>
+            <div class="console" id="eng-console"></div>
+        </div>
+
+        <!-- Python SDK Panel -->
+        <div class="glass" id="step-python">
+            <h2 class="sec-title">Python SDK <strong style="color:#d2a8ff">Integration</strong></h2>
+            <p style="color:var(--muted);font-size:.85rem;margin-bottom:.8rem">V9 架构现已全面支持拓扑无关观测（291 维定长特征）与 MTx100 零拷贝高速推理引擎。</p>
+
+            <div class="code-win" id="code-block">
+                <div class="code-hdr">
+                    <div class="dot d-r"></div><div class="dot d-y"></div><div class="dot d-g"></div>
+                    <span>quickstart_v9.py</span>
+                </div>
+                <pre><code><span class="cm"># 1. 导入 V9 核心组件</span>
+<span class="kw">from</span> src.compiler.inference_v8 <span class="kw">import</span> <span class="fn">load_policy</span>, <span class="fn">compile_multi_trial</span>
+<span class="kw">from</span> src.benchmarks.topologies <span class="kw">import</span> <span class="fn">get_topology</span>
+
+<span class="cm"># 2. 加载模型（自动探测 obs_dim）与 20Q 真实拓扑</span>
+policy, obs_dim = <span class="fn">load_policy</span>(<span class="str">"models/v9_tokyo20/v7_ibm_tokyo_best.pt"</span>)
+cmap = <span class="fn">get_topology</span>(<span class="str">"ibm_tokyo"</span>)
+qc = QuantumCircuit.from_qasm_file(<span class="str">"algorithms/qft_20.qasm"</span>)
+
+<span class="cm"># 3. 💥 启动 MTx100 推理引擎 (Numpy 零拷贝)</span>
+optimized = <span class="fn">compile_multi_trial</span>(qc, policy, cmap, n_trials=100)
+<span class="fn">print</span>(<span class="str">f"Done! Required SWAPs: {optimized.swaps}"</span>)</code></pre>
+            </div>
+
+            <button class="btn-run" id="btn-sandbox" onclick="runSandbox()">▶ 模拟执行以上代码</button>
+            <div class="sandbox-console" id="sandbox-out"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// ═══════════ State ═══════════
+let currentAlg = 'qft20';
+const API_BASE = window.location.port === '' 
+    ? ''  // GitHub Pages: use demo mode
+    : `http://localhost:8765`;  // Local dev: real backend
+const IS_LIVE = API_BASE !== '';
+
+// Show mode badge
+document.getElementById('mode-badge').textContent = IS_LIVE ? 'LIVE 实时推理' : 'DEMO 模式';
+document.getElementById('mode-badge').className = 'mode-badge ' + (IS_LIVE ? 'mode-live' : 'mode-demo');
+
+// ═══════════ Demo Fallback Data (V9 20Q estimates) ═══════════
+const DEMO_DATA = {
+    qft20:    { sabre: 145, ai: 112, ratio: 1.29 },
+    qaoa20:   { sabre:  88, ai:  71, ratio: 1.23 },
+    grover20: { sabre: 162, ai: 135, ratio: 1.20 },
+    random20: { sabre: 195, ai: 158, ratio: 1.23 },
+};
+
+const DEMO_LOG_LINES = [
+    "==================================================",
+    "   QUANTUM ROUTER V9 (GraphSAGE + MTx100 엔진)",
+    "==================================================",
+    "[1/5] Loaded preset '{ALG}': 20 Qubits",
+    "[2/5] Target topology: {TOPO} (43 bidirectional edges)",
+    "[3/5] Running SABRE baseline for reference...",
+    "      SABRE result: {SABRE} SWAPs",
+    "[4/5] Loading V9 Universal Model (obs_dim=291)...",
+    "      Firing MTx100 parallel inference engine (100 trials)...",
+    "      Best AI result: {AI} SWAPs (done=True)",
+    "[5/5] Optimization Ratio: {RATIO}x  (✅ AI OUTPERFORMS HEURISTICS)",
+    "==================================================",
+];
+
+// ═══════════ Card Selection ═══════════
+function pick(el) {
+    document.querySelectorAll('.pcard').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    currentAlg = el.dataset.alg;
+    // Reset display
+    document.getElementById('v-sabre').textContent = '—';
+    document.getElementById('v-ai').textContent = '—';
+    document.getElementById('v-ratio').textContent = '—';
+    document.getElementById('eng-console').textContent = '';
+}
+
+// ═══════════ Number Roll Animation ═══════════
+function rollNumber(el, end, dur, isFloat) {
+    let start = 0, t0 = null;
+    function frame(ts) {
+        if (!t0) t0 = ts;
+        const p = Math.min((ts - t0) / dur, 1);
+        const v = p * (end - start) + start;
+        el.textContent = isFloat ? v.toFixed(2) + 'x' : Math.floor(v);
+        if (p < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+}
+
+// ═══════════ Typewriter Console ═══════════
+function typeConsole(el, lines, delay) {
+    el.textContent = '';
+    let i = 0;
+    function next() {
+        if (i < lines.length) {
+            el.textContent += (i > 0 ? '\n' : '') + lines[i];
+            el.scrollTop = el.scrollHeight;
+            i++;
+            setTimeout(next, delay);
+        }
+    }
+    next();
+}
+
+// ═══════════ Compile ═══════════
+async function runCompile() {
+    const btn = document.getElementById('btn-compile');
+    const loader = document.getElementById('loader');
+    const metricsArea = document.getElementById('metrics-area');
+    const loadMsg = document.getElementById('load-msg');
+    const consoleDom = document.getElementById('eng-console');
+
+    btn.disabled = true;
+    loader.classList.add('show');
+    metricsArea.style.opacity = '0.3';
+    consoleDom.textContent = '';
+
+    const msgs = ["V9 TOPOLOGY-AGNOSTIC ENCODING...", "EXTRACTING 291-DIM FEATURES...", "LAUNCHING 100 PARALLEL ROUTES...", "APPLYING GRAPHSAGE POLICY...", "SELECTING BEST TRAJECTORY..."];
+    let mi = 0;
+    const msgInt = setInterval(() => { if (mi < msgs.length) loadMsg.textContent = msgs[mi++]; }, 350);
+
+    let sabre, ai, ratio, logLines;
+
+    if (IS_LIVE) {
+        // ── Real backend ──
+        try {
+            const topo = document.getElementById('sel-topo').value;
+            const res = await fetch(API_BASE + '/api/compile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ preset: currentAlg, topology: topo })
+            });
+            const data = await res.json();
+            sabre = data.sabre_swap;
+            ai = data.ai_swap;
+            ratio = data.ratio;
+            logLines = data.log.split('\n');
+        } catch (e) {
+            logLines = ["[ERROR] Backend not reachable: " + e.message, "Falling back to DEMO mode..."];
+            const d = DEMO_DATA[currentAlg];
+            sabre = d.sabre; ai = d.ai; ratio = d.ratio;
+        }
+    } else {
+        // ── Demo mode (GitHub Pages) ──
+        await new Promise(r => setTimeout(r, 2000));
+        const d = DEMO_DATA[currentAlg];
+        sabre = d.sabre; ai = d.ai; ratio = d.ratio;
+        const topo = document.getElementById('sel-topo').value;
+        logLines = DEMO_LOG_LINES.map(l => l.replace('{ALG}', currentAlg).replace('{TOPO}', topo)
+            .replace('{SABRE}', sabre).replace('{AI}', ai).replace('{RATIO}', ratio));
+    }
+
+    clearInterval(msgInt);
+    loader.classList.remove('show');
+    metricsArea.style.opacity = '1';
+
+    // Roll numbers
+    rollNumber(document.getElementById('v-sabre'), sabre, 800, false);
+    rollNumber(document.getElementById('v-ai'), ai, 1200, false);
+    rollNumber(document.getElementById('v-ratio'), ratio, 1600, true);
+
+    // Typewriter log
+    typeConsole(consoleDom, logLines, 80);
+
+    btn.disabled = false;
+}
+
+// ═══════════ Sandbox ═══════════
+async function runSandbox() {
+    const out = document.getElementById('sandbox-out');
+    out.style.display = 'block';
+    out.textContent = '$ python3 quickstart_v9.py\n';
+
+    if (IS_LIVE) {
+        try {
+            const res = await fetch(API_BASE + '/api/run_sandbox', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: 'run' })
+            });
+            const data = await res.json();
+            typeConsole(out, data.log.split('\n'), 60);
+        } catch (e) {
+            demoSandbox(out);
+        }
+    } else {
+        demoSandbox(out);
+    }
+}
+
+function demoSandbox(out) {
+    const lines = [
+        "$ python3 quickstart_v9.py",
+        ">>> from src.compiler.inference_v8 import load_policy, compile_multi_trial",
+        ">>> policy, obs_dim = load_policy('v7_ibm_tokyo_best.pt')",
+        "[AIRouter V9] Detected model obs_dim = 291",
+        ">>> from src.benchmarks.topologies import get_topology",
+        ">>> cmap = get_topology('ibm_tokyo')",
+        "[Topology] Loaded IBM QX20. Num edges: 43",
+        ">>> qc = QuantumCircuit.from_qasm_file('algorithms/qft_20.qasm')",
+        ">>> optimized = compile_multi_trial(qc, policy, cmap, n_trials=100)",
+        "[MTx100 Engine] Booting pure Numpy zero-copy environment...",
+        "[MTx100 Engine] Generating 100 random initial mappings...",
+        "[MTx100 Engine] 100 trajectories executing in parallel...",
+        "[MTx100 Engine] Trajectory #42 finished best. SWAPs: 112",
+        ">>> print(f'Done! Required SWAPs: {optimized.swaps}')",
+        "Done! Required SWAPs: 112 (SABRE baseline: 145)"
+    ];
+    typeConsole(out, lines, 80);
+}
+
+// ═══════════ TOURS ═══════════
+const driverFn = window.driver.js.driver;
+
+function startNoobTour() {
+    const t = driverFn({
+        showProgress: true, animate: true, doneBtnText: '完全懂了！', closeBtnText: '关闭', nextBtnText: '下一步', prevBtnText: '上一步',
+        steps: [
+            { popover: { title: '🛸 欢迎搭乘体验号！', description: '您将以上帝视角体验真实的 AI 量子电路编译器。不需要背景储备，准备好了吗？' } },
+            { element: '#step-presets', popover: { title: '① 20Q 工业级电路', description: 'V9 版本直接挑战 IBM Tokyo 20 比特物理核心！我们为您准备了 QFT、QAOA 等真实量子算法。', side: 'right' } },
+            { element: '#step-topology', popover: { title: '② 真实芯片模型', description: 'IBM QX20, Google Sycamore 环... 您可以在这些受限微观世界中测试 AI 怎么突围。', side: 'bottom' } },
+            { element: '#btn-compile', popover: { title: '③ 释放 AI 算力', description: '点击后，V9 引擎将利用 100 条并行推理链（MTx100）与强化学习模型，找出打败经典启发式的最优路由解。', side: 'top' } },
+            { element: '#step-results', popover: { title: '④ 战报一览', description: '红色是经典 SABRE 算法的搬运次数，绿色是 AI 的次数。比率 >1 意味着 AI 成功降低了芯片负载！', side: 'left' } },
+            { element: '#eng-console', popover: { title: '⑤ 透明内核引擎', description: '底层的矩阵推演过程将在这里实时输出。这就是为什么它跑得这么快。', side: 'top' } },
+            { popover: { title: '🎉 恭喜通关！', description: '您已了解了这个前沿工具的作用！想深入代码？点右上角的极客专线吧。' } }
+        ]
+    });
+    t.drive();
+}
+
+function startGeekTour() {
+    const t = driverFn({
+        showProgress: true, animate: true, doneBtnText: '开始 coding！', closeBtnText: '关闭', nextBtnText: '下一步', prevBtnText: '上一步',
+        steps: [
+            { element: '#step-python', popover: { title: '💻 API & SDK', description: '这部分展示如何把 AI 编译器融合进您的本地项目。最新版 V9 已支持定长拓扑无关观测向量。', side: 'top' } },
+            { element: '#code-block', popover: { title: 'V9 调用黑科技', description: '<strong>load_policy</strong> 会自动向下兼容 91维 或匹配最新 291维 模型。<br>重点在第三行 <strong>compile_multi_trial</strong>，这是我们抛弃了慢速深度拷贝后构建的独立高性能引擎。', side: 'left' } },
+            { element: '#btn-sandbox', popover: { title: '离线沙盒预测', description: '无需真实环境，点击立刻跑一把虚拟沙盒，看看背后引擎吐出的 Python 字典与日志结构。', side: 'top' } }
+        ]
+    });
+    t.drive();
+}
+</script>
+</body>
+</html>
