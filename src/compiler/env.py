@@ -41,8 +41,9 @@ class QuantumRoutingEnv(gym.Env):
         reward_done: float = 10.0,
         distance_reward_coef: float = 0.5,
         lookahead_coef: float = 0.2,
-        max_steps: int = 500,
+        max_steps: int = 2000,
         initial_mapping_fn=None,
+        soft_mask: bool = False,
     ):
         super().__init__()
 
@@ -56,6 +57,7 @@ class QuantumRoutingEnv(gym.Env):
         self.lookahead_coef = lookahead_coef
         self.max_steps = max_steps
         self.initial_mapping_fn = initial_mapping_fn
+        self.soft_mask = soft_mask
 
         # 预计算距离矩阵
         self._dist_matrix = np.zeros((self.n_physical, self.n_physical), dtype=np.float32)
@@ -77,15 +79,18 @@ class QuantumRoutingEnv(gym.Env):
         self.n_actions = self.n_swap_actions + 1
         self.action_space = spaces.Discrete(self.n_actions)
 
-        # Observation
+        # Observation — V9 拓扑无关编码
+        # 固定维度：不依赖 N 的大小，5Q 和 20Q 使用同一 obs_dim
         self._max_front_gates = 20
-        obs_dim = (self.n_physical * self.n_physical +  # 映射矩阵
-                   self.n_physical * self.n_physical +  # 前沿 mask
-                   self._max_front_gates +               # 前沿门距离
-                   self._max_front_gates +               # V3: look-ahead 距离
-                   1)                                    # 进度
+        self._max_swap_edges = 60  # 20Q 拓扑约有 36 条 SWAP 边，余量至 60
+        # obs = [per_edge_features(MAX_EDGES*4) + front_dist(MAX_FRONT) + ext_dist(MAX_FRONT) + stats(10) + progress(1)]
+        obs_dim = (self._max_swap_edges * 4 +   # 每条 SWAP 边 4 维特征
+                   self._max_front_gates +        # 前沿门距离
+                   self._max_front_gates +        # look-ahead 距离
+                   10 +                            # 聚合统计量
+                   1)                              # 进度
         self.observation_space = spaces.Box(
-            low=-1.0, high=float(self.n_physical), shape=(obs_dim,), dtype=np.float32
+            low=-10.0, high=100.0, shape=(obs_dim,), dtype=np.float32
         )
 
         # 内部状态
@@ -198,15 +203,24 @@ class QuantumRoutingEnv(gym.Env):
 
         # 对每条 SWAP 边: 检查是否能缩短任何前沿门距离
         for i, (s1, s2) in enumerate(self.swap_edges):
+            best_delta = float('inf')  # 最佳距离变化
             for p0, p1 in front_pairs:
                 d_now = self._dist_matrix[p0][p1]
                 # 模拟 SWAP(s1, s2) 后的新位置
                 new_p0 = s2 if p0 == s1 else (s1 if p0 == s2 else p0)
                 new_p1 = s2 if p1 == s1 else (s1 if p1 == s2 else p1)
                 d_after = self._dist_matrix[new_p0][new_p1]
-                if d_after < d_now:
+                delta = d_after - d_now
+                best_delta = min(best_delta, delta)
+            
+            if self.soft_mask:
+                # V8 Soft Mask: 允许距离增加不超过 1 的 SWAP
+                if best_delta <= 1:
                     mask[i] = 1.0
-                    break  # 只需缩减一个门的距离就保留
+            else:
+                # V7 Hard Mask: 只保留严格缩短距离的 SWAP
+                if best_delta < 0:
+                    mask[i] = 1.0
 
         # 如果没有有用的 SWAP（所有前沿门已可执行），只留 PASS
         if mask[:self.n_swap_actions].sum() == 0:
@@ -238,39 +252,30 @@ class QuantumRoutingEnv(gym.Env):
         return total
 
     def _get_obs(self) -> np.ndarray:
+        """V9 拓扑无关观测编码。
+        
+        核心思想：用 SWAP 边为锚点编码局部距离差分特征，实现观测维度与 N 无关。
+        """
         n = self.n_physical
 
-        mapping_matrix = np.zeros((n, n), dtype=np.float32)
-        for log, phys in self._mapping.items():
-            if log < n and phys < n:
-                mapping_matrix[log][phys] = 1.0
-
-        front_matrix = np.zeros((n, n), dtype=np.float32)
-        if self._dag is not None:
-            for gate in self._dag.get_two_qubit_front():
-                p0 = self._mapping.get(gate.qubits[0], gate.qubits[0])
-                p1 = self._mapping.get(gate.qubits[1], gate.qubits[1])
-                if p0 < n and p1 < n:
-                    front_matrix[p0][p1] = 1.0
-                    front_matrix[p1][p0] = 1.0
-
-        # 前沿门距离
+        # --- 1. 前沿门距离 ---
+        two_q_front = self._dag.get_two_qubit_front() if self._dag else []
         distances = np.zeros(self._max_front_gates, dtype=np.float32)
-        if self._dag is not None:
-            for i, gate in enumerate(self._dag.get_two_qubit_front()):
-                if i >= self._max_front_gates:
-                    break
-                p0 = self._mapping.get(gate.qubits[0], gate.qubits[0])
-                p1 = self._mapping.get(gate.qubits[1], gate.qubits[1])
-                if p0 < n and p1 < n:
-                    distances[i] = self._dist_matrix[p0][p1]
+        front_pairs = []  # (p0, p1) 物理比特对
+        for i, gate in enumerate(two_q_front):
+            if i >= self._max_front_gates:
+                break
+            p0 = self._mapping.get(gate.qubits[0], gate.qubits[0])
+            p1 = self._mapping.get(gate.qubits[1], gate.qubits[1])
+            if p0 < n and p1 < n:
+                distances[i] = self._dist_matrix[p0][p1]
+                front_pairs.append((p0, p1))
 
-        # V3: look-ahead 距离
+        # --- 2. Look-ahead 距离 ---
         ext_distances = np.zeros(self._max_front_gates, dtype=np.float32)
         if self._dag is not None:
             extended = self._dag.get_extended_front(depth=2)
-            # 跳过前沿已有的，只取后续层
-            front_ids = {g.gate_id for g in self._dag.get_two_qubit_front()}
+            front_ids = {g.gate_id for g in two_q_front}
             j = 0
             for gate in extended:
                 if gate.gate_id in front_ids:
@@ -283,13 +288,48 @@ class QuantumRoutingEnv(gym.Env):
                     ext_distances[j] = self._dist_matrix[p0][p1]
                 j += 1
 
+        # --- 3. 每条 SWAP 边的特征 (4维/边) ---
+        # [best_delta, worst_delta, mean_delta, n_improved]
+        edge_features = np.zeros(self._max_swap_edges * 4, dtype=np.float32)
+        for idx, (s1, s2) in enumerate(self.swap_edges):
+            if idx >= self._max_swap_edges:
+                break
+            if not front_pairs:
+                continue
+            deltas = []
+            for p0, p1 in front_pairs:
+                d_now = self._dist_matrix[p0][p1]
+                new_p0 = s2 if p0 == s1 else (s1 if p0 == s2 else p0)
+                new_p1 = s2 if p1 == s1 else (s1 if p1 == s2 else p1)
+                d_after = self._dist_matrix[new_p0][new_p1]
+                deltas.append(d_after - d_now)
+            base = idx * 4
+            edge_features[base + 0] = min(deltas)                        # best delta
+            edge_features[base + 1] = max(deltas)                        # worst delta
+            edge_features[base + 2] = sum(deltas) / len(deltas)          # mean delta
+            edge_features[base + 3] = sum(1 for d in deltas if d < 0)    # n_improved
+
+        # --- 4. 聚合统计量 (10维固定) ---
+        stats = np.zeros(10, dtype=np.float32)
+        valid_dists = distances[distances > 0]
+        stats[0] = len(front_pairs)                               # num_front_gates
+        stats[1] = float(np.sum(valid_dists)) if len(valid_dists) > 0 else 0  # sum_dist
+        stats[2] = float(np.mean(valid_dists)) if len(valid_dists) > 0 else 0 # mean_dist
+        stats[3] = float(np.max(valid_dists)) if len(valid_dists) > 0 else 0  # max_dist
+        stats[4] = float(np.min(valid_dists)) if len(valid_dists) > 0 else 0  # min_dist
+        stats[5] = len(self.swap_edges)                            # num_swap_edges
+        stats[6] = self.n_physical                                  # n_physical
+        stats[7] = self._total_swaps                                # total_swaps_so_far
+        stats[8] = self._step_count                                 # steps_taken
+        stats[9] = self._dag.remaining_two_qubit_gates() if self._dag else 0  # remaining_2q
+
+        # --- 5. 进度 ---
         progress = np.array([
             self._dag.remaining_gates() / max(self._total_gates, 1)
         ], dtype=np.float32) if self._dag else np.zeros(1, dtype=np.float32)
 
         obs = np.concatenate([
-            mapping_matrix.flatten(), front_matrix.flatten(),
-            distances, ext_distances, progress,
+            edge_features, distances, ext_distances, stats, progress,
         ])
 
         expected = self.observation_space.shape[0]

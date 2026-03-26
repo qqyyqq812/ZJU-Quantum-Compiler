@@ -11,3 +11,22 @@ build/
 .DS_Store
 *.swp
 *.swo
+
+# 模型文件 (仅保留 best 模型, 排除 checkpoint 和历史)
+models/*/checkpoint_*.pt
+models/*/history_*.json
+models/smoke_*/
+models/v7_local/
+models/v7_full/
+models/v7_final/
+models/history_*.json
+models/router_*.pt
+models/v7_linear_5.pt
+models/v7_linear_5_best.pt
+
+# Agent 配置 (不需要上传)
+.agent/
+
+# 临时文件
+sandbox/
+nohup.out

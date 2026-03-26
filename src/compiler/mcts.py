@@ -85,20 +85,20 @@ class RouterMCTS:
             gnn_input = root.state_info.get('gnn_input')
             
             # evaluate 返回 action, log_prob, entropy, values
-            # 直接使用 PPO 的 actor logits 计算 probs
-            obs_t = torch.tensor(initial_obs, dtype=torch.float32).unsqueeze(0)
+            obs_t = torch.FloatTensor(initial_obs).unsqueeze(0)
             
-            if self.policy.use_gnn and gnn_input is not None:
+            if gnn_input is not None and 'graph' in gnn_input:
                 from torch_geometric.data import Batch
-                d_b = Batch.from_data_list([gnn_input['dag']])
-                c_b = Batch.from_data_list([gnn_input['coupling']])
-                gnn_feat = self.policy.gnn(d_b, c_b)
-                obs_t = torch.cat([obs_t, gnn_feat], dim=-1)
-            features = self.policy.shared(obs_t)
-            logits = self.policy.actor(features)
-            value = self.policy.critic(features).squeeze(-1)
+                d_b = Batch.from_data_list([gnn_input['graph']])
+                edges = [gnn_input['swap_edges']]
+                dist, values = self.policy.forward(obs_t, d_b, edges)
+                logits = dist.logits
+                v_t = values
+            else:
+                logits = torch.zeros((1, self.policy.n_actions))
+                v_t = torch.zeros(1)
             
-            mask_t = torch.tensor(action_mask, dtype=torch.float32).unsqueeze(0)
+            mask_t = torch.FloatTensor(action_mask).unsqueeze(0)
             logits = logits.masked_fill(mask_t == 0, -1e8)
             probs = torch.softmax(logits, dim=-1)[0].numpy()
             
@@ -133,18 +133,20 @@ class RouterMCTS:
                     obs_t = torch.tensor(node.state_obs, dtype=torch.float32).unsqueeze(0)
                     gnn_input = node.state_info.get('gnn_input')
                     
-                    if self.policy.use_gnn and gnn_input is not None:
+                    if gnn_input is not None and 'graph' in gnn_input:
                         from torch_geometric.data import Batch
-                        d_b = Batch.from_data_list([gnn_input['dag']])
-                        c_b = Batch.from_data_list([gnn_input['coupling']])
-                        gnn_feat = self.policy.gnn(d_b, c_b)
-                        obs_t = torch.cat([obs_t, gnn_feat], dim=-1)
-                    features = self.policy.shared(obs_t)
-                    logits = self.policy.actor(features)
-                    v_t = self.policy.critic(features).squeeze(-1)
+                        d_b = Batch.from_data_list([gnn_input['graph']])
+                        edges = [gnn_input['swap_edges']]
+                        dist, values = self.policy.forward(obs_t, d_b, edges)
+                        logits = dist.logits
+                        v_t = values
+                    else:
+                        logits = torch.zeros((1, self.policy.n_actions))
+                        v_t = torch.zeros(1)
+                    
                     value = v_t.item()
                     
-                    mask_t = torch.tensor(action_mask, dtype=torch.float32).unsqueeze(0)
+                    mask_t = torch.FloatTensor(action_mask).unsqueeze(0)
                     logits = logits.masked_fill(mask_t == 0, -1e8)
                     probs = torch.softmax(logits, dim=-1)[0].numpy()
                     

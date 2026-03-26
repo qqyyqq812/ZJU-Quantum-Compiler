@@ -72,15 +72,15 @@ def build_stage_circuits(stage: int, seed: int = 42) -> list[QuantumCircuit]:
 
 
 class CurriculumScheduler:
-    """自适应课程调度器 V7.1。
+    """自适应课程调度器 V7.2。
 
-    改进：
-    - 基于 SABRE 基线的合理阈值
-    - 自动宽限机制：如果在某阶段停留过久 (>patience ep)，自动放宽阈值 20%
-    - 滑动窗口平均 SWAP 数来决定是否升级
+    V7.2 修复：
+    - 拓扑感知：根据物理比特数自动限制最大课程阶段
+    - 防止 5Q 拓扑上升级到 10Q/20Q 课程（会导致 truncated 假升级）
     """
 
-    def __init__(self, window_size: int = 50, min_episodes_per_stage: int = 300,
+    def __init__(self, max_n_qubits: int = 5, window_size: int = 50,
+                 min_episodes_per_stage: int = 300,
                  promotion_patience: int = 5000):
         self.current_stage = 0
         self.window_size = window_size
@@ -89,7 +89,14 @@ class CurriculumScheduler:
         self._swap_history: list[float] = []
         self._stage_episode_count = 0
         self._circuits = build_stage_circuits(0)
-        self._relaxation_factor = 1.0  # 阈值放宽因子
+        self._relaxation_factor = 1.0
+        
+        # 拓扑感知：计算最大可用阶段
+        self._max_stage = 0
+        for i, stage in enumerate(STAGES):
+            if stage.n_qubits <= max_n_qubits:
+                self._max_stage = i
+        print(f"   拓扑限制: {max_n_qubits}Q → 最大课程阶段 {self._max_stage} ({STAGES[self._max_stage].name})")
 
     @property
     def stage_config(self) -> StageConfig:
@@ -101,7 +108,7 @@ class CurriculumScheduler:
 
     @property
     def is_final_stage(self) -> bool:
-        return self.current_stage >= len(STAGES) - 1
+        return self.current_stage >= self._max_stage
 
     def report_episode(self, n_swaps: int) -> bool:
         """报告一个 episode 的 SWAP 数，返回是否刚发生了阶段升级。"""
