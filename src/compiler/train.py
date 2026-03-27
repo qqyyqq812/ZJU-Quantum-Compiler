@@ -40,9 +40,9 @@ def make_training_circuits(n_qubits: int, n_circuits: int = 20, seed: int = 42) 
     return circuits
 
 
-def evaluate_model(policy: PolicyNetwork, cm: CouplingMap, circuits: list, n_eval: int = 5) -> dict:
+def evaluate_model(policy: PolicyNetwork, cm: CouplingMap, circuits: list, n_eval: int = 5, soft_mask: bool = False, tabu_size: int = 0) -> dict:
     """在验证集上评估模型性能（带崩溃保护）。"""
-    env = QuantumRoutingEnv(coupling_map=cm)
+    env = QuantumRoutingEnv(coupling_map=cm, soft_mask=soft_mask, tabu_size=tabu_size)
     total_swaps, total_steps, completed = 0, 0, 0
 
     for qc in circuits[:n_eval]:
@@ -97,6 +97,7 @@ def train(
     distance_reward_coef: float = 0.5,
     random_mapping: bool = False,
     soft_mask: bool = False,
+    tabu_size: int = 4,
 ) -> dict:
     """V7.1 工业级训练主循环。
     
@@ -124,6 +125,7 @@ def train(
         distance_reward_coef=distance_reward_coef,
         initial_mapping_fn=_random_mapping_fn if random_mapping else None,
         soft_mask=soft_mask,
+        tabu_size=tabu_size,
     )
     if reward_gate != 1.0 or penalty_swap != -0.5:
         print(f"   V8 奖励: gate={reward_gate}, swap={penalty_swap}, done={reward_done}, dist={distance_reward_coef}")
@@ -294,7 +296,7 @@ def train(
 
         # === 定期评估 ===
         if (episode + 1) % eval_interval == 0:
-            eval_result = evaluate_model(policy, cm, eval_circuits)
+            eval_result = evaluate_model(policy, cm, eval_circuits, soft_mask=soft_mask, tabu_size=tabu_size)
             history['eval_swaps'].append(eval_result['avg_swaps'])
             history['eval_completion'].append(eval_result['completion_rate'])
             print(f"  📊 EVAL: avg_swap={eval_result['avg_swaps']:.1f} "
@@ -372,6 +374,8 @@ def main():
     parser.add_argument('--distance-coef', type=float, default=0.5, help='距离缩减奖励系数')
     parser.add_argument('--random-mapping', action='store_true', help='每 episode 随机初始映射')
     parser.add_argument('--soft-mask', action='store_true', help='V8 放宽 action mask')
+    parser.add_argument('--tabu-size', type=int, default=4, help='在 soft-mask 下的防止震荡记忆长度')
+    parser.add_argument('--checkpoint-interval', type=int, default=5000, help='保存模型状态的频率(episodes)')
     args = parser.parse_args()
 
     train(
@@ -390,6 +394,8 @@ def main():
         distance_reward_coef=args.distance_coef,
         random_mapping=args.random_mapping,
         soft_mask=args.soft_mask,
+        tabu_size=args.tabu_size,
+        checkpoint_interval=args.checkpoint_interval,
     )
 
 

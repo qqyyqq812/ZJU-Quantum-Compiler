@@ -20,7 +20,9 @@ export PYTHONPATH="${PROJECT_DIR}"
 TOPOLOGY="ibm_tokyo"
 EPISODES=50000
 SAVE_DIR="models/v9_tokyo20"
-CHECKPOINT="${SAVE_DIR}/checkpoint_ep5000.pt"
+
+# 自动获取最大 Episode 数字的 checkpoint
+CHECKPOINT=$(ls -v "${SAVE_DIR}"/checkpoint_ep*.pt 2>/dev/null | tail -n 1 || echo "")
 
 echo "🚀 V9 20Q IBM Tokyo 训练"
 echo "   拓扑: ${TOPOLOGY}"
@@ -29,11 +31,11 @@ echo "   保存目录: ${SAVE_DIR}"
 
 # ── 判断恢复模式 ──
 RESUME_ARG=""
-if [ "${1:-}" = "resume" ] && [ -f "${CHECKPOINT}" ]; then
+if [ "${1:-}" = "resume" ] && [ -n "${CHECKPOINT}" ] && [ -f "${CHECKPOINT}" ]; then
     RESUME_ARG="--resume ${CHECKPOINT}"
-    echo "   🔄 从 checkpoint 恢复: ${CHECKPOINT}"
+    echo "   🔄 从最新 checkpoint 恢复: ${CHECKPOINT}"
 else
-    echo "   🆕 从头开始训练"
+    echo "   🆕 从头开始训练 (或未找到 checkpoint)"
 fi
 
 # ── 启动训练 ──
@@ -51,5 +53,8 @@ python -m src.compiler.train \
     --reward-done 20.0 \
     --distance-coef 0.5 \
     --random-mapping \
+    --soft-mask \
+    --tabu-size 4 \
+    --checkpoint-interval 1000 \
     ${RESUME_ARG} \
     2>&1 | tee "${SAVE_DIR}/train_v9_$(date +%Y%m%d_%H%M).log"

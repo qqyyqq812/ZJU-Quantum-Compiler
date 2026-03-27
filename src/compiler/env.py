@@ -44,6 +44,8 @@ class QuantumRoutingEnv(gym.Env):
         max_steps: int = 2000,
         initial_mapping_fn=None,
         soft_mask: bool = False,
+        tabu_size: int = 4,  # 放开软掩码后，记忆最近4次操作
+        penalty_tabu: float = -5.0,  # 新增：触发打乒乓时的毁灭性惩罚
     ):
         super().__init__()
 
@@ -58,6 +60,9 @@ class QuantumRoutingEnv(gym.Env):
         self.max_steps = max_steps
         self.initial_mapping_fn = initial_mapping_fn
         self.soft_mask = soft_mask
+        self.tabu_size = tabu_size
+        self.penalty_tabu = penalty_tabu
+        self.tabu_list = []  # 保存最近执行过的 SWAP action index
 
         # 预计算距离矩阵
         self._dist_matrix = np.zeros((self.n_physical, self.n_physical), dtype=np.float32)
@@ -117,6 +122,7 @@ class QuantumRoutingEnv(gym.Env):
         self._total_swaps = 0
         self._total_gates_executed = 0
         self._total_gates = self._dag.n_gates
+        self.tabu_list.clear()
 
         # V3: 支持自定义初始映射
         if self.initial_mapping_fn is not None:
@@ -151,6 +157,17 @@ class QuantumRoutingEnv(gym.Env):
             self._mapping = CircuitDAG.apply_swap(p1, p2, self._mapping)
             self._total_swaps += 1
             reward += self.penalty_swap
+            
+            # --- 核心惩罚机制：Ping-Pong Penalty ---
+            # 软掩码允许退却，但不能原地翻滚。如果执意走回头路，给予巨大惩罚让模型学会疼痛
+            if action in self.tabu_list:
+                reward += self.penalty_tabu
+            
+            # 更新禁忌表 (FIFO)
+            if self.tabu_size > 0:
+                self.tabu_list.append(action)
+                if len(self.tabu_list) > self.tabu_size:
+                    self.tabu_list.pop(0)
 
             executed_gates = self._dag.execute_executable(self._mapping, self.coupling_map)
             executed = len(executed_gates)
@@ -225,6 +242,12 @@ class QuantumRoutingEnv(gym.Env):
         # 如果没有有用的 SWAP（所有前沿门已可执行），只留 PASS
         if mask[:self.n_swap_actions].sum() == 0:
             return mask
+            
+        # 注意：在训练期，我们不能在 action_mask 层直接物理屏蔽 Tabu 动作！
+        # 因为如果物理屏蔽，模型永远无法选到它，自然也就无法吃到 penalty_tabu 惩罚，
+        # 结果就是模型依然学不会“不干傻事”，一旦到了推断期关掉屏蔽，马上原形毕露。
+        # 因此，在训练时让模型自由作死并受罚即可。
+        # 我们把之前在 mask 上的硬拦截彻底删掉。
 
         return mask
 

@@ -39,9 +39,11 @@ def run_single_route(
     coupling_map,
     initial_mapping: dict | None = None,
     max_steps: int = 1000,
+    soft_mask: bool = True,  # V9 默认启用软掩码
+    tabu_size: int = 0,
 ) -> RouteResult:
     """单次 AI 路由。"""
-    env = QuantumRoutingEnv(coupling_map=coupling_map, max_steps=max_steps)
+    env = QuantumRoutingEnv(coupling_map=coupling_map, max_steps=max_steps, soft_mask=soft_mask, tabu_size=tabu_size)
     env.set_circuit(circuit)
     obs, info = env.reset()
     
@@ -158,6 +160,8 @@ def compile_multi_trial(
     policy: PolicyNetwork,
     coupling_map,
     n_trials: int = 10,
+    soft_mask: bool = True,
+    tabu_size: int = 0,
 ) -> RouteResult:
     """Multi-Trial 推理：以不同初始映射运行多次，取最优（无双向遍历）。"""
     n_logical = circuit.num_qubits
@@ -166,7 +170,7 @@ def compile_multi_trial(
     for trial in range(n_trials):
         mapping = ({i: i for i in range(n_logical)} if trial == 0
                    else random_initial_mapping(n_logical, n_physical))
-        result = run_single_route(circuit, policy, coupling_map, initial_mapping=mapping)
+        result = run_single_route(circuit, policy, coupling_map, initial_mapping=mapping, soft_mask=soft_mask, tabu_size=tabu_size)
         if result.completed and (best_result is None or result.swaps < best_result.swaps):
             best_result = result
     return best_result if best_result else result
@@ -181,9 +185,10 @@ def compile_beam_search(
     beam_width: int = 3,
     branch_factor: int = 3,
     initial_mapping: dict | None = None,
+    soft_mask: bool = True,
 ) -> RouteResult:
     """结合 Actor 概率的前瞻 Beam Search，解决 MCTS deepcopy 性能瓶颈"""
-    env = QuantumRoutingEnv(coupling_map=coupling_map, max_steps=1000)
+    env = QuantumRoutingEnv(coupling_map=coupling_map, max_steps=1000, soft_mask=soft_mask)
     env.set_circuit(circuit)
     obs, info = env.reset()
 
