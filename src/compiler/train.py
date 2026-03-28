@@ -136,6 +136,11 @@ def train(
         obs_dim=env.observation_space.shape[0],
         n_actions=env.action_space.n,
     )
+    
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    policy = policy.to(device)
+    print(f"🖥️  训练设备: {device}")
+    
     trainer = PPOTrainer(policy, lr=lr_start, entropy_coef=entropy_start)
     
     # 课程学习 (先创建, checkpoint 恢复可能需要跳阶段)
@@ -145,7 +150,8 @@ def train(
     # 从 checkpoint 恢复 (支持完整状态)
     if resume_path and Path(resume_path).exists():
         import torch
-        ckpt = torch.load(resume_path, weights_only=False)
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        ckpt = torch.load(resume_path, map_location=device, weights_only=False)
         if isinstance(ckpt, dict) and 'model_state' in ckpt:
             # 新格式: 完整状态 checkpoint
             trainer.policy.load_state_dict(ckpt['model_state'])
@@ -196,6 +202,20 @@ def train(
         'eval_completion': [],
         'curriculum_stages': [],
     }
+
+    # 从已有 history JSON 恢复训练历史（断点续传）
+    if resume_path:
+        hist_file = Path(save_dir) / f"history_v7_{topology_name}.json"
+        if hist_file.exists():
+            try:
+                with open(hist_file) as f:
+                    old_hist = json.load(f)
+                for k in history:
+                    if k in old_hist:
+                        history[k] = old_hist[k]
+                print(f"📜 历史记录恢复: {len(history['episode_swaps'])} 条已有记录")
+            except Exception as e:
+                print(f"⚠️  历史记录恢复失败: {e}, 从空记录开始")
 
     # 滑动窗口指标
     reward_window = deque(maxlen=100)

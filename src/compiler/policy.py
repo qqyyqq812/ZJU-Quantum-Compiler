@@ -167,12 +167,13 @@ class PolicyNetwork(nn.Module):
     def get_action(self, obs: np.ndarray, action_mask: np.ndarray | None = None, gnn_input: dict | None = None) -> tuple[int, float, float]:
         """单步推理 (Rollout使用)"""
         with torch.no_grad():
-            obs_t = torch.FloatTensor(obs).unsqueeze(0)
+            device = next(self.parameters()).device
+            obs_t = torch.tensor(obs, dtype=torch.float32, device=device).unsqueeze(0)
             
             if gnn_input is None or 'graph' not in gnn_input:
                 # Fallback purely on random if not properly wired (safeguard)
-                logits = torch.zeros((1, self.n_actions))
-                values = torch.zeros(1)
+                logits = torch.zeros((1, self.n_actions), device=device)
+                values = torch.zeros(1, device=device)
             else:
                 d_b = Batch.from_data_list([gnn_input['graph']])
                 swap_edges = [gnn_input['swap_edges']]
@@ -180,7 +181,7 @@ class PolicyNetwork(nn.Module):
                 logits = dist.logits
                 
             if action_mask is not None:
-                mask_t = torch.FloatTensor(action_mask).unsqueeze(0)
+                mask_t = torch.tensor(action_mask, dtype=torch.float32, device=device).unsqueeze(0)
                 logits = logits.masked_fill(mask_t == 0, -1e8)
                 
             dist = Categorical(logits=logits)
@@ -199,7 +200,7 @@ class PolicyNetwork(nn.Module):
         graphs = [gi['graph'] for gi in gnn_inputs]
         edges = [gi['swap_edges'] for gi in gnn_inputs]
         
-        d_b = Batch.from_data_list(graphs)
+        d_b = Batch.from_data_list(graphs).to(obs.device)
         
         dist, values = self.forward(obs, d_b, edges)
         logits = dist.logits
@@ -281,11 +282,12 @@ class PPOTrainer:
     def update(self, buffer: RolloutBuffer):
         advantages, returns = buffer.compute_returns()
 
-        obs = torch.FloatTensor(np.array(buffer.observations))
-        actions = torch.LongTensor(buffer.actions)
-        old_log_probs = torch.FloatTensor(buffer.log_probs)
-        advantages_t = torch.FloatTensor(advantages)
-        returns_t = torch.FloatTensor(returns)
+        device = next(self.policy.parameters()).device
+        obs = torch.tensor(np.array(buffer.observations), dtype=torch.float32, device=device)
+        actions = torch.tensor(buffer.actions, dtype=torch.long, device=device)
+        old_log_probs = torch.tensor(buffer.log_probs, dtype=torch.float32, device=device)
+        advantages_t = torch.tensor(advantages, dtype=torch.float32, device=device)
+        returns_t = torch.tensor(returns, dtype=torch.float32, device=device)
 
         if len(advantages_t) > 1:
             advantages_t = (advantages_t - advantages_t.mean()) / (advantages_t.std() + 1e-8)
@@ -332,4 +334,5 @@ class PPOTrainer:
         torch.save(self.policy.state_dict(), path)
 
     def load(self, path: str):
-        self.policy.load_state_dict(torch.load(path, weights_only=True))
+        device = next(self.policy.parameters()).device
+        self.policy.load_state_dict(torch.load(path, map_location=device, weights_only=True))
