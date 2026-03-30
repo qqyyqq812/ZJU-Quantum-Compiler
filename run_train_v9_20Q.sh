@@ -8,12 +8,15 @@ set -euo pipefail
 
 # ── 项目根目录 & venv ──
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "${PROJECT_DIR}/.venv/bin/activate"
+if [ -f "${PROJECT_DIR}/.venv/bin/activate" ]; then
+    source "${PROJECT_DIR}/.venv/bin/activate"
+fi
 
 # ── 环境变量 (防止 PyTorch 多线程争用) ──
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export TORCH_DYNAMO_DISABLE=1
+export PYTHONUNBUFFERED=1        # 防止 nohup 下日志块缓存导致 0 字节
 export PYTHONPATH="${PROJECT_DIR}"
 
 # ── 训练参数 ──
