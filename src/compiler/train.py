@@ -314,6 +314,13 @@ def train(
                   f"LR={current_lr:.1e} H={current_entropy:.3f} "
                   f"({eps_per_sec:.0f} ep/s)")
 
+            # === 高频保存历史曲线，方便快速监控 ===
+            hist_ckpt = Path(save_dir) / f"history_v7_{topology_name}.json"
+            hist_ckpt.parent.mkdir(parents=True, exist_ok=True)
+            ser = {k: [float(v) for v in vals] for k, vals in history.items()}
+            with open(hist_ckpt, 'w') as f:
+                json.dump(ser, f, indent=2)
+
         # === 定期评估 ===
         if (episode + 1) % eval_interval == 0:
             eval_result = evaluate_model(policy, cm, eval_circuits, soft_mask=soft_mask, tabu_size=tabu_size)
@@ -349,11 +356,6 @@ def train(
                 'patience_counter': patience_counter,
             }
             torch.save(ckpt_data, str(ckpt_path))
-            # 同时保存训练历史
-            hist_ckpt = Path(save_dir) / f"history_v7_{topology_name}.json"
-            ser = {k: [float(v) for v in vals] for k, vals in history.items()}
-            with open(hist_ckpt, 'w') as f:
-                json.dump(ser, f, indent=2)
             print(f"  💾 Checkpoint: {ckpt_path} (Stage {scheduler.current_stage if scheduler else '-'})")
 
     # === 保存最终模型 ===
