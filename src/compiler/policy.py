@@ -175,7 +175,7 @@ class PolicyNetwork(nn.Module):
                 logits = torch.zeros((1, self.n_actions), device=device)
                 values = torch.zeros(1, device=device)
             else:
-                d_b = Batch.from_data_list([gnn_input['graph']])
+                d_b = Batch.from_data_list([gnn_input['graph']]).to(device)
                 swap_edges = [gnn_input['swap_edges']]
                 dist, values = self.forward(obs_t, d_b, swap_edges)
                 logits = dist.logits
