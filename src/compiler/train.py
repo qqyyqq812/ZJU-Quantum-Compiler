@@ -14,6 +14,7 @@ V7 工业级训练管线
 
 from __future__ import annotations
 
+import torch
 import argparse
 import json
 import time
@@ -149,7 +150,6 @@ def train(
 
     # 从 checkpoint 恢复 (支持完整状态)
     if resume_path and Path(resume_path).exists():
-        import torch
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         ckpt = torch.load(resume_path, map_location=device, weights_only=False)
         if isinstance(ckpt, dict) and 'model_state' in ckpt:
@@ -338,7 +338,6 @@ def train(
 
         # === 定期 Checkpoint (完整状态) ===
         if (episode + 1) % checkpoint_interval == 0:
-            import torch
             ckpt_path = Path(save_dir) / f"checkpoint_ep{episode+1}.pt"
             ckpt_path.parent.mkdir(parents=True, exist_ok=True)
             ckpt_data = {
