@@ -22,7 +22,7 @@ export PYTHONPATH="${PROJECT_DIR}"
 # ── 训练参数 ──
 TOPOLOGY="ibm_tokyo"
 EPISODES=50000
-SAVE_DIR="models/v9_tokyo20"
+SAVE_DIR="models/v9_tokyo20_fallback"
 
 # 自动获取最大 Episode 数字的 checkpoint
 CHECKPOINT=$(ls -v "${SAVE_DIR}"/checkpoint_ep*.pt 2>/dev/null | tail -n 1 || echo "")
@@ -46,7 +46,7 @@ python -m src.compiler.train \
     --topology "${TOPOLOGY}" \
     --qubits 20 \
     --episodes "${EPISODES}" \
-    --rollout-steps 256 \
+    --rollout-steps 2048 \
     --save-dir "${SAVE_DIR}" \
     --curriculum \
     --lr 3e-4 \
@@ -54,9 +54,8 @@ python -m src.compiler.train \
     --reward-gate 1.0 \
     --penalty-swap -1.0 \
     --reward-done 20.0 \
-    --distance-coef 0.5 \
+    --distance-coef 1.5 \
     --random-mapping \
-    --soft-mask \
     --tabu-size 4 \
     --checkpoint-interval 500 \
     ${RESUME_ARG} \
