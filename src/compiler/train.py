@@ -89,7 +89,7 @@ def train(
     lr_end: float = 1e-5,
     entropy_start: float = 0.05,
     entropy_end: float = 0.001,
-    early_stop_patience: int = 10,
+    early_stop_patience: int = 100,
     resume_path: str | None = None,
     # V8 训练参数
     reward_gate: float = 1.0,
