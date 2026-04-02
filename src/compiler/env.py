@@ -158,10 +158,9 @@ class QuantumRoutingEnv(gym.Env):
             self._total_swaps += 1
             reward += self.penalty_swap
             
-            # --- 核心惩罚机制：Ping-Pong Penalty ---
-            # 软掩码允许退却，但不能原地翻滚。如果执意走回头路，给予巨大惩罚让模型学会疼痛
-            if action in self.tabu_list:
-                reward += self.penalty_tabu
+            # V10: 废除教唆式体罚，改用上帝视角物理掩码阻断
+            # if action in self.tabu_list:
+            #     reward += self.penalty_tabu
             
             # 更新禁忌表 (FIFO)
             if self.tabu_size > 0:
@@ -243,11 +242,12 @@ class QuantumRoutingEnv(gym.Env):
         if mask[:self.n_swap_actions].sum() == 0:
             return mask
             
-        # 注意：在训练期，我们不能在 action_mask 层直接物理屏蔽 Tabu 动作！
-        # 因为如果物理屏蔽，模型永远无法选到它，自然也就无法吃到 penalty_tabu 惩罚，
-        # 结果就是模型依然学不会“不干傻事”，一旦到了推断期关掉屏蔽，马上原形毕露。
-        # 因此，在训练时让模型自由作死并受罚即可。
-        # 我们把之前在 mask 上的硬拦截彻底删掉。
+        # V10 核心修复：恢复纯粹的物理掩码封版
+        # 文献调研表明，对于死胡同动作(Tabu)，交给 PPO 的 penalty 学习会导致严重的 Reward Drowning。
+        # 此处必需强制降维打击。
+        for tabu_action in self.tabu_list:
+            if tabu_action < self.n_swap_actions:
+                mask[tabu_action] = 0.0
 
         return mask
 
