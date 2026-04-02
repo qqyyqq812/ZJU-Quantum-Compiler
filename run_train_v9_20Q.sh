@@ -56,7 +56,6 @@ python -m src.compiler.train \
     --reward-done 20.0 \
     --distance-coef 0.5 \
     --random-mapping \
-    --soft-mask \
     --tabu-size 4 \
     --checkpoint-interval 500 \
     ${RESUME_ARG} \
