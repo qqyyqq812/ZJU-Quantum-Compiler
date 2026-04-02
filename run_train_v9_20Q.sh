@@ -22,7 +22,7 @@ export PYTHONPATH="${PROJECT_DIR}"
 # ── 训练参数 ──
 TOPOLOGY="ibm_tokyo"
 EPISODES=50000
-SAVE_DIR="models/v9_tokyo20"
+SAVE_DIR="models/v10_tokyo20"
 
 # 自动获取最大 Episode 数字的 checkpoint
 CHECKPOINT=$(ls -v "${SAVE_DIR}"/checkpoint_ep*.pt 2>/dev/null | tail -n 1 || echo "")
