@@ -93,6 +93,7 @@ def train_dqn(
     best_eval_swaps = float('inf')
     loss_window = deque(maxlen=100)
     swap_window = deque(maxlen=100)
+    history = {'episode_swaps': [], 'losses': []}
     
     print(f"🚀 V11 DQN 启动: {topology_name} ({cm.size()}Q)")
     t0 = time.time()
@@ -134,8 +135,17 @@ def train_dqn(
                 break
                 
         swap_window.append(info.get('total_swaps', 0))
+        history['episode_swaps'].append(info.get('total_swaps', 0))
+        
         if updates > 0:
             loss_window.append(ep_loss / updates)
+            history['losses'].append(ep_loss / updates)
+            
+        # 短效记录写入磁盘
+        if (episode + 1) % 100 == 0:
+            Path(save_dir).mkdir(parents=True, exist_ok=True)
+            with open(Path(save_dir) / f'history_v11_dqn_{topology_name}.json', 'w') as f:
+                json.dump(history, f, indent=2)
             
         # 课程汇报
         if scheduler.report_episode(info.get('total_swaps', 0)):
