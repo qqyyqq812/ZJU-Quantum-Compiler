@@ -238,38 +238,71 @@ def train(
             
             actions, log_probs, values = policy.get_action_batch(obs, action_mask_batch=mask_batch, gnn_inputs_batch=gnn_batch)
             next_obs, rewards, terminateds, truncateds, next_infos = envs.step(actions)
-            
+
             for i in range(num_envs):
                 gnn_i = {'graph': gnn_batch['graph'][i], 'swap_edges': gnn_batch['swap_edges'][i]} if isinstance(gnn_batch, dict) else gnn_batch[i]
                 buffer.add(obs[i], actions[i], rewards[i], log_probs[i], values[i], terminateds[i] or truncateds[i], gnn_input=gnn_i)
                 episode_rewards[i] += rewards[i]
-                
+
                 if terminateds[i] or truncateds[i]:
-                    if 'final_info' in next_infos and next_infos['final_info'][i] is not None:
-                        f_info = next_infos['final_info'][i]
-                        ep_swaps = f_info['total_swaps']
-                        ep_len = f_info['step_count']
-                        
-                        history['episode_rewards'].append(episode_rewards[i])
-                        history['episode_swaps'].append(ep_swaps)
-                        history['episode_lengths'].append(ep_len)
-                        
+                    # V13 fix: AsyncVectorEnv 的 final_info 提取兼容多种格式
+                    ep_swaps = None
+                    ep_len = None
+
+                    # 尝试方式 1: gymnasium 标准 final_info
+                    if isinstance(next_infos, dict) and 'final_info' in next_infos:
+                        fi = next_infos['final_info']
+                        if fi is not None and i < len(fi) and fi[i] is not None:
+                            ep_swaps = fi[i].get('total_swaps', None)
+                            ep_len = fi[i].get('step_count', None)
+
+                    # 尝试方式 2: 直接从 next_infos 提取 (某些 gym 版本)
+                    if ep_swaps is None and isinstance(next_infos, dict):
+                        if 'total_swaps' in next_infos:
+                            ts = next_infos['total_swaps']
+                            if hasattr(ts, '__len__') and i < len(ts):
+                                ep_swaps = int(ts[i])
+                        if 'step_count' in next_infos:
+                            sc = next_infos['step_count']
+                            if hasattr(sc, '__len__') and i < len(sc):
+                                ep_len = int(sc[i])
+
+                    # 尝试方式 3: next_infos 是列表
+                    if ep_swaps is None and isinstance(next_infos, (list, tuple)):
+                        if i < len(next_infos) and isinstance(next_infos[i], dict):
+                            ep_swaps = next_infos[i].get('total_swaps', None)
+                            ep_len = next_infos[i].get('step_count', None)
+
+                    if ep_swaps is not None:
+                        history['episode_rewards'].append(float(episode_rewards[i]))
+                        history['episode_swaps'].append(int(ep_swaps))
+                        history['episode_lengths'].append(int(ep_len or 0))
+
                         reward_window.append(episode_rewards[i])
                         swap_window.append(ep_swaps)
-                        
+
                         if scheduler:
                             promoted = scheduler.report_episode(ep_swaps)
                             history['curriculum_stages'].append(scheduler.current_stage)
                             if promoted:
                                 new_cfg = scheduler.stage_config
-                                print(f"\n  🎓 课程进阶突破! → 阶段 {scheduler.current_stage} ({new_cfg.n_qubits}Q)")
-                                envs.call("set_circuit", scheduler.circuits[0])
+                                circuits = scheduler.circuits
+                                print(f"\n  🎓 课程进阶突破! → 阶段 {scheduler.current_stage} ({new_cfg.name}, {new_cfg.n_qubits}Q)")
+                                circuit = circuits[0]
+                                envs.call("set_circuit", circuit)
                                 next_obs, next_infos = envs.reset()
                                 episode_rewards = np.zeros(num_envs)
                                 break
-                                
+
                     global_episodes += 1
                     episode_rewards[i] = 0.0
+
+                    # V13: 每个 episode 结束后轮换电路
+                    try:
+                        circuit = circuits[global_episodes % len(circuits)]
+                        envs.call("set_circuit", circuit)
+                    except Exception:
+                        pass
                     
             obs = next_obs
             info = next_infos
