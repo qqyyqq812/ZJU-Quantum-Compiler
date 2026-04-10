@@ -38,57 +38,59 @@ class ResidualMLP(nn.Module):
 class PolicyNetwork(nn.Module):
     """V7 芯片级 Actor-Critic 路由策略网络."""
 
-    def __init__(self, obs_dim: int, n_actions: int, hidden_dim: int = 256):
+    def __init__(self, obs_dim: int, n_actions: int, hidden_dim: int = 512):
         super().__init__()
         self.n_actions = n_actions
         self.hidden_dim = hidden_dim
         
         # ─── 1. 特征提取器 ───
-        # 1.1 GNN 拓扑图特征编码 (提取物理比特特征和全局拓扑特征)
-        self.gnn = GraphSAGEEncoder(in_channels=5, hidden_channels=128, out_channels=128)
+        # 1.1 GNN 拓扑图特征编码 (V13: 9维节点特征)
+        self.gnn = GraphSAGEEncoder(in_channels=9, hidden_channels=256, out_channels=256)
         
-        # 1.2 扁平标量状态特征编码 (obs_dim -> 128)
+        # 1.2 扁平标量状态特征编码 (obs_dim -> 256)
         self.obs_encoder = nn.Sequential(
-            nn.Linear(obs_dim, 128),
-            nn.LayerNorm(128),
+            nn.Linear(obs_dim, 256),
+            nn.LayerNorm(256),
             nn.ReLU(),
-            nn.Linear(128, 128),
-            nn.LayerNorm(128),
+            nn.Linear(256, 256),
+            nn.LayerNorm(256),
             nn.ReLU()
         )
         
         # ─── 2. 融合模块 ───
-        # 全局上下文特征 = obs_feature (128) + graph_mean (128) + graph_max (128) = 384 → 256
+        # 全局上下文特征 = obs_feature (256) + graph_mean (256) + graph_max (256) = 768 → 512
         self.global_fusion = nn.Sequential(
-            nn.Linear(128 + 256, 256),
-            nn.LayerNorm(256),
+            nn.Linear(256 + 512, 512),
+            nn.LayerNorm(512),
             nn.ReLU(),
-            ResidualMLP(256)
+            ResidualMLP(512),
+            ResidualMLP(512) # 增加残差块深度
         )
         
         # ─── 3. Action Critic (Value Network) ───
         # 独立网络，不被 Actor 的高频变化干扰
         self.critic = nn.Sequential(
-            nn.Linear(256, 128),
+            nn.Linear(512, 256),
             nn.ReLU(),
-            nn.Linear(128, 1)
+            nn.Linear(256, 1)
         )
         
         # ─── 4. Attention Actor Heads ───
         # Edge Scorer: 评估给定的两条物理边的打分
-        # 输入: target_node (128) + neighbor_node (128) + global_context (256) = 512 → 1
+        # 输入: target_node (256) + neighbor_node (256) + global_context (512) = 1024 → 1
         self.edge_scorer = nn.Sequential(
-            nn.Linear(128 + 128 + 256, 128),
+            nn.Linear(256 + 256 + 512, 256),
+            nn.LayerNorm(256),
             nn.ReLU(),
-            nn.Linear(128, 1)
+            nn.Linear(256, 1)
         )
         
         # PASS Scorer: 独立的 PASS 动作估值
-        # 输入: global_context (256) → 1
+        # 输入: global_context (512) → 1
         self.pass_scorer = nn.Sequential(
-            nn.Linear(256, 64),
+            nn.Linear(512, 128),
             nn.ReLU(),
-            nn.Linear(64, 1)
+            nn.Linear(128, 1)
         )
 
     def forward(self, obs: torch.Tensor, gnn_batch: Batch, swap_edges: list[list[tuple]]) -> tuple[Categorical, torch.Tensor]:
@@ -190,6 +192,38 @@ class PolicyNetwork(nn.Module):
             
         return action.item(), log_prob.item(), values.item()
 
+    def get_action_batch(self, obs_batch: np.ndarray, action_mask_batch: np.ndarray | None = None, gnn_inputs_batch: list[dict] | None = None) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """批量前向采样 (AsyncVectorEnv Rollout使用)"""
+        with torch.no_grad():
+            device = next(self.parameters()).device
+            obs_t = torch.tensor(obs_batch, dtype=torch.float32, device=device)
+            B = obs_t.size(0)
+            
+            if gnn_inputs_batch is None or (isinstance(gnn_inputs_batch, list) and 'graph' not in gnn_inputs_batch[0]) or (isinstance(gnn_inputs_batch, dict) and 'graph' not in gnn_inputs_batch):
+                logits = torch.zeros((B, self.n_actions), device=device)
+                values = torch.zeros(B, device=device)
+            else:
+                if isinstance(gnn_inputs_batch, dict):
+                    graphs = gnn_inputs_batch['graph']
+                    edges = gnn_inputs_batch['swap_edges']
+                else:
+                    graphs = [gi['graph'] for gi in gnn_inputs_batch]
+                    edges = [gi['swap_edges'] for gi in gnn_inputs_batch]
+                d_b = Batch.from_data_list(graphs).to(device)
+                
+                dist, values = self.forward(obs_t, d_b, edges)
+                logits = dist.logits
+                
+            if action_mask_batch is not None:
+                mask_t = torch.tensor(action_mask_batch, dtype=torch.float32, device=device)
+                logits = logits.masked_fill(mask_t == 0, -1e8)
+                
+            dist = Categorical(logits=logits)
+            actions = dist.sample()
+            log_probs = dist.log_prob(actions)
+            
+        return actions.cpu().numpy(), log_probs.cpu().numpy(), values.cpu().numpy()
+
     def evaluate(self, obs: torch.Tensor, actions: torch.Tensor, 
                  action_masks: torch.Tensor | None = None, 
                  gnn_inputs: list[dict] | None = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -279,7 +313,7 @@ class PPOTrainer:
         self.value_coef = value_coef
         self.max_grad_norm = max_grad_norm
 
-    def update(self, buffer: RolloutBuffer):
+    def update(self, buffer: RolloutBuffer, mini_batch_size: int = 512):
         advantages, returns = buffer.compute_returns()
 
         device = next(self.policy.parameters()).device
@@ -295,37 +329,53 @@ class PPOTrainer:
         total_policy_loss = 0.0
         total_value_loss = 0.0
         total_entropy = 0.0
+        updates_count = 0
+        
+        num_samples = len(buffer.observations)
+        indices = np.arange(num_samples)
 
         for _ in range(self.epochs_per_update):
-            # 将 buffer.gnn_inputs 直接传给 evaluate
-            log_probs, values, entropy = self.policy.evaluate(
-                obs=obs, actions=actions, action_masks=None, gnn_inputs=buffer.gnn_inputs
-            )
+            np.random.shuffle(indices)
+            for start_idx in range(0, num_samples, mini_batch_size):
+                end_idx = min(start_idx + mini_batch_size, num_samples)
+                batch_indices = indices[start_idx:end_idx]
 
-            ratio = (log_probs - old_log_probs).exp()
-            surr1 = ratio * advantages_t
-            surr2 = torch.clamp(ratio, 1.0 - self.clip_epsilon, 1.0 + self.clip_epsilon) * advantages_t
-            policy_loss = -torch.min(surr1, surr2).mean()
+                # 提取微批次
+                mb_obs = obs[batch_indices]
+                mb_actions = actions[batch_indices]
+                mb_old_log_probs = old_log_probs[batch_indices]
+                mb_advantages = advantages_t[batch_indices]
+                mb_returns = returns_t[batch_indices]
+                mb_gnn = [buffer.gnn_inputs[i] for i in batch_indices]
 
-            value_loss = F.mse_loss(values, returns_t)
-            entropy_loss = -entropy.mean()
+                log_probs, values, entropy = self.policy.evaluate(
+                    obs=mb_obs, actions=mb_actions, action_masks=None, gnn_inputs=mb_gnn
+                )
 
-            loss = policy_loss + self.value_coef * value_loss + self.entropy_coef * entropy_loss
+                ratio = (log_probs - mb_old_log_probs).exp()
+                surr1 = ratio * mb_advantages
+                surr2 = torch.clamp(ratio, 1.0 - self.clip_epsilon, 1.0 + self.clip_epsilon) * mb_advantages
+                policy_loss = -torch.min(surr1, surr2).mean()
 
-            self.optimizer.zero_grad()
-            loss.backward()
-            nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
-            self.optimizer.step()
+                value_loss = F.mse_loss(values, mb_returns)
+                entropy_loss = -entropy.mean()
 
-            total_policy_loss += policy_loss.item()
-            total_value_loss += value_loss.item()
-            total_entropy += entropy.mean().item()
+                loss = policy_loss + self.value_coef * value_loss + self.entropy_coef * entropy_loss
 
-        n = self.epochs_per_update
+                self.optimizer.zero_grad()
+                loss.backward()
+                nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
+                self.optimizer.step()
+
+                total_policy_loss += policy_loss.item()
+                total_value_loss += value_loss.item()
+                total_entropy += entropy.mean().item()
+                updates_count += 1
+
         return {
-            'policy_loss': total_policy_loss / n,
-            'value_loss': total_value_loss / n,
-            'entropy': total_entropy / n,
+            'policy_loss': total_policy_loss / max(1, updates_count),
+            'value_loss': total_value_loss / max(1, updates_count),
+            'entropy': total_entropy / max(1, updates_count),
         }
 
     def save(self, path: str):

@@ -1,12 +1,7 @@
 """
-Topology-Aware GraphSAGE 编码器 (V7)
+Topology-Aware GraphSAGE 编码器 (V13)
 ====================================
-将重构后的统一物理图映射网络编码为高维密集向量。
-
-架构:
-- Node Embedder: 1x MLP (5维度 -> 64维度)
-- 3层 GraphSAGE 提取多跳拓扑和前沿任务信息
-- 聚合全局图特征 (mean + max pooling)
+V13: 节点特征从 5维 → 9维 (增加映射距离、DAG深度、前沿目标距离、参与度)
 """
 from __future__ import annotations
 
@@ -26,7 +21,7 @@ class GraphSAGEEncoder(nn.Module):
         out_channels: 每个物理节点的输出嵌入维度 (128)
     """
     
-    def __init__(self, in_channels: int = 5, hidden_channels: int = 128, out_channels: int = 128):
+    def __init__(self, in_channels: int = 9, hidden_channels: int = 128, out_channels: int = 128):
         super().__init__()
         
         # 将基础特征升维

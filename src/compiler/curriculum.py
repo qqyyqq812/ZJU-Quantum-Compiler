@@ -1,12 +1,13 @@
 """
-课程学习调度器 V7.1
+课程学习调度器 V13
 ==================
 5 阶段渐进式训练课程 + 自适应升级条件。
 
-V7.1 修订：
-- 阈值基于 SABRE 在同规模电路上的实际 SWAP 数 (~1.2x SABRE 水平)
-- 降低 min_episodes_per_stage 以加速早期课程迭代
-- 增加 promotion_patience: 如果长时间卡住则自动放宽阈值
+V13 修订 (修复 V9/V12 课程卡死问题):
+- 阈值大幅放宽：确保模型在合理时间内晋级，避免"永远卡在 Stage 0"
+- 降低 min_episodes_per_stage: 200 → 100 (加速早期迭代)
+- promotion_patience: 3000 (更快触发自动放宽)
+- IBM Tokyo 20Q 阈值基于真实 SABRE 数据校准
 
 阶段 0: Warm-up    — 3Q, 1-2 CX, 学基本 SWAP 意识
 阶段 1: Elementary — 5Q, depth 2-4, 学多步规划
@@ -34,19 +35,19 @@ class StageConfig:
     promotion_threshold: float  # 平均 SWAP 数低于此值时升级
 
 
-# 阈值设计原理:
-#   SABRE 在 linear_5 拓扑上的实际表现:
-#     3Q depth 1-2: ~0-1 SWAP   →  阈值 2.0 (宽松，让 warm-up 快速通过)
-#     5Q depth 2-4: ~3-8 SWAP   →  阈值 8.0 (AI 只需达到 SABRE 水平)
-#     5Q depth 4-6: ~5-12 SWAP  →  阈值 12.0
-#    10Q depth 6-10: ~15-25 SWAP → 阈值 25.0
-#    20Q depth 10-20: ~30-60 SWAP → 阈值 50.0
+# V13 阈值设计原理 (基于真实 SABRE + 随机映射表现):
+#   IBM Tokyo 20Q 拓扑, 使用随机初始映射:
+#     3Q depth 1-2: SABRE ~0-2 SWAP   →  阈值 3.0 (极宽松，快速通过)
+#     5Q depth 2-4: SABRE ~3-10 SWAP  →  阈值 15.0 (1.5x SABRE，允许模型慢慢学)
+#     5Q depth 4-6: SABRE ~5-15 SWAP  →  阈值 20.0 (放宽，避免卡死)
+#    10Q depth 6-10: SABRE ~15-35 SWAP → 阈值 45.0 (初始允许比 SABRE 差，逐步收紧)
+#    20Q depth 10-20: SABRE ~30-80 SWAP → 阈值 100.0 (先完成再优化)
 STAGES = [
-    StageConfig("warm-up",     3,  20, (1, 2), False, 2.0),
-    StageConfig("elementary",  5,  30, (2, 4), True,  8.0),
-    StageConfig("standard",    5,  40, (4, 6), True, 12.0),
-    StageConfig("challenge",  10,  50, (6, 10), True, 25.0),
-    StageConfig("master",     20,  60, (10, 20), True, 50.0),
+    StageConfig("warm-up",     3,  20, (1, 2), False, 3.0),
+    StageConfig("elementary",  5,  30, (2, 4), True, 15.0),
+    StageConfig("standard",    5,  40, (4, 6), True, 20.0),
+    StageConfig("challenge",  10,  50, (6, 10), True, 45.0),
+    StageConfig("master",     20,  60, (10, 20), True, 100.0),
 ]
 
 
@@ -80,8 +81,8 @@ class CurriculumScheduler:
     """
 
     def __init__(self, max_n_qubits: int = 5, window_size: int = 50,
-                 min_episodes_per_stage: int = 300,
-                 promotion_patience: int = 5000):
+                 min_episodes_per_stage: int = 100,     # V13: 加速早期迭代
+                 promotion_patience: int = 3000):       # V13: 更快触发自动放宽
         self.current_stage = 0
         self.window_size = window_size
         self.min_episodes_per_stage = min_episodes_per_stage

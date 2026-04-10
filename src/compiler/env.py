@@ -1,11 +1,11 @@
 """
-量子电路路由 RL 环境 V3
+量子电路路由 RL 环境 V13
 ========================
-V3 改进:
-1. Action Masking: 只保留能缩减距离的 SWAP + PASS
-2. Look-Ahead: 用 extended front (前沿 + 后续层) 评估 SWAP 价值
-3. 距离缩减奖励 (继承 V2)
-4. 初始映射支持 (接口预留)
+V13 核心重构 (修复 V9/V11/V12 非收敛问题):
+1. SABRE 相对奖励: terminal reward = sabre_swaps - ai_swaps (信号最纯净)
+2. 轻量 shaping: 距离缩减奖励大幅降权，消除 Reward Drowning
+3. Soft Mask + Tabu: 允许 delta<=1 的 SWAP，物理阻断乒乓
+4. 随机初始映射: 默认开启，消除 Identity Mapping 偏见
 """
 
 from __future__ import annotations
@@ -35,17 +35,18 @@ class QuantumRoutingEnv(gym.Env):
     def __init__(
         self,
         coupling_map: CouplingMap,
-        reward_gate: float = 1.0,
+        reward_gate: float = 0.3,           # V13: 大幅降低门奖励，消除 Reward Drowning
         penalty_swap: float = -0.5,
         penalty_useless_pass: float = -1.0,
-        reward_done: float = 10.0,
-        distance_reward_coef: float = 0.5,
-        lookahead_coef: float = 0.2,
+        reward_done: float = 0.0,           # V13: 完成奖励改由 SABRE 相对值提供
+        distance_reward_coef: float = 0.3,  # V13: 降权 shaping
+        lookahead_coef: float = 0.1,        # V13: 降权 shaping
         max_steps: int = 2000,
         initial_mapping_fn=None,
-        soft_mask: bool = False,
-        tabu_size: int = 4,  # 放开软掩码后，记忆最近4次操作
-        penalty_tabu: float = -5.0,  # 新增：触发打乒乓时的毁灭性惩罚
+        soft_mask: bool = True,             # V13: 默认开启 Soft Mask
+        tabu_size: int = 4,
+        penalty_tabu: float = -5.0,
+        use_sabre_reward: bool = True,      # V13: SABRE 相对终端奖励
     ):
         super().__init__()
 
@@ -62,7 +63,9 @@ class QuantumRoutingEnv(gym.Env):
         self.soft_mask = soft_mask
         self.tabu_size = tabu_size
         self.penalty_tabu = penalty_tabu
-        self.tabu_list = []  # 保存最近执行过的 SWAP action index
+        self.use_sabre_reward = use_sabre_reward
+        self._sabre_swaps: int = 0  # V13: SABRE baseline for current circuit
+        self.tabu_list = []
 
         # 预计算距离矩阵
         self._dist_matrix = np.zeros((self.n_physical, self.n_physical), dtype=np.float32)
@@ -123,6 +126,12 @@ class QuantumRoutingEnv(gym.Env):
         self._total_gates_executed = 0
         self._total_gates = self._dag.n_gates
         self.tabu_list.clear()
+
+        # V13: 预计算 SABRE baseline
+        if self.use_sabre_reward:
+            self._sabre_swaps = self._compute_sabre_baseline()
+        else:
+            self._sabre_swaps = 0
 
         # V3: 支持自定义初始映射
         if self.initial_mapping_fn is not None:
@@ -186,7 +195,12 @@ class QuantumRoutingEnv(gym.Env):
         terminated = self._dag.is_done()
         truncated = self._step_count >= self.max_steps
         if terminated:
-            reward += self.reward_done
+            # V13: SABRE 相对终端奖励 — 信号最纯净
+            if self.use_sabre_reward and self._sabre_swaps > 0:
+                # 正值 = 比 SABRE 好，负值 = 比 SABRE 差
+                reward += float(self._sabre_swaps - self._total_swaps)
+            else:
+                reward += self.reward_done
 
         return self._get_obs(), reward, terminated, truncated, self._get_info()
 
@@ -363,11 +377,27 @@ class QuantumRoutingEnv(gym.Env):
 
         return obs
 
+    def _compute_sabre_baseline(self) -> int:
+        """V13: 用 Qiskit SABRE 路由当前电路，返回 SWAP 数作为 baseline。"""
+        try:
+            from qiskit import transpile
+            transpiled = transpile(
+                self._circuit,
+                coupling_map=self.coupling_map,
+                optimization_level=1,   # 用 level 1 即可，level 3 太慢
+                routing_method='sabre',
+                seed_transpiler=42,
+            )
+            return transpiled.count_ops().get('swap', 0)
+        except Exception:
+            return 0
+
     def _get_info(self) -> dict[str, Any]:
         from src.compiler.gnn_extractor import extract_physical_graph
         graph_data = extract_physical_graph(self.coupling_map, self._mapping, self._dag)
         return {
             'total_swaps': self._total_swaps,
+            'sabre_swaps': self._sabre_swaps,
             'total_gates_executed': self._total_gates_executed,
             'remaining_gates': self._dag.remaining_gates() if self._dag else 0,
             'step_count': self._step_count,

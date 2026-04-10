@@ -13,10 +13,14 @@
 - `[x]` B 账号 (大幅感知野 2048 rollout + 硬掩码防死锁)：运行完毕 49800 局。
 - `[x]` **实验复盘**：宣告破产。双轨策略曲线均在 SWAP=60 处形成极高频率锯齿死盘，距离预期目标（红色警戒线 20 以下）相去甚远。陷入局部最劣。
 
-## 第三阶段：非收敛性疑难排查与模型急救 (NEXT阶段) 🚨
-- `[ ]` 提取 `models/v9_tokyo20_fallback/history_v7_ibm_tokyo.json` 的训练尸检日志进行剖析。
-- `[ ]` 诊断根因：调查是【奖励过于稀疏】、【早停阶段跃迁过快把模型拽断】还是【图节点状态表达崩塌】导致无法越过 10Q/20Q 门槛。
-- `[ ]` 全面修改底层 `curriculum.py` / `env.py`，制定《V10 落地产出突围方案》。
+## 第三阶段：非收敛性疑难排查与模型急救 (V13 代码修复完成) ✔️
+- `[x]` 诊断根因：确认 Reward Drowning (门奖励淹没SWAP惩罚) + Identity Mapping 偏见 + Hard Mask 截断探索 + 课程阈值过严
+- `[x]` V13 奖励函数重构：SABRE 相对终端奖励 `sabre_swaps - ai_swaps`
+- `[x]` V13 GNN 特征升级：5维→9维（增加映射距离、DAG深度、前沿目标距离、参与度）
+- `[x]` V13 Action Mask 放宽：Hard→Soft（允许 delta<=1 的 SWAP）
+- `[x]` V13 默认随机初始映射训练
+- `[x]` V13 课程阈值重校准（匹配 IBM Tokyo 20Q 真实 SABRE 基线）
+- `[ ]` **在 GPU 服务器上执行 V13 训练** (run_train_v13.sh on RTX 5090)
 
 ## 第四阶段：对比论证与论文产出评测 (To Be Done) 📝
 - `[ ]` 建立与经典 IBM Qiskit SABRE 算法的 Benchmark 并排对比机制。
