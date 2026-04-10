@@ -32,11 +32,12 @@ class PureSAGEConv(nn.Module):
         n_nodes = x.size(0)
         src, dst = edge_index[0], edge_index[1]
 
-        # 聚合邻居特征 (mean aggregation)
-        neighbor_sum = torch.zeros(n_nodes, x.size(1), device=x.device, dtype=x.dtype)
-        neighbor_count = torch.zeros(n_nodes, 1, device=x.device, dtype=x.dtype)
-        neighbor_sum.index_add_(0, dst, x[src])
-        neighbor_count.index_add_(0, dst, torch.ones(src.size(0), 1, device=x.device, dtype=x.dtype))
+        # 聚合邻居特征 (mean aggregation) — 避免 in-place 操作
+        src_feats = x[src]  # (E, in_channels)
+        dst_expanded = dst.unsqueeze(-1).expand_as(src_feats)  # (E, in_channels)
+        neighbor_sum = torch.zeros(n_nodes, x.size(1), device=x.device, dtype=x.dtype).scatter_add(0, dst_expanded, src_feats)
+        ones = torch.ones(src.size(0), 1, device=x.device, dtype=x.dtype)
+        neighbor_count = torch.zeros(n_nodes, 1, device=x.device, dtype=x.dtype).scatter_add(0, dst.unsqueeze(-1), ones)
         neighbor_count = neighbor_count.clamp(min=1)
         neighbor_mean = neighbor_sum / neighbor_count
 
@@ -100,20 +101,18 @@ class GraphSAGEEncoder(nn.Module):
         if batch is None:
             batch = torch.zeros(node_embed.size(0), dtype=torch.long, device=node_embed.device)
 
-        # Global pooling (mean + max) — 纯 torch 实现
+        # Global pooling (mean + max) — 纯 torch 实现，避免 in-place
         num_graphs = int(batch.max().item()) + 1
-        h_mean = torch.zeros(num_graphs, node_embed.size(1), device=node_embed.device, dtype=node_embed.dtype)
+        batch_expanded = batch.unsqueeze(-1).expand(-1, node_embed.size(1))
+
+        # Mean pooling
+        h_sum = torch.zeros(num_graphs, node_embed.size(1), device=node_embed.device, dtype=node_embed.dtype).scatter_add(0, batch_expanded, node_embed)
+        count = torch.zeros(num_graphs, 1, device=node_embed.device, dtype=node_embed.dtype).scatter_add(0, batch.unsqueeze(-1), torch.ones(node_embed.size(0), 1, device=node_embed.device, dtype=node_embed.dtype))
+        h_mean = h_sum / count.clamp(min=1)
+
+        # Max pooling via scatter_reduce
         h_max = torch.full((num_graphs, node_embed.size(1)), float('-inf'), device=node_embed.device, dtype=node_embed.dtype)
-        count = torch.zeros(num_graphs, 1, device=node_embed.device, dtype=node_embed.dtype)
-
-        h_mean.index_add_(0, batch, node_embed)
-        count.index_add_(0, batch, torch.ones(node_embed.size(0), 1, device=node_embed.device, dtype=node_embed.dtype))
-        h_mean = h_mean / count.clamp(min=1)
-
-        # scatter max
-        for i in range(node_embed.size(0)):
-            b = batch[i].item()
-            h_max[b] = torch.max(h_max[b], node_embed[i])
+        h_max = h_max.scatter_reduce(0, batch_expanded, node_embed, reduce='amax')
 
         graph_embed = torch.cat([h_mean, h_max], dim=-1)
 
