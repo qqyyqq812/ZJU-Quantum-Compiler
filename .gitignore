@@ -33,3 +33,4 @@ docs/handover/
 # 临时文件
 sandbox/
 nohup.out
+scripts/remote_exec.py
