@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Categorical
-from torch_geometric.data import Batch
+from src.compiler.gnn_extractor import GraphData, GraphBatch
 
 from src.compiler.gnn_encoder import GraphSAGEEncoder
 
@@ -93,7 +93,7 @@ class PolicyNetwork(nn.Module):
             nn.Linear(128, 1)
         )
 
-    def forward(self, obs: torch.Tensor, gnn_batch: Batch, swap_edges: list[list[tuple]]) -> tuple[Categorical, torch.Tensor]:
+    def forward(self, obs: torch.Tensor, gnn_batch: GraphBatch, swap_edges: list[list[tuple]]) -> tuple[Categorical, torch.Tensor]:
         """批量前向提取。
         
         Args:
@@ -177,7 +177,7 @@ class PolicyNetwork(nn.Module):
                 logits = torch.zeros((1, self.n_actions), device=device)
                 values = torch.zeros(1, device=device)
             else:
-                d_b = Batch.from_data_list([gnn_input['graph']]).to(device)
+                d_b = GraphBatch.from_data_list([gnn_input['graph']]).to(device)
                 swap_edges = [gnn_input['swap_edges']]
                 dist, values = self.forward(obs_t, d_b, swap_edges)
                 logits = dist.logits
@@ -209,7 +209,7 @@ class PolicyNetwork(nn.Module):
                 else:
                     graphs = [gi['graph'] for gi in gnn_inputs_batch]
                     edges = [gi['swap_edges'] for gi in gnn_inputs_batch]
-                d_b = Batch.from_data_list(graphs).to(device)
+                d_b = GraphBatch.from_data_list(graphs).to(device)
                 
                 dist, values = self.forward(obs_t, d_b, edges)
                 logits = dist.logits
@@ -234,7 +234,7 @@ class PolicyNetwork(nn.Module):
         graphs = [gi['graph'] for gi in gnn_inputs]
         edges = [gi['swap_edges'] for gi in gnn_inputs]
         
-        d_b = Batch.from_data_list(graphs).to(obs.device)
+        d_b = GraphBatch.from_data_list(graphs).to(obs.device)
         
         dist, values = self.forward(obs, d_b, edges)
         logits = dist.logits

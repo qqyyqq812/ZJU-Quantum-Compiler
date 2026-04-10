@@ -9,9 +9,59 @@ V13 升级: 5维 → 9维节点特征
 from __future__ import annotations
 
 import torch
-from torch_geometric.data import Data
 from qiskit.transpiler import CouplingMap
 from src.compiler.dag import CircuitDAG
+
+
+class GraphData:
+    """轻量级图数据容器，替代 torch_geometric.data.Data。"""
+    def __init__(self, x: torch.Tensor, edge_index: torch.Tensor):
+        self.x = x
+        self.edge_index = edge_index
+
+    def to(self, device):
+        return GraphData(self.x.to(device), self.edge_index.to(device))
+
+
+class GraphBatch:
+    """轻量级批量图容器，替代 torch_geometric.data.Batch。
+
+    将多个 GraphData 合并为单个大图：
+    - x: 所有节点特征拼接
+    - edge_index: 所有边索引拼接（偏移后）
+    - batch: 每个节点属于哪个子图
+    - ptr: 每个子图的节点起始偏移
+    """
+    def __init__(self, x, edge_index, batch, ptr):
+        self.x = x
+        self.edge_index = edge_index
+        self.batch = batch
+        self.ptr = ptr
+
+    def to(self, device):
+        return GraphBatch(
+            self.x.to(device), self.edge_index.to(device),
+            self.batch.to(device), self.ptr.to(device)
+        )
+
+    @staticmethod
+    def from_data_list(data_list: list[GraphData]) -> 'GraphBatch':
+        xs, edge_indices, batches = [], [], []
+        ptr = [0]
+        offset = 0
+        for i, data in enumerate(data_list):
+            n = data.x.size(0)
+            xs.append(data.x)
+            edge_indices.append(data.edge_index + offset)
+            batches.append(torch.full((n,), i, dtype=torch.long))
+            offset += n
+            ptr.append(offset)
+        return GraphBatch(
+            x=torch.cat(xs, dim=0),
+            edge_index=torch.cat(edge_indices, dim=1) if edge_indices else torch.empty((2, 0), dtype=torch.long),
+            batch=torch.cat(batches, dim=0),
+            ptr=torch.tensor(ptr, dtype=torch.long),
+        )
 
 def extract_physical_graph(
     coupling_map: CouplingMap,
@@ -129,4 +179,4 @@ def extract_physical_graph(
                     min_d = min(dist_matrix.get((p, fp), max_dist) for fp in front_physicals)
                     x[p, 8] = min_d / max_dist
 
-    return Data(x=x, edge_index=edge_index)
+    return GraphData(x=x, edge_index=edge_index)
