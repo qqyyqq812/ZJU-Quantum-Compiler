@@ -1,0 +1,8 @@
+algorithm: PPO
+environment: IBMTokyo20Q
+episodes: 50000
+rollout_steps: 256
+learning_rate: 3e-4
+reward_shaping:
+  distance_coef: 0.5
+  done_reward: 20

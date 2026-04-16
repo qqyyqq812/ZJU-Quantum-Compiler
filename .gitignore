@@ -34,3 +34,14 @@ docs/handover/
 sandbox/
 nohup.out
 scripts/remote_exec.py
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+*_checkpoint.ipynb
+
+# Agent memory (已废弃)
+.agent_memory/
+
+# 备份文件
+*.backup_*
+README.md.backup_*

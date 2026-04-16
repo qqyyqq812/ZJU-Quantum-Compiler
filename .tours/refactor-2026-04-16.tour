@@ -1,0 +1,60 @@
+{
+  "title": "项目整改导览 2026-04-16",
+  "description": "本 Tour 记录 2026-04-16 项目结构整改的主要变更点，供后续维护参考。",
+  "steps": [
+    {
+      "title": "README.md — 重写为规范项目文档",
+      "description": "原 README 缺乏结构，仅含简单描述。重写后包含：快速开始、项目目录树、评分标准对标表、算法版本历程。",
+      "file": "README.md",
+      "line": 1
+    },
+    {
+      "title": "CLAUDE.md — 清理无效引用",
+      "description": "删除了指向不存在的 docs/task_board.md 和 .agent_memory/ 的引用，更新为实际存在的文件路径，添加了 GitHub 仓库链接和代码原则。",
+      "file": "CLAUDE.md",
+      "line": 1
+    },
+    {
+      "title": "monitor_dashboard.py — 修复硬编码路径",
+      "description": "将 DATA_PATH 和 LOG_PATH 从 /root/projects/量子电路/... 改为基于 os.path.abspath(__file__) 的相对路径，确保跨环境可移植性。",
+      "file": "monitor_dashboard.py",
+      "line": 9
+    },
+    {
+      "title": "cleanup_and_setup.sh — 参数化 PROJECT_ROOT",
+      "description": "将所有 /root/quantum 硬编码替换为 $PROJECT_ROOT 变量，支持通过第一个参数传入项目路径，默认为当前目录。",
+      "file": "cleanup_and_setup.sh",
+      "line": 8
+    },
+    {
+      "title": "run_train_v13.sh — 移除 SSH 敏感信息",
+      "description": "将注释中的 AutoDL 服务器 IP (connect.westd.seetacloud.com) 和端口 (14191) 替换为文档引用，避免敏感信息进入版本控制。",
+      "file": "run_train_v13.sh",
+      "line": 7
+    },
+    {
+      "title": "configs/ — 超参数配置目录",
+      "description": "新建 configs/ 目录，将 V9/V13 训练超参数提取为独立 yaml 文件：v9_baseline.yaml、v9_fallback.yaml、v13_gpu.yaml。",
+      "file": "configs/v13_gpu.yaml",
+      "line": 1
+    },
+    {
+      "title": "train.py — 统一训练入口",
+      "description": "新建统一训练入口，通过 --config 参数加载 yaml 配置，取代各脚本中的硬编码参数。用法：python train.py --config configs/v9_baseline.yaml",
+      "file": "train.py",
+      "line": 1
+    },
+    {
+      "title": "notebooks/ — 规范化的 Notebook 目录",
+      "description": "4 个 Colab 训练 Notebook 已清除嵌入输出、按 0N_description 格式重命名、移入 notebooks/ 目录。",
+      "file": "notebooks/03_train_v10_ppo_hardmask.ipynb",
+      "line": 1
+    },
+    {
+      "title": "AI-Collaboration.md — AI 协同记录",
+      "description": "新建 AI 协同文档，满足课题评分中 AI 协同占 10% 的要求，记录本次整改的 Prompt 工程实践和效果评估。",
+      "file": "AI-Collaboration.md",
+      "line": 1
+    }
+  ]
+}

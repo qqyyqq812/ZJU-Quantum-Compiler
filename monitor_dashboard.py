@@ -6,8 +6,11 @@ import pandas as pd
 
 st.set_page_config(page_title="量子电路训练监控", page_icon="🌌", layout="wide")
 
-DATA_PATH = "/root/projects/量子电路/models/v12_tokyo20/history_v7_ibm_tokyo.json"
-LOG_PATH = "/root/projects/量子电路/logs/training_v12_ray.log"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODELS_DIR = os.path.join(BASE_DIR, 'models')
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+DATA_PATH = os.path.join(MODELS_DIR, "v12_tokyo20", "history_v7_ibm_tokyo.json")
+LOG_PATH = os.path.join(LOGS_DIR, "training_v12_ray.log")
 
 placeholder = st.empty()
 

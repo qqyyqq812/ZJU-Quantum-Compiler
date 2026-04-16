@@ -7,6 +7,11 @@
 # ============================================================
 set -euo pipefail
 
+# 使用说明: 在 AutoDL GPU 服务器上执行此脚本
+# 用法: bash cleanup_and_setup.sh [project_root]
+# 例如: bash cleanup_and_setup.sh /root/quantum
+PROJECT_ROOT="${1:-$(pwd)}"
+
 echo "=========================================="
 echo "  Step 1: 磁盘空间诊断"
 echo "=========================================="
@@ -55,7 +60,7 @@ echo ""
 echo "=========================================="
 echo "  Step 7: 安装依赖 (轻量版)"
 echo "=========================================="
-cd /root/quantum
+cd "$PROJECT_ROOT"
 
 # 先确保基础包可用，跳过已有的大包
 pip install --no-cache-dir gymnasium==1.2.3 2>&1 | tail -3
@@ -82,7 +87,7 @@ echo ""
 echo "=========================================="
 echo "  Step 9: 拉取最新代码"
 echo "=========================================="
-cd /root/quantum
+cd "$PROJECT_ROOT"
 git pull 2>&1 || echo "git pull 失败，请检查远程仓库"
 
 echo ""
@@ -92,4 +97,4 @@ echo "=========================================="
 df -h /
 echo ""
 echo "接下来运行训练:"
-echo "  cd /root/quantum && bash run_train_v13.sh"
+echo "  cd "$PROJECT_ROOT" && bash run_train_v13.sh"

@@ -4,7 +4,7 @@
 # ============================================================
 # 用法:
 #   1. 将代码推送到 GitHub: git push
-#   2. SSH 到 GPU 服务器: ssh -p 14191 root@connect.westd.seetacloud.com
+#   2. SSH 到 GPU 服务器（连接信息参考 docs/AutoDL_V12_训练验收报告.md）
 #   3. 在 GPU 服务器上:
 #        cd /root && git clone https://github.com/qqyyqq812/ZJU-Quantum-Compiler.git quantum
 #        cd quantum && pip install -r requirements.txt

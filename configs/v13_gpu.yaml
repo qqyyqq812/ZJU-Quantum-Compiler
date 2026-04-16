@@ -1,0 +1,6 @@
+algorithm: PPO
+environment: IBMTokyo20Q
+episodes: 100000
+rollout_steps: 32768
+learning_rate: 3e-4
+hardware: GPU
