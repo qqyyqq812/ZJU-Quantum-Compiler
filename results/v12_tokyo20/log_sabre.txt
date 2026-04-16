@@ -1,0 +1,11 @@
+加载 SABRE 环境...
+开始 SABRE 评估...
+SABRE 评估: random_5_d2
+-> SABRE Swap: 0
+SABRE 评估: random_7_d3
+-> SABRE Swap: 0
+SABRE 评估: qft_5
+-> SABRE Swap: 7
+SABRE 评估: qft_7
+-> SABRE Swap: 17
+✅ SABRE 评测完成

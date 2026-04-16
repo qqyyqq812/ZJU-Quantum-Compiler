@@ -9,7 +9,8 @@
 set -e
 
 cd ~/projects/量子电路
-source .venv/bin/activate
+source /root/miniconda3/etc/profile.d/conda.sh || source /opt/conda/etc/profile.d/conda.sh
+conda activate base
 
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
@@ -40,16 +41,18 @@ echo "   课程学习: 3Q→5Q→10Q→20Q"
 echo "   保存到: $SAVE_DIR"
 echo ""
 
-nohup python -u -m src.compiler.train \
+nohup conda run --no-capture-output -n base python -u -m src.compiler.train \
     --topology ibm_tokyo \
     --qubits 20 \
     --episodes 50000 \
+    --rollout-steps 8192 \
     --curriculum \
     --save-dir "$SAVE_DIR" \
     --reward-gate 1.0 \
     --penalty-swap -1.0 \
     --reward-done 20.0 \
     --distance-coef 0.5 \
+    --eval-interval 5 \
     --random-mapping \
     $RESUME_FLAG \
     > "$LOG_FILE" 2>&1 &

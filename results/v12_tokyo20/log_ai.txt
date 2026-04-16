@@ -1,0 +1,11 @@
+加载模型...
+开始评估...
+评估: random_5_d2
+-> 完成状态:False, Swap: 4
+评估: random_7_d3
+-> 完成状态:False, Swap: 3
+评估: qft_5
+-> 完成状态:False, Swap: 7
+评估: qft_7
+-> 完成状态:False, Swap: 13
+✅ AI 评测完成

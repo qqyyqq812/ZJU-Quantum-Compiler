@@ -94,9 +94,22 @@ class MCTSSearcher:
         best_action = -1
         best_child = None
         
+        # AlphaZero Min-Max Q-value normalization
+        valid_qs = [c.q_value for c in node.children.values() if c.visit_count > 0]
+        # Include 0.0 to represent the optimistic baseline for unvisited nodes
+        q_min = min(valid_qs + [0.0]) if valid_qs else 0.0
+        q_max = max(valid_qs + [0.0]) if valid_qs else 0.0
+        
         for action, child in node.children.items():
             u = self.c_puct * child.prior_prob * math.sqrt(node.visit_count) / (1 + child.visit_count)
-            score = child.q_value + u
+            
+            # Treat unvisited nodes as optimistic prior (q_max or 0.0)
+            q = child.q_value if child.visit_count > 0 else 0.0
+            
+            # Normalize Q to [0, 1] if variance exists, else 0.5
+            norm_q = (q - q_min) / (q_max - q_min) if q_max > q_min else 0.5
+            score = norm_q + u
+            
             if score > best_score:
                 best_score = score
                 best_action = action
@@ -142,8 +155,11 @@ class MCTSSearcher:
             return action_probs, value.item()
 
 
-def run_mcts_eval(model_path: str, topology_name: str, num_sims: int = 20):
-    policy, cm = load_policy(model_path, topology_name)
+def run_mcts_eval(model_path: str, topology_name: str, num_sims: int = 500, checkpoint_file: str = "models/mcts_checkpoint.json"):
+    import os, json
+    from src.benchmarks.topologies import get_topology
+    policy, _ = load_policy(model_path, topology_name)
+    cm = get_topology(topology_name)
     policy.eval()
     
     from src.benchmarks.circuits import generate_qft
@@ -153,21 +169,57 @@ def run_mcts_eval(model_path: str, topology_name: str, num_sims: int = 20):
     env.set_circuit(qc)
     obs, info = env.reset()
     
-    searcher = MCTSSearcher(policy, cm, num_simulations=num_sims)
-    
-    print(f"🌲 正在启动 MCTS 主机引擎 (模型: {model_path})")
-    
-    done = False
+    # --- 存档恢复机制 (快进 Fast-Forward) ---
+    actions_taken = []
     step = 0
+    done = False
+    
+    os.makedirs(os.path.dirname(checkpoint_file), exist_ok=True)
+    if os.path.exists(checkpoint_file):
+        try:
+            with open(checkpoint_file, 'r') as f:
+                data = json.load(f)
+                actions_taken = data.get("actions", [])
+                
+            if actions_taken:
+                print(f"🔄 发现 MCTS 存档！正在快进恢复执行之前的 {len(actions_taken)} 步动作...")
+                for a in actions_taken:
+                    obs, reward, term, trunc, info = env.step(a)
+                    step += 1
+                    done = term or trunc
+        except Exception as e:
+            print(f"⚠️ 读取存档失败: {e}，将重新开始。")
+            actions_taken = []
+            
+    searcher = MCTSSearcher(policy, cm, num_simulations=num_sims)
+    print(f"🌲 正在启动 MCTS 主机引擎 (模型: {model_path}) | 当前推演深度: {num_sims}")
+    
     while not done:
         # 对每一步进行树搜索
         action = searcher.search(env)
         obs, reward, term, trunc, info = env.step(action)
         step += 1
         done = term or trunc
-        print(f"推演步数 {step:2d} | 树决策选择了动作: {action} | 最新 SWAP 消耗: {info.get('total_swaps')}")
         
-    print(f"🎉 MCTS 路由完成！最终 SWAP 消耗: {info.get('total_swaps')}")
+        # 记录动作机制
+        actions_taken.append(int(action))
+        with open(checkpoint_file, 'w') as f:
+            json.dump({"circuit": "qft_5", "actions": actions_taken}, f)
+            
+        print(f"推演步数 {step:3d} | 决策动作: {action:2d} | 累计 SWAP: {info.get('total_swaps')}")
+        
+    is_success = env._dag.is_done() if env._dag is not None else False
+    print(f"🎉 MCTS 路由结束！是否成功: {is_success} | 最终 SWAP 消耗: {info.get('total_swaps')}")
 
 if __name__ == '__main__':
-    run_mcts_eval("models/v10_hard_mask/v7_ibm_tokyo_best.pt", "ibm_tokyo", num_sims=30)
+    import multiprocessing as mp
+    print("🔥 启动 20 核 CPU 并发撕裂引擎...")
+    processes = []
+    for i in range(20):
+        ckpt = f"models/mcts_checkpoint_parallel_{i}.json"
+        p = mp.Process(target=run_mcts_eval, args=("models/v9_tokyo20/v7_ibm_tokyo_best.pt", "ibm_tokyo", 500, ckpt))
+        processes.append(p)
+        p.start()
+    for p in processes:
+        p.join()
+    print("✅ 20 路高并发 MCTS 探索全部完成！")
