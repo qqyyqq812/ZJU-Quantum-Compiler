@@ -38,7 +38,13 @@ class AIRouter:
         use_mcts: bool = False,
     ):
         self.coupling_map = coupling_map
-        self.env = QuantumRoutingEnv(coupling_map=coupling_map)
+        # V14 §V14-4 修复: AIRouter 使用 identity mapping, 避免 _collect_trace
+        # 的 local DAG 与 env.reset() 随机映射不一致导致的语义错乱.
+        # 评测时路由必须可复现, 所以关闭 random_mapping.
+        self.env = QuantumRoutingEnv(
+            coupling_map=coupling_map,
+            initial_mapping_fn=None,  # 显式 identity mapping
+        )
         self.use_gnn = use_gnn
         self.use_mcts = use_mcts
 

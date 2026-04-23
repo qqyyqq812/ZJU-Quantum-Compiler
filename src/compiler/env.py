@@ -1,11 +1,16 @@
 """
-量子电路路由 RL 环境 V13
+量子电路路由 RL 环境 V14
 ========================
-V13 核心重构 (修复 V9/V11/V12 非收敛问题):
-1. SABRE 相对奖励: terminal reward = sabre_swaps - ai_swaps (信号最纯净)
-2. 轻量 shaping: 距离缩减奖励大幅降权，消除 Reward Drowning
-3. Soft Mask + Tabu: 允许 delta<=1 的 SWAP，物理阻断乒乓
-4. 随机初始映射: 默认开启，消除 Identity Mapping 偏见
+V14 (基于 V13 扩展, 见 docs/technical/decisions.md §V14):
+1. SABRE baseline 缓存 (§V14-1): _compute_sabre_baseline 走 sabre_cache
+2. 阶段化 Mask (§V14-2): get_action_mask 根据 _curriculum_stage 切换 Hard/Soft
+3. 奖励分层 (§V14-3): step terminal 在 stage<=2 用固定完成奖励, stage>=3 用 SABRE 相对
+4. 早期奖励参数化: early_stage_reward_floor / early_stage_sabre_weight 可从 yaml 调
+
+历史承袭 (V13):
+- SABRE 相对奖励作为后期终端奖励
+- Soft Mask + Tabu
+- 9 维 GNN 节点特征
 """
 
 from __future__ import annotations
@@ -22,12 +27,12 @@ from src.compiler.dag import CircuitDAG
 
 
 class QuantumRoutingEnv(gym.Env):
-    """V3 量子电路路由 RL 环境。
+    """V14 量子电路路由 RL 环境。
 
-    关键改进:
-    - Action Masking: get_action_mask() 过滤无用 SWAP
-    - Look-Ahead: 用 extended front 计算距离
-    - PASS 动作 (继承 V2)
+    - Action Masking (阶段化): stage 0-1 Hard, stage 2-3 Soft delta<=1, stage 4 delta<=2
+    - Look-Ahead: extended front 距离评估
+    - Tabu 物理阻断 + PASS 动作
+    - SABRE baseline 奖励 (可选, 后期 stage 生效)
     """
 
     metadata = {"render_modes": ["human"]}
@@ -47,6 +52,8 @@ class QuantumRoutingEnv(gym.Env):
         tabu_size: int = 4,
         penalty_tabu: float = -5.0,
         use_sabre_reward: bool = True,      # V13: SABRE 相对终端奖励
+        early_stage_reward_floor: float = 5.0,       # V14 §V14-3: stage<=2 的最低终端奖励
+        early_stage_sabre_weight: float = 0.1,       # V14 §V14-3: stage<=2 的 SABRE 相对奖励权重
     ):
         super().__init__()
 
@@ -64,6 +71,8 @@ class QuantumRoutingEnv(gym.Env):
         self.tabu_size = tabu_size
         self.penalty_tabu = penalty_tabu
         self.use_sabre_reward = use_sabre_reward
+        self.early_stage_reward_floor = early_stage_reward_floor
+        self.early_stage_sabre_weight = early_stage_sabre_weight
         self._sabre_swaps: int = 0  # V13: SABRE baseline for current circuit
         self.tabu_list = []
 
@@ -137,9 +146,12 @@ class QuantumRoutingEnv(gym.Env):
         self._total_gates = self._dag.n_gates
         self.tabu_list.clear()
 
-        # V13: 预计算 SABRE baseline
+        # V13/V14: 预计算 SABRE baseline
+        # V14 修复: get_sabre_swaps 返回 -1 表示计算失败, 此时
+        # 不启用 SABRE 相对奖励 (避免污染训练信号).
         if self.use_sabre_reward:
-            self._sabre_swaps = self._compute_sabre_baseline()
+            sabre = self._compute_sabre_baseline()
+            self._sabre_swaps = sabre if sabre >= 0 else 0
         else:
             self._sabre_swaps = 0
 
@@ -211,10 +223,11 @@ class QuantumRoutingEnv(gym.Env):
             stage = self._curriculum_stage
             if stage <= 2:
                 # 早期阶段：完成奖励为主，SABRE 相对奖励弱化
-                reward += max(self.reward_done, 5.0)
+                reward += max(self.reward_done, self.early_stage_reward_floor)
                 if self.use_sabre_reward and self._sabre_swaps > 0:
-                    # 次要信号：差距的 10%
-                    reward += 0.1 * float(self._sabre_swaps - self._total_swaps)
+                    reward += self.early_stage_sabre_weight * float(
+                        self._sabre_swaps - self._total_swaps
+                    )
             else:
                 # 后期阶段：SABRE 相对奖励为主
                 if self.use_sabre_reward and self._sabre_swaps > 0:

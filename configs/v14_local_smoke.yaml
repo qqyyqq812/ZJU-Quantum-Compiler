@@ -31,6 +31,8 @@ reward:
   lookahead_coef: 0.1
   sabre_relative: true
   sabre_cache: true
+  early_stage_reward_floor: 5.0
+  early_stage_sabre_weight: 0.1
 
 environment:
   max_steps: 500

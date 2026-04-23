@@ -72,3 +72,61 @@ def test_reward_layering_early_stage_has_done_bonus():
     # 由于有距离/门奖励，最终 reward 应 >= 5
     # 但本测试至少应不小于完成奖励的一部分
     assert total_reward >= 0  # 至少不崩
+
+
+def test_yaml_configurable_reward_floor():
+    """V14 修复: early_stage_reward_floor 必须可配置, 不能硬编码."""
+    cm = CouplingMap.from_line(3)
+    qc = QuantumCircuit(3)
+    qc.cx(0, 1)
+
+    # 自定义一个非默认值 — 关闭所有其他奖励, 孤立验证 floor
+    env = QuantumRoutingEnv(
+        coupling_map=cm,
+        reward_gate=0.0,
+        penalty_swap=0.0,
+        penalty_useless_pass=0.0,
+        reward_done=0.5,  # 很小
+        distance_reward_coef=0.0,
+        lookahead_coef=0.0,
+        use_sabre_reward=False,
+        early_stage_reward_floor=12.0,  # 但 floor 很大
+    )
+    env.set_circuit(qc)
+    env.set_curriculum_stage(0)
+    env.reset()
+
+    total = 0.0
+    terminated = False
+    for _ in range(10):
+        _obs, r, terminated, truncated, _ = env.step(env.PASS_ACTION)
+        total += r
+        if terminated or truncated:
+            break
+
+    assert terminated
+    # 终端应该拿到 floor (12.0), 而不是 reward_done (0.5)
+    assert total >= 12.0 - 1e-3, (
+        f"early_stage_reward_floor=12.0 should override reward_done=0.5, got total={total}"
+    )
+
+
+def test_yaml_configurable_secondary_sabre_weight():
+    """V14 修复: early_stage_sabre_weight 必须可配置."""
+    cm = CouplingMap.from_line(3)
+    qc = QuantumCircuit(3)
+    qc.cx(0, 1)
+
+    env = QuantumRoutingEnv(
+        coupling_map=cm,
+        reward_done=0.0,
+        use_sabre_reward=True,  # 启用 SABRE 相对奖励
+        early_stage_reward_floor=0.0,  # 关闭 floor, 凸显 sabre 权重
+        early_stage_sabre_weight=2.0,  # 大幅提高
+    )
+    env.set_circuit(qc)
+    env.set_curriculum_stage(0)
+    env.reset()
+    # 只要能构造出来、能跑一步不崩即可（逻辑已由单元覆盖）
+    assert env.early_stage_sabre_weight == 2.0
+    env.step(env.PASS_ACTION)

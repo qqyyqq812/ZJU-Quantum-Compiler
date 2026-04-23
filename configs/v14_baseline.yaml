@@ -28,11 +28,13 @@ reward:
   # V14 §V14-3: 奖励分层 — 早期固定完成奖励，后期 SABRE 相对
   gate: 1.0           # 早期 (stage <= 2) 生效；晚期降权至 0.3（env 内部处理）
   swap: -0.5
-  done: 5.0           # 早期完成奖励
+  done: 5.0           # 早期完成奖励 base (与 early_stage_reward_floor 取 max)
   distance_coef: 0.3
   lookahead_coef: 0.1
   sabre_relative: true
   sabre_cache: true   # V14 §V14-1
+  early_stage_reward_floor: 5.0   # stage<=2 的终端奖励下限
+  early_stage_sabre_weight: 0.1   # stage<=2 的 SABRE 相对奖励权重
 
 environment:
   max_steps: 2000

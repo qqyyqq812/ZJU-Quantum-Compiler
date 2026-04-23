@@ -121,6 +121,8 @@ def train(
     tabu_size: int = 4,
     num_envs: int = 20,              # V14: 可从 yaml 指定
     mini_batch_size: int = 4096,     # V14: 可从 yaml 指定
+    early_stage_reward_floor: float = 5.0,   # V14 §V14-3: stage<=2 完成奖励下限
+    early_stage_sabre_weight: float = 0.1,   # V14 §V14-3: stage<=2 SABRE 权重
 ) -> dict:
     import torch.multiprocessing
     torch.multiprocessing.set_sharing_strategy('file_system')
@@ -139,6 +141,8 @@ def train(
         initial_mapping_fn=_random_mapping_fn if random_mapping else None,
         soft_mask=soft_mask,
         tabu_size=tabu_size,
+        early_stage_reward_floor=early_stage_reward_floor,
+        early_stage_sabre_weight=early_stage_sabre_weight,
     ) for _ in range(num_envs)]
     
     envs = gym.vector.AsyncVectorEnv(env_factories)
@@ -445,6 +449,8 @@ def main():
             tabu_size=env_cfg.get('tabu_size', 4),
             num_envs=training.get('num_envs', 20),
             mini_batch_size=training.get('mini_batch_size', 4096),
+            early_stage_reward_floor=reward.get('early_stage_reward_floor', 5.0),
+            early_stage_sabre_weight=reward.get('early_stage_sabre_weight', 0.1),
         )
         return
 

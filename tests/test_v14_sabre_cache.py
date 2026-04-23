@@ -67,3 +67,20 @@ def test_different_topologies_are_different_keys():
     get_sabre_swaps(qc, cm2, "ring_5")
 
     assert cache_stats()["size"] == 2
+
+
+def test_transpile_failure_returns_minus_one_and_does_not_cache():
+    """V14 修复: transpile 失败不污染缓存 (之前会存 0 影响训练信号)."""
+    # 用一个 qubit 数超过拓扑的电路让 transpile 失败
+    cm = CouplingMap.from_line(3)
+    qc = QuantumCircuit(10)   # 10 qubits 用 3-qubit 拓扑，SABRE 必炸
+    qc.cx(0, 9)
+
+    result = get_sabre_swaps(qc, cm, "linear_3_oversize")
+    stats = cache_stats()
+
+    # 失败时返回 -1 而不是默认 0
+    assert result == -1
+    # 失败的条目不应该被缓存
+    assert stats["size"] == 0
+    assert stats["transpile_errors"] == 1
