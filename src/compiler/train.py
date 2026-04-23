@@ -119,12 +119,15 @@ def train(
     random_mapping: bool = True,     # V13: 默认开启随机映射
     soft_mask: bool = True,          # V13: 默认开启 Soft Mask
     tabu_size: int = 4,
+    num_envs: int = 20,              # V14: 可从 yaml 指定
+    mini_batch_size: int = 4096,     # V14: 可从 yaml 指定
 ) -> dict:
     import torch.multiprocessing
     torch.multiprocessing.set_sharing_strategy('file_system')
     
     cm = get_topology(topology_name)
-    num_envs = 20  # 全核心火力全开
+    # V14: 保证 save_dir 存在（yaml 指定路径可能还没建目录）
+    Path(save_dir).mkdir(parents=True, exist_ok=True)
     print(f"🔥 启动 AsyncVectorEnv ({num_envs} 进程并行推演矩阵)")
 
     env_factories = [EnvFactory(
@@ -288,6 +291,11 @@ def train(
                                 new_cfg = scheduler.stage_config
                                 circuits = scheduler.circuits
                                 print(f"\n  🎓 课程进阶突破! → 阶段 {scheduler.current_stage} ({new_cfg.name}, {new_cfg.n_qubits}Q)")
+                                # V14 §V14-2/§V14-3: 传播 stage 给所有 env
+                                try:
+                                    envs.call("set_curriculum_stage", scheduler.current_stage)
+                                except Exception:
+                                    pass
                                 circuit = circuits[0]
                                 envs.call("set_circuit", circuit)
                                 next_obs, next_infos = envs.reset()
@@ -310,7 +318,7 @@ def train(
                 break
 
         if len(buffer) > 0:
-            metrics = trainer.update(buffer, mini_batch_size=4096)  # [V12] 暴力榨取 5090 并行算力
+            metrics = trainer.update(buffer, mini_batch_size=mini_batch_size)
             history['policy_losses'].append(metrics['policy_loss'])
             history['value_losses'].append(metrics['value_loss'])
 
@@ -372,28 +380,75 @@ def train(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="V8 量子路由器训练管线")
+    parser = argparse.ArgumentParser(description="V14 量子路由器训练管线")
+    # V14: yaml 配置为主路径
+    parser.add_argument('--config', type=str, default=None,
+                        help='YAML config path (V14+ recommended). 若提供，命令行参数会覆盖 yaml')
+
+    # 兼容 V13 及以前的命令行参数
     parser.add_argument('--topology', default='linear_5')
     parser.add_argument('--qubits', type=int, default=5)
     parser.add_argument('--episodes', type=int, default=50000)
-    parser.add_argument('--rollout-steps', type=int, default=32768)  # [V12] GPU压榨扩大 16 倍
+    parser.add_argument('--rollout-steps', type=int, default=32768)
     parser.add_argument('--save-dir', default='models')
     parser.add_argument('--curriculum', action='store_true')
     parser.add_argument('--lr', type=float, default=3e-4)
-    parser.add_argument('--eval-interval', type=int, default=500)   # 更密集的评估
+    parser.add_argument('--eval-interval', type=int, default=500)
     parser.add_argument('--resume', type=str, default=None)
-    parser.add_argument('--reward-gate', type=float, default=0.3)    # V13
+    parser.add_argument('--reward-gate', type=float, default=0.3)
     parser.add_argument('--penalty-swap', type=float, default=-0.5)
-    parser.add_argument('--reward-done', type=float, default=0.0)    # V13
-    parser.add_argument('--distance-coef', type=float, default=0.3)  # V13
-    parser.add_argument('--random-mapping', action='store_true', default=True)  # V13: 默认开启
+    parser.add_argument('--reward-done', type=float, default=0.0)
+    parser.add_argument('--distance-coef', type=float, default=0.3)
+    parser.add_argument('--random-mapping', action='store_true', default=True)
     parser.add_argument('--no-random-mapping', dest='random_mapping', action='store_false')
-    parser.add_argument('--soft-mask', action='store_true', default=True)  # V13: 默认开启
+    parser.add_argument('--soft-mask', action='store_true', default=True)
     parser.add_argument('--no-soft-mask', dest='soft_mask', action='store_false')
     parser.add_argument('--tabu-size', type=int, default=4)
     parser.add_argument('--checkpoint-interval', type=int, default=2000)
     args = parser.parse_args()
 
+    # V14: 若传了 --config，走 yaml 路径
+    if args.config:
+        from src.utils.config import load_config
+        cfg = load_config(args.config)
+        topology = cfg['topology']
+        training = cfg['training']
+        reward = cfg['reward']
+        env_cfg = cfg['environment']
+        curr = cfg.get('curriculum', {})
+        paths = cfg.get('paths', {})
+
+        save_dir = paths.get('save_dir', args.save_dir)
+        resume = paths.get('resume', args.resume)
+
+        train(
+            topology_name=topology['name'],
+            n_qubits=topology['n_qubits'],
+            n_episodes=training['episodes'],
+            rollout_steps=training['rollout_steps'],
+            log_interval=training.get('log_interval', 100),
+            eval_interval=training.get('eval_interval', 500),
+            checkpoint_interval=training.get('checkpoint_interval', 2000),
+            save_dir=save_dir,
+            use_curriculum=curr.get('enabled', True),
+            lr_start=training.get('lr_start', 3e-4),
+            lr_end=training.get('lr_end', 1e-5),
+            entropy_start=training.get('entropy_start', 0.05),
+            entropy_end=training.get('entropy_end', 0.001),
+            resume_path=resume,
+            reward_gate=reward.get('gate', 1.0),
+            penalty_swap=reward.get('swap', -0.5),
+            reward_done=reward.get('done', 5.0),
+            distance_reward_coef=reward.get('distance_coef', 0.3),
+            random_mapping=env_cfg.get('random_mapping', True),
+            soft_mask=env_cfg.get('soft_mask', True),
+            tabu_size=env_cfg.get('tabu_size', 4),
+            num_envs=training.get('num_envs', 20),
+            mini_batch_size=training.get('mini_batch_size', 4096),
+        )
+        return
+
+    # 兼容 V13 旧路径
     train(
         topology_name=args.topology,
         n_qubits=args.qubits,

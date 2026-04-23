@@ -1,0 +1,46 @@
+# V14 微型 smoke - 极短训练验证全链路
+version: v14
+algorithm: PPO
+
+topology:
+  name: linear_5
+  n_qubits: 5
+
+training:
+  episodes: 100
+  rollout_steps: 128
+  num_envs: 2
+  mini_batch_size: 32
+  lr_start: 3.0e-4
+  lr_end: 1.0e-5
+  entropy_start: 0.05
+  entropy_end: 0.001
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_epsilon: 0.2
+  epochs_per_update: 1
+  log_interval: 20
+  eval_interval: 50
+  checkpoint_interval: 100
+
+reward:
+  gate: 1.0
+  swap: -0.5
+  done: 5.0
+  distance_coef: 0.3
+  lookahead_coef: 0.1
+  sabre_relative: true
+  sabre_cache: true
+
+environment:
+  max_steps: 200
+  soft_mask: true
+  tabu_size: 4
+  random_mapping: true
+
+curriculum:
+  enabled: false
+
+paths:
+  save_dir: /tmp/v14_micro_smoke
+  resume: null

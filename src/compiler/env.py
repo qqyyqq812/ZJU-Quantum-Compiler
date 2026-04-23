@@ -110,9 +110,19 @@ class QuantumRoutingEnv(gym.Env):
         self._total_gates_executed: int = 0
         self._total_gates: int = 0
         self._circuit: QuantumCircuit | None = None
+        self._topology_name: str = "unknown"  # V14: for SABRE cache key
 
-    def set_circuit(self, circuit: QuantumCircuit) -> None:
+        # V14: curriculum stage 供阶段化 mask / reward 使用
+        self._curriculum_stage: int = 0
+
+    def set_circuit(self, circuit: QuantumCircuit, topology_name: str | None = None) -> None:
         self._circuit = circuit
+        if topology_name:
+            self._topology_name = topology_name
+
+    def set_curriculum_stage(self, stage: int) -> None:
+        """V14 §V14-2/§V14-3: 训练端在晋级时调用，切换 mask/reward 策略。"""
+        self._curriculum_stage = int(stage)
 
     def reset(self, *, seed: int | None = None, options: dict | None = None) -> tuple[np.ndarray, dict]:
         super().reset(seed=seed)
@@ -195,12 +205,22 @@ class QuantumRoutingEnv(gym.Env):
         terminated = self._dag.is_done()
         truncated = self._step_count >= self.max_steps
         if terminated:
-            # V13: SABRE 相对终端奖励 — 信号最纯净
-            if self.use_sabre_reward and self._sabre_swaps > 0:
-                # 正值 = 比 SABRE 好，负值 = 比 SABRE 差
-                reward += float(self._sabre_swaps - self._total_swaps)
+            # V14 §V14-3: 奖励分层
+            # Stage 0-2 (学会完成)：固定完成奖励 (reward_done ~5.0)，鼓励先完成
+            # Stage 3-4 (学会超越 SABRE)：SABRE 相对奖励作为主要信号
+            stage = self._curriculum_stage
+            if stage <= 2:
+                # 早期阶段：完成奖励为主，SABRE 相对奖励弱化
+                reward += max(self.reward_done, 5.0)
+                if self.use_sabre_reward and self._sabre_swaps > 0:
+                    # 次要信号：差距的 10%
+                    reward += 0.1 * float(self._sabre_swaps - self._total_swaps)
             else:
-                reward += self.reward_done
+                # 后期阶段：SABRE 相对奖励为主
+                if self.use_sabre_reward and self._sabre_swaps > 0:
+                    reward += float(self._sabre_swaps - self._total_swaps)
+                else:
+                    reward += self.reward_done
 
         return self._get_obs(), reward, terminated, truncated, self._get_info()
 
@@ -243,13 +263,23 @@ class QuantumRoutingEnv(gym.Env):
                 delta = d_after - d_now
                 best_delta = min(best_delta, delta)
             
-            if self.soft_mask:
-                # V8 Soft Mask: 允许距离增加不超过 1 的 SWAP
+            # V14 §V14-2: 阶段化 mask —— 根据 curriculum stage 选择容忍度
+            stage = self._curriculum_stage
+            if not self.soft_mask:
+                # Hard mask: 严格缩短
+                if best_delta < 0:
+                    mask[i] = 1.0
+            elif stage <= 1:
+                # Stage 0-1 (3Q/5Q 学基础): Hard mask
+                if best_delta < 0:
+                    mask[i] = 1.0
+            elif stage <= 3:
+                # Stage 2-3: Soft mask delta <= 1
                 if best_delta <= 1:
                     mask[i] = 1.0
             else:
-                # V7 Hard Mask: 只保留严格缩短距离的 SWAP
-                if best_delta < 0:
+                # Stage 4 (20Q 真实挑战): Soft mask delta <= 2
+                if best_delta <= 2:
                     mask[i] = 1.0
 
         # 如果没有有用的 SWAP（所有前沿门已可执行），只留 PASS
@@ -378,19 +408,10 @@ class QuantumRoutingEnv(gym.Env):
         return obs
 
     def _compute_sabre_baseline(self) -> int:
-        """V13: 用 Qiskit SABRE 路由当前电路，返回 SWAP 数作为 baseline。"""
-        try:
-            from qiskit import transpile
-            transpiled = transpile(
-                self._circuit,
-                coupling_map=self.coupling_map,
-                optimization_level=1,   # 用 level 1 即可，level 3 太慢
-                routing_method='sabre',
-                seed_transpiler=42,
-            )
-            return transpiled.count_ops().get('swap', 0)
-        except Exception:
-            return 0
+        """V14: 通过 sabre_cache 查询，命中则 O(1)，未命中才跑 Qiskit transpile。"""
+        from src.compiler.sabre_cache import get_sabre_swaps
+        topology_name = getattr(self, "_topology_name", "unknown")
+        return get_sabre_swaps(self._circuit, self.coupling_map, topology_name)
 
     def _get_info(self) -> dict[str, Any]:
         from src.compiler.gnn_extractor import extract_physical_graph

@@ -1,6 +1,15 @@
-"""M3 测试：AI 编译器核心模块 (V2 适配)"""
+"""M3 测试：AI 编译器核心模块 (V2 适配)
 
+V14 note: GATEncoder / CircuitEncoder 已在 V13 重构中移除（纯 PyTorch 版 GNN 替代）。
+本文件整体跳过，保留作为历史参考。V14 的测试见 test_v14_*.py。
+"""
 import pytest
+
+pytest.skip(
+    "V10 era GATEncoder/CircuitEncoder removed in V13 refactor; see test_v14_*.py",
+    allow_module_level=True,
+)
+
 import numpy as np
 import torch
 from qiskit import QuantumCircuit
@@ -8,8 +17,8 @@ from qiskit.transpiler import CouplingMap
 
 from src.compiler.env import QuantumRoutingEnv
 from src.compiler.policy import PolicyNetwork, PPOTrainer, RolloutBuffer
-from src.compiler.gnn_encoder import GATEncoder, CircuitEncoder
-from src.compiler.pass_manager import AIRouter, compile_with_ai
+from src.compiler.gnn_encoder import GATEncoder, CircuitEncoder  # noqa: F401
+from src.compiler.pass_manager import AIRouter, compile_with_ai  # noqa: F401
 
 
 class TestGNNEncoder:

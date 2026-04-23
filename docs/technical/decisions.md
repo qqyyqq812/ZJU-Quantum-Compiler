@@ -1,10 +1,79 @@
 # 技术决策记录 (量子电路)
 
-## 当前版本状态 (V13)
+## 当前版本状态 (V14)
 
-**最后更新**：2026-04-10  
-**GPU 环境**：RTX 5090 32GB (AutoDL)  
-**当前阶段**：第三阶段 — SABRE 相对奖励重构，代码修复完毕，待 GPU 训练验证
+**最后更新**：2026-04-24
+**GPU 环境**：RTX 5090 32GB (AutoDL)
+**当前阶段**：V14 代码实现中 — 修复 V13 发散根因 + pass_manager 假集成
+
+---
+
+## V14 重构（2026-04-24）
+
+### 背景：V13 发散事故复盘
+
+V13 于 2026-04-10 在 GPU 上跑了 41k episodes，暴露 **4 个根因**：
+
+| 根因 | 现象 | 位置 |
+|-----|------|------|
+| **SABRE baseline 每 reset 重算** | 吞吐从 2.8 降到 1.0 eps/s | `env.py::_compute_sabre_baseline()` |
+| **Soft Mask + 随机映射组合爆炸** | Stage 1 (5Q) SWAP 从 475 涨到 852 | `env.py::get_action_mask()` |
+| **奖励 shaping 削太狠** | `reward_gate=0.3` 让模型失去执行门动力 | `env.py` |
+| **pass_manager 假集成** | AI SWAP 决策被丢弃，输出本质是 SABRE 重编译 | `pass_manager.py::_build_routed_circuit()` |
+
+### V14 四大改动
+
+#### §V14-1: SABRE 基线缓存
+
+**决策**：用 `(circuit_id → sabre_swap_count)` 的 LRU 缓存，一个电路只跑一次 SABRE。
+
+**实现**：
+- `src/compiler/sabre_cache.py` 新模块
+- `env.py::_compute_sabre_baseline()` 改为查询缓存
+- 缓存键：电路的 qubits 数 + 门序列 hash
+
+**预期收益**：吞吐从 1.0 → 15+ eps/s（20 个 worker 共享缓存）
+
+---
+
+#### §V14-2: 阶段化 Mask
+
+**决策**：Mask 策略随课程阶段演化：
+- Stage 0-1（3Q/5Q 学基础）：**Hard Mask**，只允许降距离的 SWAP
+- Stage 2-3（5Q/10Q 过渡）：**Soft Mask delta≤1**
+- Stage 4（20Q 真实挑战）：**Soft Mask delta≤2** + Tabu
+
+**理由**：V13 的 Soft Mask 在 5Q 上让 action 空间爆炸。先用 Hard Mask 把 policy 教会"基本动作正确"，再逐渐放宽。
+
+**实现**：`env.py::get_action_mask()` 增加 `curriculum_stage` 参数。
+
+---
+
+#### §V14-3: 奖励分层
+
+**决策**：奖励函数随 stage 切换：
+- Stage 0-2（学会完成电路）：`reward_done=5.0` + `reward_gate=1.0`（恢复 V12 配置）
+- Stage 3-4（学会打败 SABRE）：`reward_done=0.0` + `reward_gate=0.3` + SABRE 相对终端
+
+**理由**：V13 一上来就用 SABRE 相对奖励，但模型连"把电路路由完成"都没学会（done=67% 而非 100%），相对奖励信号太稀疏。先教"完成"，再教"超越"。
+
+**实现**：`env.py` 的奖励计算读取 `curriculum_stage`，`train.py` 每次晋级时传入。
+
+---
+
+#### §V14-4: `pass_manager.py` 真集成
+
+**决策**：`_build_routed_circuit()` 必须把 AI 的 SWAP 决策**真正写入**输出的 `QuantumCircuit`，不能再调 SABRE 重编译。
+
+**实现**：
+1. 遍历原电路的门序列
+2. 应用 AI mapping 转换逻辑 qubit → 物理 qubit
+3. 在每次 AI 决策的位置插入 `SwapGate`
+4. 保证输出电路的功能与输入完全等价（可用 `Operator(原电路) == Operator(输出)` 验证）
+
+**理由**：这是**硬伤级工程债**。当前的集成是"假"的，外部用户调用 `AIRouter.route()` 不能复现我们的 SWAP 数。论文交付时会被 reviewer 一眼看穿。
+
+**参考**：Qiskit 的 `SabreSwap` TranspilerPass 源码。
 
 ---
 

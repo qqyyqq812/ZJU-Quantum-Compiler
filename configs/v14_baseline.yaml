@@ -1,0 +1,50 @@
+# V14 Baseline — IBM Tokyo 20Q, RTX 5090
+# 决策依据: docs/technical/decisions.md §V14
+version: v14
+algorithm: PPO
+
+topology:
+  name: ibm_tokyo
+  n_qubits: 20
+
+training:
+  episodes: 100000
+  rollout_steps: 32768
+  num_envs: 20
+  mini_batch_size: 4096
+  lr_start: 3.0e-4
+  lr_end: 1.0e-5
+  entropy_start: 0.05
+  entropy_end: 0.001
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_epsilon: 0.2
+  epochs_per_update: 4
+  log_interval: 100
+  eval_interval: 500
+  checkpoint_interval: 2000
+
+reward:
+  # V14 §V14-3: 奖励分层 — 早期固定完成奖励，后期 SABRE 相对
+  gate: 1.0           # 早期 (stage <= 2) 生效；晚期降权至 0.3（env 内部处理）
+  swap: -0.5
+  done: 5.0           # 早期完成奖励
+  distance_coef: 0.3
+  lookahead_coef: 0.1
+  sabre_relative: true
+  sabre_cache: true   # V14 §V14-1
+
+environment:
+  max_steps: 2000
+  soft_mask: true      # 仅 stage >= 2 生效（env::get_action_mask）
+  tabu_size: 4
+  random_mapping: true
+
+curriculum:
+  enabled: true
+  min_episodes_per_stage: 100
+  promotion_patience: 3000
+
+paths:
+  save_dir: models/v14_tokyo20
+  resume: null

@@ -1,0 +1,48 @@
+# V14 Local Smoke — 最小配置用于 CPU 本地调试（1000 ep）
+version: v14
+algorithm: PPO
+
+topology:
+  name: linear_5
+  n_qubits: 5
+
+training:
+  episodes: 1000
+  rollout_steps: 1024
+  num_envs: 4
+  mini_batch_size: 256
+  lr_start: 3.0e-4
+  lr_end: 1.0e-5
+  entropy_start: 0.05
+  entropy_end: 0.001
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_epsilon: 0.2
+  epochs_per_update: 2
+  log_interval: 50
+  eval_interval: 200
+  checkpoint_interval: 500
+
+reward:
+  gate: 1.0
+  swap: -0.5
+  done: 5.0
+  distance_coef: 0.3
+  lookahead_coef: 0.1
+  sabre_relative: true
+  sabre_cache: true
+
+environment:
+  max_steps: 500
+  soft_mask: true
+  tabu_size: 4
+  random_mapping: true
+
+curriculum:
+  enabled: true
+  min_episodes_per_stage: 50
+  promotion_patience: 300
+
+paths:
+  save_dir: models/v14_smoke
+  resume: null
