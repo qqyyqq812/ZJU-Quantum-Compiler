@@ -36,14 +36,29 @@
 
 ## 当前状态 (2026-04-24)
 
-- **最新版本**：V14（重构中）— 见 `docs/technical/decisions.md`
-- **前一版本**：V13 在 GPU 上训练发散（Stage 1 卡死），根因见 decisions.md
-- **V14 四大改动**：
-  1. SABRE 基线缓存（吞吐 1.0→15 eps/s）
-  2. 阶段化 Mask（早期 Hard，后期 Soft）
-  3. 奖励分层（早期固定完成奖励，中后期 SABRE 相对）
-  4. 修复 `pass_manager.py` 假集成
-- **GPU**：RTX 5090 32GB (AutoDL) — 目前离线
+- **最新版本**：V14（**代码实现完成**，等待 GPU 训练）
+- **前一版本**：V13 在 GPU 上训练发散（Stage 1 卡死）— 根因见 decisions.md §V14
+- **V14 四大改动**（已实装）：
+  1. ✅ SABRE 基线缓存（`src/compiler/sabre_cache.py`）— 吞吐预期 1.0→15 eps/s
+  2. ✅ 阶段化 Mask（`env.py::get_action_mask` 读 `_curriculum_stage`）
+  3. ✅ 奖励分层（`env.py::step` terminal 根据 stage 切换）
+  4. ✅ pass_manager 真集成（`pass_manager.py::_build_routed_circuit` 直接发 SwapGate）
+- **测试状态**：9/9 V14 smoke tests 通过，57/58 全量 pytest 通过
+- **GPU**：RTX 5090 32GB (AutoDL) — 目前离线，等待开机
+
+## V14 运行流程
+
+```bash
+# 1. 本地 smoke（CPU，1000 ep，3-5 分钟）
+python -m src.compiler.train --config configs/v14_local_smoke.yaml
+
+# 2. GPU 训练（RTX 5090，100k ep，4-6 小时）
+#    前置: 开 AutoDL 实例、ssh 进去、git pull、pip install -r requirements.txt
+bash run_train_v14.sh configs/v14_baseline.yaml
+
+# 3. 评测（生成 models/v14_tokyo20/eval_report_v14.md）
+python scripts/eval_v14_vs_sabre.py --model models/v14_tokyo20/v7_ibm_tokyo_best.pt
+```
 
 ## 快速开始
 
