@@ -50,12 +50,26 @@ V13 在 GPU 上训练发散的 4 个根因**全部修了**：
 
 ### 测试
 
-- **V14 新测试**：9/9 全部通过
-- **旧测试回归**：56/57（1 个 `test_m2_dag.py::test_execute_executable` 失败，与 V14 无关，是旧测试期望过时）
+- **V14 新测试**：**12/12** 全部通过（原 9 + review 修复后新增 3）
+- **旧测试回归**：49 通过 + 1 skip（skip 是 V10 时代 GATEncoder 已移除的模块）
+
+### Code Review 发现并修复（重要！）
+
+睡前 V14 初版被 `python-reviewer` agent 审查发现 **1 CRITICAL + 3 HIGH + 1 MEDIUM**，**全部已修**：
+
+| 级别 | 问题 | 修复 |
+|------|------|------|
+| CRITICAL | `env.py` 硬编码了 `5.0` 和 `0.1` 两个 reward 常数 | 提升为 `early_stage_reward_floor` / `early_stage_sabre_weight`，yaml 可调 |
+| HIGH | `pass_manager` 的 env 启用了 `random_mapping`，与 `_collect_trace` 的 local identity mapping 冲突 | 显式 `initial_mapping_fn=None` |
+| HIGH | `sabre_cache` 静默吞 Qiskit 异常，缓存污染为 0 | transpile 失败 → 返回 `-1` + logging warning + **不写缓存** |
+| HIGH | `sabre_cache._CACHE` 无容量上限，长训练内存泄漏 | OrderedDict LRU，`MAX_CACHE_SIZE=50k`，满了淘汰最旧 25% |
+| MEDIUM | `env.py` 模块/类 docstring 还是 V3/V13 字样 | 更新到 V14 |
 
 ### Git
 
-- **3 个 commits** 已 push 到 `origin/main`:
+- **5 个 commits** 已 push 到 `origin/main`:
+  - `1df0f0f` fix(v14): address python-reviewer findings (1 CRITICAL + 3 HIGH)
+  - `671068c` docs(v14): add eval script, WAKEUP guide, update CLAUDE.md
   - `cb4c983` feat(v14): SABRE cache + phase mask + reward layering + pass_manager real integration
   - `f6f3c68` docs: purge forbidden docs per doc-governance rule
   - `b60356c` harness: local rules + V14 refactor plan [v14]
