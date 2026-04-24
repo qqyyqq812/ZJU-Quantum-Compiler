@@ -123,6 +123,7 @@ def train(
     mini_batch_size: int = 4096,     # V14: 可从 yaml 指定
     early_stage_reward_floor: float = 5.0,   # V14 §V14-3: stage<=2 完成奖励下限
     early_stage_sabre_weight: float = 0.1,   # V14 §V14-3: stage<=2 SABRE 权重
+    max_steps: int = 2000,           # V14+: env 每 episode 最大步数
 ) -> dict:
     import torch.multiprocessing
     torch.multiprocessing.set_sharing_strategy('file_system')
@@ -143,6 +144,7 @@ def train(
         tabu_size=tabu_size,
         early_stage_reward_floor=early_stage_reward_floor,
         early_stage_sabre_weight=early_stage_sabre_weight,
+        max_steps=max_steps,
     ) for _ in range(num_envs)]
     
     envs = gym.vector.AsyncVectorEnv(env_factories)
@@ -226,6 +228,7 @@ def train(
     
     last_eval_episode = global_episodes
     last_log_episode = global_episodes
+    last_ckpt_episode = global_episodes  # V14 fix: 准确触发 checkpoint 保存
 
     while global_episodes < n_episodes:
         progress = global_episodes / n_episodes
@@ -365,7 +368,9 @@ def train(
                 patience_counter += 1
             last_eval_episode = global_episodes
 
-        if global_episodes % checkpoint_interval < (global_episodes - len(buffer.observations) / rollout_steps) % checkpoint_interval:
+        # V14 fix: 简化条件, 确保每 checkpoint_interval episodes 一定触发
+        # 之前的 modulo 比较浮点除法总是 false, 永远不保存 checkpoint.
+        if global_episodes - last_ckpt_episode >= checkpoint_interval:
             ckpt_path = Path(save_dir) / f"checkpoint_ep{global_episodes}.pt"
             torch.save({
                 'model_state': policy.state_dict(),
@@ -376,6 +381,12 @@ def train(
                 'patience_counter': patience_counter,
             }, str(ckpt_path))
             print(f"  💾 Checkpoint: {ckpt_path}")
+            last_ckpt_episode = global_episodes
+            # 保留最近 3 个 checkpoint 防磁盘爆掉
+            ckpts = sorted(Path(save_dir).glob("checkpoint_ep*.pt"),
+                           key=lambda p: int(p.stem.split("ep")[1]))
+            for old in ckpts[:-3]:
+                old.unlink(missing_ok=True)
 
     envs.close()
     trainer.save(str(Path(save_dir) / f"v7_{topology_name}.pt"))
@@ -451,6 +462,7 @@ def main():
             mini_batch_size=training.get('mini_batch_size', 4096),
             early_stage_reward_floor=reward.get('early_stage_reward_floor', 5.0),
             early_stage_sabre_weight=reward.get('early_stage_sabre_weight', 0.1),
+            max_steps=env_cfg.get('max_steps', 2000),
         )
         return
 

@@ -22,8 +22,8 @@ training:
   clip_epsilon: 0.2
   epochs_per_update: 4
   log_interval: 100
-  eval_interval: 500
-  checkpoint_interval: 2000
+  eval_interval: 300
+  checkpoint_interval: 1000  # 更频繁 checkpoint, 保护进度
 
 reward:
   # V14 §V14-3: 奖励分层 — 早期固定完成奖励，后期 SABRE 相对
@@ -38,7 +38,9 @@ reward:
   early_stage_sabre_weight: 0.1   # stage<=2 的 SABRE 相对奖励权重
 
 environment:
-  max_steps: 2000
+  # V14+: 从 2000 降到 600, 让 Stage 3/4 episode 不至于拖累 eps/s
+  # 600 步对 10Q/20Q 深电路足够; 超出即视为 truncated, 惩罚由 SABRE 相对奖励体现
+  max_steps: 600
   soft_mask: true      # 仅 stage >= 2 生效（env::get_action_mask）
   tabu_size: 4
   random_mapping: true
