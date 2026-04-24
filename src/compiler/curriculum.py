@@ -44,10 +44,10 @@ class StageConfig:
 #    20Q depth 10-20: SABRE ~30-80 SWAP → 阈值 100.0 (先完成再优化)
 STAGES = [
     StageConfig("warm-up",     3,  20, (1, 2), False, 3.0),
-    StageConfig("elementary",  5,  30, (2, 4), True, 15.0),
-    StageConfig("standard",    5,  40, (4, 6), True, 20.0),
-    StageConfig("challenge",  10,  50, (6, 10), True, 45.0),
-    StageConfig("master",     20,  60, (10, 20), True, 100.0),
+    StageConfig("elementary",  5,  30, (2, 4), True, 30.0),   # 放宽: 15→30
+    StageConfig("standard",    5,  40, (4, 6), True, 60.0),   # 放宽: 20→60，让模型更快进入 10Q
+    StageConfig("challenge",  10,  50, (6, 10), True, 80.0),  # 放宽: 45→80
+    StageConfig("master",     20,  60, (10, 20), True, 150.0), # 放宽: 100→150
 ]
 
 

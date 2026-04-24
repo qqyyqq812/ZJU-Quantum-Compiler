@@ -1,5 +1,6 @@
-# V14 Baseline — IBM Tokyo 20Q, RTX 5090
-# 决策依据: docs/technical/decisions.md §V14
+# V14 High-Throughput — IBM Tokyo 20Q, RTX 5090 (208 CPU cores)
+# 优化日志: num_envs 20→100, rollout_steps 32768→8192
+# 理由: CPU 瓶颈，GPU 利用率只有 3%；208 核心允许 100+ worker
 version: v14
 algorithm: PPO
 
@@ -9,8 +10,8 @@ topology:
 
 training:
   episodes: 100000
-  rollout_steps: 32768
-  num_envs: 20
+  rollout_steps: 8192      # 缩短 rollout，更频繁 GPU update
+  num_envs: 100            # 利用 208 CPU 核心，从 20→100
   mini_batch_size: 4096
   lr_start: 3.0e-4
   lr_end: 1.0e-5
