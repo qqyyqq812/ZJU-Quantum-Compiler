@@ -12,7 +12,8 @@ build/
 *.swp
 *.swo
 
-# 模型文件 (仅保留 best 模型, 排除 checkpoint 和历史)
+# 模型文件（git-rules.md：禁止提交 models/*.pt 大文件，超过 GitHub 100MB 硬限）
+models/**/*.pt
 models/*/checkpoint_*.pt
 models/*/history_*.json
 models/smoke_*/
@@ -21,8 +22,10 @@ models/v7_full/
 models/v7_final/
 models/history_*.json
 models/router_*.pt
-models/v7_linear_5.pt
-models/v7_linear_5_best.pt
+# V15 训练日志（experiment-log.md：training_v<N>.log 进 .gitignore）
+models/**/training_*.log
+# V15 smoke 临时产物
+/tmp/v15_smoke_run/
 
 # Agent 配置 (不需要上传)
 .agent/

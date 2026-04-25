@@ -309,3 +309,102 @@ V14 训练从 ep5000 进入 Stage 3 (10Q) 后 SWAP 立即从 Stage 2 的 ~66 飙
 - 配置文件：`configs/v14_gpu.yaml` (待建)
 - 训练脚本：`run_train_v14.sh` (待建)
 - 规则：`.claude/rules/`（本地 harness）
+
+---
+
+## V15 重构 (2026-04-25)：从 PPO 切到 AlphaZero (MCTS+GNN)
+
+### 触发事件
+
+V14.2 在 5090 GPU 上跑了 ~2200 episodes（Stage 3 challenge，10Q），训练 SWAP 从 589 上涨到 722，eval avg_swap 在 45-62 之间震荡，**reward 趋势恶化**（−404 → −573）。详见远端日志 `models/v14_tokyo20/training_v14.log`。
+
+诊断：**这不是收敛慢的问题，是 reward landscape 在 Stage 3 入门处形成了平坦盆地**。完成与超时都是大负数 reward，PPO 梯度信号是噪声，无法逃出局部解。继续训练 100k episodes 大概率不会突破。
+
+### SOTA 现状（2026-04 调研）
+
+| 方法 | 算法 | 20Q 拓扑结果 | 是否开源 |
+|-----|-----|------------|--------|
+| LightSABRE (IBM 2024)    | 启发式（Rust）         | -18.9% SWAP vs 原 SABRE | ✅ Qiskit ≥1.2 默认 |
+| AIRouting (IBM 2024)     | RL transformer        | 100+Q heavy-hex -24% 双比特门 | ✅ qiskit-ibm-transpiler |
+| **AlphaRouter (Amazon 2024)** | **MCTS + transformer** | **20Q Tokyo -10~20% SWAP** | 🟡 HYUIDSL/AlphaRouter |
+| **QRoute (AAAI 2022)**   | **MCTS + GNN**        | **超过 SABRE/TKET on Tokyo 20Q** | ✅ 公开 |
+| Zhou 2024 (arXiv 2407.00736) | PPO + GNN            | 声称 -5~15% vs SABRE   | ❌ 闭源 |
+
+V14 的 PPO+GNN+SABRE 相对奖励路线最近似 Zhou 2024（**未开源、未复现**）。已验证的 20Q SOTA 路线全部是 **MCTS + 神经网络**。
+
+### V15 设计：保留 70% V14 工程，更换学习算法
+
+```
+保留 (无修改):
+  src/compiler/env.py               — 状态/动作/reward 不动
+  src/compiler/light_env.py         — O(1) clone, MCTS 必备
+  src/compiler/gnn_encoder.py       — 9D 纯 PyTorch GraphSAGE
+  src/compiler/gnn_extractor.py     — 物理图特征提取
+  src/compiler/sabre_cache.py       — V14-1 吞吐优化
+  src/compiler/pass_manager.py      — V14-4 真集成
+  src/compiler/curriculum.py        — 课程学习调度
+
+新增 (src/compiler/v15/):
+  network.py    — PolicyValueNet (共享 GNN backbone + policy/value 双头)
+  tree.py       — PUCT 选择 + Dirichlet 根噪声 + lazy expansion
+  replay.py     — (state, π_MCTS, z) replay buffer
+  selfplay.py   — 单个 episode self-play + outcome 反向填充
+  train.py      — 外循环 (生成 → 训练 → 评测 → 检查点)
+
+新增脚本 + 配置:
+  scripts/train_v15.py     — 入口
+  configs/v15_baseline.yaml — 全部 hparam
+  tests/test_v15_smoke.py  — CPU 烟雾测试
+```
+
+### V15 关键设计决策
+
+**V15-1: 沿用 LightweightEnv 而非自建 env**
+理由：MCTS 需要 ~100 次仿真 × 800 步 = 80k env 拷贝。`LightweightEnv.clone()` 是 O(1)（只复制 dict + numpy bool 数组），比 deepcopy QuantumRoutingEnv 快 1000+ 倍。这是项目已有积累，直接复用。
+
+**V15-2: 共享 GNN backbone，重新初始化双头**
+V14 ep25333 的 GraphSAGE 编码器在 5Q 任务上已收敛到合理特征空间。V15 网络的 backbone 直接 load V14 权重做 warmstart；policy/value 双头从零训（监督信号不同：PPO advantage vs MCTS visit/outcome）。
+
+**V15-3: Reward scheme = relative_sabre, clip ∈ [-1, 1]**
+完成时 `z = clip((sabre_swaps - ai_swaps) / sabre_swaps, -1, 1)`，超时 `z = -1`。tanh value head 天然匹配 [-1, 1]，避免 V14 那种 `−500` reward 量级导致的梯度爆炸。
+
+**V15-4: Dirichlet root noise α=0.3**
+AlphaZero 围棋用 α=0.03（动作空间 ~362）。路由 38 动作，按 αN ≈ 10 经验法则取 α=0.3。混合系数 ε=0.25（标准）。
+
+**V15-5: 课程学习继承 V14 STAGES 阈值**
+不动 `curriculum.py`。但 V15 的 episode 比 V14 PPO 步慢（每步 100 次 MCTS 仿真），把 `min_episodes_per_stage` 从 100 调到 50，`promotion_patience` 从 3000 调到 500。
+
+### V15 验收标准（替代 V14 验收）
+
+| 指标 | V14 目标 | V14 实测 | V15 目标 |
+|-----|---------|---------|---------|
+| 训练稳定性 | ✅ SWAP 单调下降 | ❌ Stage 3 恶化 | ✅ relative_sabre z 单调上升 |
+| Stage 0-2 (3-5Q) 完成率 | — | ≥95% (ep25333) | ≥98% (warmstart 起点) |
+| Stage 3 (10Q) 完成率 | ≥80% | ❌ 67-100% 震荡 | ≥85% |
+| Stage 4 (20Q Tokyo) AI/SABRE | ≤1.05 | 未达 | ≤1.10 (匹配 QRoute SOTA) |
+| 训练时间 | 4-6h | 已 8h+ 未收敛 | 5-7 天（self-play 比 PPO 慢但更稳） |
+
+### 与 V14 之前版本的关系
+
+V15 不废弃任何之前版本：
+- V9-V12 的 history 文件留存（评分要求"保留失败版本作反例"）
+- V13 的 9D GNN 改造 + 随机初始映射 → V15 直接用
+- V14.0~14.2 的所有改动（SABRE 缓存、阶段化 mask、reward 分层、pass_manager 真集成、truncation 惩罚、Stage 3 桥接、resume 传播、max_steps=800）→ V15 全部保留在 env.py 中
+- V14.2 ep25333 权重 → V15 网络 warmstart 起点
+
+### 后续里程碑（V15 时间线）
+
+- [x] V15 代码骨架（network/tree/replay/selfplay/train + smoke tests + yaml）— 2026-04-25
+- [ ] CPU 本地 smoke：`pytest tests/test_v15_smoke.py -v` 全绿
+- [ ] CPU 本地 1 iteration 跑通（games_per_iter=2, n_simulations=4）
+- [ ] GPU push V15：cd /root/quantum && git pull && nohup bash -c "python scripts/train_v15.py --config configs/v15_baseline.yaml" &
+- [ ] GPU 训练 5-7 天（共享 5090 与近似乘法器项目，量子占 ~5GB 显存可并行）
+- [ ] eval_report_v15.md：MQT-Bench 上 v14 ep25333 / v15 / SABRE / LightSABRE 四方对比
+- [ ] AI-Collaboration.md V13→V15 章节扩写
+
+### 参考代码
+
+- AlphaRouter（参考 MCTS 实现）：https://github.com/HYUIDSL/AlphaRouter
+- QRoute 论文：Sinha et al. AAAI 2022
+- AlphaZero 原文：Silver et al. Science 2018
+- 本项目 V14 SOTA 调研：sub-agent 报告（已并入本节，不另存外部 md）

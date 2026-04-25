@@ -1,0 +1,363 @@
+{
+  "metadata": {
+    "timestamp": "2026-04-25 16:54:19",
+    "topology": "ibm_tokyo",
+    "topology_info": {
+      "n_qubits": 20,
+      "n_edges": 43,
+      "diameter": 4,
+      "avg_path": 2.25,
+      "avg_degree": 4.3,
+      "max_degree": 6
+    },
+    "n_qubits_list": [
+      5,
+      10,
+      20
+    ],
+    "n_circuit_types": 5,
+    "mqt_available": true,
+    "ai_model_path": "models/v14_tokyo20/v7_ibm_tokyo_best.pt",
+    "basis_gates": [
+      "cx",
+      "id",
+      "rz",
+      "sx",
+      "x"
+    ],
+    "max_steps": 2000,
+    "skipped": []
+  },
+  "results": [
+    {
+      "name": "qft_5",
+      "qubits": 5,
+      "input_size": 65,
+      "no_routing": {
+        "swaps": 0,
+        "depth": 35,
+        "n_2q": 20,
+        "completed": true,
+        "elapsed_s": 0.001830896000683424,
+        "error": null
+      },
+      "sabre": {
+        "swaps": 0,
+        "depth": 66,
+        "n_2q": 44,
+        "completed": true,
+        "elapsed_s": 0.015369048999673396,
+        "error": null
+      },
+      "ai": null
+    },
+    {
+      "name": "qft_10",
+      "qubits": 10,
+      "input_size": 255,
+      "no_routing": {
+        "swaps": 0,
+        "depth": 75,
+        "n_2q": 90,
+        "completed": true,
+        "elapsed_s": 0.0020428369998626295,
+        "error": null
+      },
+      "sabre": {
+        "swaps": 0,
+        "depth": 184,
+        "n_2q": 180,
+        "completed": true,
+        "elapsed_s": 0.005736885999795049,
+        "error": null
+      },
+      "ai": null
+    },
+    {
+      "name": "qft_20",
+      "qubits": 20,
+      "input_size": 1010,
+      "no_routing": {
+        "swaps": 0,
+        "depth": 155,
+        "n_2q": 380,
+        "completed": true,
+        "elapsed_s": 0.004482996000660933,
+        "error": null
+      },
+      "sabre": {
+        "swaps": 0,
+        "depth": 576,
+        "n_2q": 869,
+        "completed": true,
+        "elapsed_s": 0.00820519700027944,
+        "error": null
+      },
+      "ai": null
+    },
+    {
+      "name": "qaoa_5",
+      "qubits": 5,
+      "input_size": 101,
+      "no_routing": {
+        "swaps": 0,
+        "depth": 34,
+        "n_2q": 24,
+        "completed": true,
+        "elapsed_s": 0.001948543999787944,
+        "error": null
+      },
+      "sabre": {
+        "swaps": 0,
+        "depth": 73,
+        "n_2q": 51,
+        "completed": true,
+        "elapsed_s": 0.003634820000115724,
+        "error": null
+      },
+      "ai": null
+    },
+    {
+      "name": "qaoa_10",
+      "qubits": 10,
+      "input_size": 286,
+      "no_routing": {
+        "swaps": 0,
+        "depth": 82,
+        "n_2q": 104,
+        "completed": true,
+        "elapsed_s": 0.0017258269999729237,
+        "error": null
+      },
+      "sabre": {
+        "swaps": 0,
+        "depth": 187,
+        "n_2q": 206,
+        "completed": true,
+        "elapsed_s": 0.004294358999686665,
+        "error": null
+      },
+      "ai": null
+    },
+    {
+      "name": "qaoa_20",
+      "qubits": 20,
+      "input_size": 812,
+      "no_routing": {
+        "swaps": 0,
+        "depth": 148,
+        "n_2q": 368,
+        "completed": true,
+        "elapsed_s": 0.003067409999857773,
+        "error": null
+      },
+      "sabre": {
+        "swaps": 0,
+        "depth": 458,
+        "n_2q": 890,
+        "completed": true,
+        "elapsed_s": 0.008448503999716195,
+        "error": null
+      },
+      "ai": null
+    },
+    {
+      "name": "grover_5",
+      "qubits": 5,
+      "input_size": 643,
+      "no_routing": {
+        "swaps": 0,
+        "depth": 408,
+        "n_2q": 174,
+        "completed": true,
+        "elapsed_s": 0.0032509950005987776,
+        "error": null
+      },
+      "sabre": {
+        "swaps": 0,
+        "depth": 573,
+        "n_2q": 330,
+        "completed": true,
+        "elapsed_s": 0.008760910999626503,
+        "error": null
+      },
+      "ai": null
+    },
+    {
+      "name": "grover_10",
+      "qubits": 10,
+      "input_size": 31869,
+      "no_routing": {
+        "swaps": 0,
+        "depth": 21203,
+        "n_2q": 8874,
+        "completed": true,
+        "elapsed_s": 0.07053268999970896,
+        "error": null
+      },
+      "sabre": {
+        "swaps": 0,
+        "depth": 30869,
+        "n_2q": 19797,
+        "completed": true,
+        "elapsed_s": 0.14405181999973138,
+        "error": null
+      },
+      "ai": null
+    },
+    {
+      "name": "grover_20",
+      "qubits": 20,
+      "input_size": 5607922,
+      "no_routing": {
+        "swaps": 0,
+        "depth": 4407717,
+        "n_2q": 1546096,
+        "completed": true,
+        "elapsed_s": 14.755930208999416,
+        "error": null
+      },
+      "sabre": {
+        "swaps": 0,
+        "depth": 6231681,
+        "n_2q": 4273600,
+        "completed": true,
+        "elapsed_s": 37.081434948000606,
+        "error": null
+      },
+      "ai": null
+    },
+    {
+      "name": "ghz_5",
+      "qubits": 5,
+      "input_size": 7,
+      "no_routing": {
+        "swaps": 0,
+        "depth": 7,
+        "n_2q": 4,
+        "completed": true,
+        "elapsed_s": 0.9867610050005169,
+        "error": null
+      },
+      "sabre": {
+        "swaps": 0,
+        "depth": 7,
+        "n_2q": 4,
+        "completed": true,
+        "elapsed_s": 0.006365877999996883,
+        "error": null
+      },
+      "ai": null
+    },
+    {
+      "name": "ghz_10",
+      "qubits": 10,
+      "input_size": 12,
+      "no_routing": {
+        "swaps": 0,
+        "depth": 12,
+        "n_2q": 9,
+        "completed": true,
+        "elapsed_s": 0.001779171999260143,
+        "error": null
+      },
+      "sabre": {
+        "swaps": 0,
+        "depth": 18,
+        "n_2q": 18,
+        "completed": true,
+        "elapsed_s": 0.006547318000230007,
+        "error": null
+      },
+      "ai": null
+    },
+    {
+      "name": "ghz_20",
+      "qubits": 20,
+      "input_size": 22,
+      "no_routing": {
+        "swaps": 0,
+        "depth": 22,
+        "n_2q": 19,
+        "completed": true,
+        "elapsed_s": 0.0016882579993762192,
+        "error": null
+      },
+      "sabre": {
+        "swaps": 0,
+        "depth": 46,
+        "n_2q": 49,
+        "completed": true,
+        "elapsed_s": 0.11844941299932543,
+        "error": null
+      },
+      "ai": null
+    },
+    {
+      "name": "vqe_5",
+      "qubits": 5,
+      "input_size": 112,
+      "no_routing": {
+        "swaps": 0,
+        "depth": 28,
+        "n_2q": 12,
+        "completed": true,
+        "elapsed_s": 0.00191924399950949,
+        "error": null
+      },
+      "sabre": {
+        "swaps": 0,
+        "depth": 28,
+        "n_2q": 12,
+        "completed": true,
+        "elapsed_s": 0.002771833000224433,
+        "error": null
+      },
+      "ai": null
+    },
+    {
+      "name": "vqe_10",
+      "qubits": 10,
+      "input_size": 227,
+      "no_routing": {
+        "swaps": 0,
+        "depth": 33,
+        "n_2q": 27,
+        "completed": true,
+        "elapsed_s": 0.0016661190002196236,
+        "error": null
+      },
+      "sabre": {
+        "swaps": 0,
+        "depth": 53,
+        "n_2q": 39,
+        "completed": true,
+        "elapsed_s": 0.11805215999993379,
+        "error": null
+      },
+      "ai": null
+    },
+    {
+      "name": "vqe_20",
+      "qubits": 20,
+      "input_size": 457,
+      "no_routing": {
+        "swaps": 0,
+        "depth": 43,
+        "n_2q": 57,
+        "completed": true,
+        "elapsed_s": 0.002823310999701789,
+        "error": null
+      },
+      "sabre": {
+        "swaps": 0,
+        "depth": 123,
+        "n_2q": 129,
+        "completed": true,
+        "elapsed_s": 0.9758601109997471,
+        "error": null
+      },
+      "ai": null
+    }
+  ]
+}
