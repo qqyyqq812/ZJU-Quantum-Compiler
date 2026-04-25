@@ -146,7 +146,12 @@ def run_training(
     # We need n_actions; build a dummy env to ask.
     # Note: SABRE baseline caching is handled internally by env._compute_sabre_baseline
     # via the sabre_cache module (V14-1 optimization), no constructor arg needed.
-    scheduler = CurriculumScheduler(max_n_qubits=coupling_map.size())
+    cur_d = full_cfg.get("curriculum", {})
+    scheduler = CurriculumScheduler(
+        max_n_qubits=coupling_map.size(),
+        min_episodes_per_stage=int(cur_d.get("min_episodes_per_stage", 100)),
+        promotion_patience=int(cur_d.get("promotion_patience", 3000)),
+    )
     bootstrap_circuits = scheduler.circuits
     use_sabre_cache = bool(full_cfg["environment"].get("use_sabre_cache", True))
     dummy_env = QuantumRoutingEnv(
@@ -274,10 +279,16 @@ def run_training(
             ep_swaps.append(info["total_swaps"])
             ep_zs.append(info["outcome_z"])
             ep_completed.append(info["completed"])
+            # Curriculum scheduler counts each game as one episode
+            # (was incorrectly batched per-iter in earlier V15 — slowed promotion 100x)
+            scheduler.report_episode(int(info["total_swaps"]))
 
         avg_sw = float(np.mean(ep_swaps)) if ep_swaps else float("nan")
-        # Curriculum reports based on average SWAP this iteration
-        promoted = scheduler.report_episode(int(avg_sw))
+        # Detect promotion: stage may have advanced inside the inner loop above
+        promoted = (
+            scheduler.current_stage > history["stage"][-1]
+            if history["stage"] else False
+        )
         if promoted:
             logger.info(
                 "Curriculum promoted to stage %d (%s)",
