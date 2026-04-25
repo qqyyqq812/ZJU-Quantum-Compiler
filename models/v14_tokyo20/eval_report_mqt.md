@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- **运行时间**: 2026-04-25 16:54:19
+- **运行时间**: 2026-04-25 16:59:31
 - **拓扑**: ibm_tokyo (20 qubits, diameter=4)
 - **电路数**: 15（覆盖 5 种类型 × 3 种规模）
 - **MQT-Bench 状态**: 已安装 v2.x
@@ -14,26 +14,26 @@
 
 | Circuit | n_qubits | SABRE SWAP | SABRE time(ms) | AI SWAP | AI time(ms) | AI/SABRE ratio |
 |---------|----------|------------|----------------|---------|-------------|----------------|
-| qft_5 | 5 | 0 | 15.37 | N/A | N/A | N/A |
-| qft_10 | 10 | 0 | 5.74 | N/A | N/A | N/A |
-| qft_20 | 20 | 0 | 8.21 | N/A | N/A | N/A |
-| qaoa_5 | 5 | 0 | 3.63 | N/A | N/A | N/A |
-| qaoa_10 | 10 | 0 | 4.29 | N/A | N/A | N/A |
-| qaoa_20 | 20 | 0 | 8.45 | N/A | N/A | N/A |
-| grover_5 | 5 | 0 | 8.76 | N/A | N/A | N/A |
-| grover_10 | 10 | 0 | 144.05 | N/A | N/A | N/A |
-| grover_20 | 20 | 0 | 37081.43 | N/A | N/A | N/A |
-| ghz_5 | 5 | 0 | 6.37 | N/A | N/A | N/A |
-| ghz_10 | 10 | 0 | 6.55 | N/A | N/A | N/A |
-| ghz_20 | 20 | 0 | 118.45 | N/A | N/A | N/A |
-| vqe_5 | 5 | 0 | 2.77 | N/A | N/A | N/A |
-| vqe_10 | 10 | 0 | 118.05 | N/A | N/A | N/A |
-| vqe_20 | 20 | 0 | 975.86 | N/A | N/A | N/A |
+| qft_5 | 5 | 8 | 22.18 | N/A | N/A | N/A |
+| qft_10 | 10 | 30 | 5.94 | N/A | N/A | N/A |
+| qft_20 | 20 | 163 | 14.22 | N/A | N/A | N/A |
+| qaoa_5 | 5 | 9 | 5.55 | N/A | N/A | N/A |
+| qaoa_10 | 10 | 34 | 6.68 | N/A | N/A | N/A |
+| qaoa_20 | 20 | 174 | 9.91 | N/A | N/A | N/A |
+| grover_5 | 5 | 52 | 8.49 | N/A | N/A | N/A |
+| grover_10 | 10 | 3641 | 193.62 | N/A | N/A | N/A |
+| grover_20 | 20 | 909168 | 47842.65 | N/A | N/A | N/A |
+| ghz_5 | 5 | 0 | 15.34 | N/A | N/A | N/A |
+| ghz_10 | 10 | 3 | 12.53 | N/A | N/A | N/A |
+| ghz_20 | 20 | 10 | 7.85 | N/A | N/A | N/A |
+| vqe_5 | 5 | 0 | 6.91 | N/A | N/A | N/A |
+| vqe_10 | 10 | 4 | 166.46 | N/A | N/A | N/A |
+| vqe_20 | 20 | 24 | 2538.99 | N/A | N/A | N/A |
 
 ## 汇总
 
 - SABRE 完成率: **15/15** (100%)
-- SABRE 平均 SWAP: **0.0**
+- SABRE 平均 SWAP: **60888.0**
 
 ## 与 V13 的差异 (参照 docs/technical/decisions.md §V14)
 

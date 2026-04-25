@@ -81,16 +81,22 @@ def run_no_routing(qc: QuantumCircuit, basis_gates: list[str]) -> dict:
 def run_sabre(qc: QuantumCircuit, coupling_map, basis_gates: list[str]) -> dict:
     """Pipeline 2: qiskit SABRE routing（业界基线）。
 
-    注: optimization_level=0 + layout_method='trivial' 是为了 **不让 qiskit 通过初始
-    layout 优化把 SWAP 消掉** —— 我们要测的是 routing 本身的代价，不是
-    initial-layout 选得好不好。否则对密集 CNOT 电路（QFT/QAOA）经常出现 SABRE=0。
+    关键决策（与 V14-1 SABRE cache 一致）：
+    - ``layout_method='trivial'``：禁用初始 layout 优化 — 只测 routing 代价，
+      不让 qiskit 通过聪明的映射把 SWAP "消"掉。
+    - ``optimization_level=0``：不做后续优化 pass，保留 routing 输出原貌。
+    - ``basis_gates`` 保留 ``swap``：避免 SABRE 输出的 swap 被分解成 3 个 cx，
+      影响 SWAP 计数（之前直接 ``count_ops().get('swap', 0)`` 永远是 0）。
     """
+    sabre_basis = list(basis_gates)
+    if "swap" not in sabre_basis:
+        sabre_basis = sabre_basis + ["swap"]
     t0 = time.perf_counter()
     try:
         qc_out = transpile(
             qc,
             coupling_map=coupling_map,
-            basis_gates=basis_gates,
+            basis_gates=sabre_basis,
             optimization_level=0,
             layout_method="trivial",
             routing_method="sabre",

@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "timestamp": "2026-04-25 16:54:19",
+    "timestamp": "2026-04-25 16:59:31",
     "topology": "ibm_tokyo",
     "topology_info": {
       "n_qubits": 20,
@@ -38,15 +38,15 @@
         "depth": 35,
         "n_2q": 20,
         "completed": true,
-        "elapsed_s": 0.001830896000683424,
+        "elapsed_s": 0.003440420000515587,
         "error": null
       },
       "sabre": {
-        "swaps": 0,
-        "depth": 66,
-        "n_2q": 44,
+        "swaps": 8,
+        "depth": 50,
+        "n_2q": 28,
         "completed": true,
-        "elapsed_s": 0.015369048999673396,
+        "elapsed_s": 0.022178854000230785,
         "error": null
       },
       "ai": null
@@ -60,15 +60,15 @@
         "depth": 75,
         "n_2q": 90,
         "completed": true,
-        "elapsed_s": 0.0020428369998626295,
+        "elapsed_s": 0.002810205999594473,
         "error": null
       },
       "sabre": {
-        "swaps": 0,
-        "depth": 184,
-        "n_2q": 180,
+        "swaps": 30,
+        "depth": 150,
+        "n_2q": 120,
         "completed": true,
-        "elapsed_s": 0.005736885999795049,
+        "elapsed_s": 0.0059360520008340245,
         "error": null
       },
       "ai": null
@@ -82,15 +82,15 @@
         "depth": 155,
         "n_2q": 380,
         "completed": true,
-        "elapsed_s": 0.004482996000660933,
+        "elapsed_s": 0.007444212000336847,
         "error": null
       },
       "sabre": {
-        "swaps": 0,
-        "depth": 576,
-        "n_2q": 869,
+        "swaps": 163,
+        "depth": 438,
+        "n_2q": 543,
         "completed": true,
-        "elapsed_s": 0.00820519700027944,
+        "elapsed_s": 0.014222501000404009,
         "error": null
       },
       "ai": null
@@ -104,15 +104,15 @@
         "depth": 34,
         "n_2q": 24,
         "completed": true,
-        "elapsed_s": 0.001948543999787944,
+        "elapsed_s": 0.0030480509994958993,
         "error": null
       },
       "sabre": {
-        "swaps": 0,
-        "depth": 73,
-        "n_2q": 51,
+        "swaps": 9,
+        "depth": 61,
+        "n_2q": 33,
         "completed": true,
-        "elapsed_s": 0.003634820000115724,
+        "elapsed_s": 0.005548190999434155,
         "error": null
       },
       "ai": null
@@ -126,15 +126,15 @@
         "depth": 82,
         "n_2q": 104,
         "completed": true,
-        "elapsed_s": 0.0017258269999729237,
+        "elapsed_s": 0.0034773260003930773,
         "error": null
       },
       "sabre": {
-        "swaps": 0,
-        "depth": 187,
-        "n_2q": 206,
+        "swaps": 34,
+        "depth": 145,
+        "n_2q": 138,
         "completed": true,
-        "elapsed_s": 0.004294358999686665,
+        "elapsed_s": 0.0066771379997589975,
         "error": null
       },
       "ai": null
@@ -148,15 +148,15 @@
         "depth": 148,
         "n_2q": 368,
         "completed": true,
-        "elapsed_s": 0.003067409999857773,
+        "elapsed_s": 0.009231654000359413,
         "error": null
       },
       "sabre": {
-        "swaps": 0,
-        "depth": 458,
-        "n_2q": 890,
+        "swaps": 174,
+        "depth": 345,
+        "n_2q": 542,
         "completed": true,
-        "elapsed_s": 0.008448503999716195,
+        "elapsed_s": 0.00990923900008056,
         "error": null
       },
       "ai": null
@@ -170,15 +170,15 @@
         "depth": 408,
         "n_2q": 174,
         "completed": true,
-        "elapsed_s": 0.0032509950005987776,
+        "elapsed_s": 0.005889905000003637,
         "error": null
       },
       "sabre": {
-        "swaps": 0,
-        "depth": 573,
-        "n_2q": 330,
+        "swaps": 52,
+        "depth": 487,
+        "n_2q": 226,
         "completed": true,
-        "elapsed_s": 0.008760910999626503,
+        "elapsed_s": 0.008492619999742601,
         "error": null
       },
       "ai": null
@@ -192,15 +192,15 @@
         "depth": 21203,
         "n_2q": 8874,
         "completed": true,
-        "elapsed_s": 0.07053268999970896,
+        "elapsed_s": 0.10850681100055226,
         "error": null
       },
       "sabre": {
-        "swaps": 0,
-        "depth": 30869,
-        "n_2q": 19797,
+        "swaps": 3641,
+        "depth": 25975,
+        "n_2q": 12515,
         "completed": true,
-        "elapsed_s": 0.14405181999973138,
+        "elapsed_s": 0.19361675699929037,
         "error": null
       },
       "ai": null
@@ -214,15 +214,15 @@
         "depth": 4407717,
         "n_2q": 1546096,
         "completed": true,
-        "elapsed_s": 14.755930208999416,
+        "elapsed_s": 25.658166048000567,
         "error": null
       },
       "sabre": {
-        "swaps": 0,
-        "depth": 6231681,
-        "n_2q": 4273600,
+        "swaps": 909168,
+        "depth": 5170733,
+        "n_2q": 2455264,
         "completed": true,
-        "elapsed_s": 37.081434948000606,
+        "elapsed_s": 47.84264911599985,
         "error": null
       },
       "ai": null
@@ -236,7 +236,7 @@
         "depth": 7,
         "n_2q": 4,
         "completed": true,
-        "elapsed_s": 0.9867610050005169,
+        "elapsed_s": 1.0878031239999473,
         "error": null
       },
       "sabre": {
@@ -244,7 +244,7 @@
         "depth": 7,
         "n_2q": 4,
         "completed": true,
-        "elapsed_s": 0.006365877999996883,
+        "elapsed_s": 0.015339305000452441,
         "error": null
       },
       "ai": null
@@ -258,15 +258,15 @@
         "depth": 12,
         "n_2q": 9,
         "completed": true,
-        "elapsed_s": 0.001779171999260143,
+        "elapsed_s": 0.003881266999997024,
         "error": null
       },
       "sabre": {
-        "swaps": 0,
-        "depth": 18,
-        "n_2q": 18,
+        "swaps": 3,
+        "depth": 14,
+        "n_2q": 12,
         "completed": true,
-        "elapsed_s": 0.006547318000230007,
+        "elapsed_s": 0.012525776999609661,
         "error": null
       },
       "ai": null
@@ -280,15 +280,15 @@
         "depth": 22,
         "n_2q": 19,
         "completed": true,
-        "elapsed_s": 0.0016882579993762192,
+        "elapsed_s": 0.003973829999267764,
         "error": null
       },
       "sabre": {
-        "swaps": 0,
-        "depth": 46,
-        "n_2q": 49,
+        "swaps": 10,
+        "depth": 30,
+        "n_2q": 29,
         "completed": true,
-        "elapsed_s": 0.11844941299932543,
+        "elapsed_s": 0.007852587000343192,
         "error": null
       },
       "ai": null
@@ -302,7 +302,7 @@
         "depth": 28,
         "n_2q": 12,
         "completed": true,
-        "elapsed_s": 0.00191924399950949,
+        "elapsed_s": 0.003751086000193027,
         "error": null
       },
       "sabre": {
@@ -310,7 +310,7 @@
         "depth": 28,
         "n_2q": 12,
         "completed": true,
-        "elapsed_s": 0.002771833000224433,
+        "elapsed_s": 0.006911308000780991,
         "error": null
       },
       "ai": null
@@ -324,15 +324,15 @@
         "depth": 33,
         "n_2q": 27,
         "completed": true,
-        "elapsed_s": 0.0016661190002196236,
+        "elapsed_s": 0.004298054999708256,
         "error": null
       },
       "sabre": {
-        "swaps": 0,
-        "depth": 53,
-        "n_2q": 39,
+        "swaps": 4,
+        "depth": 51,
+        "n_2q": 31,
         "completed": true,
-        "elapsed_s": 0.11805215999993379,
+        "elapsed_s": 0.16645730799973535,
         "error": null
       },
       "ai": null
@@ -346,15 +346,15 @@
         "depth": 43,
         "n_2q": 57,
         "completed": true,
-        "elapsed_s": 0.002823310999701789,
+        "elapsed_s": 0.005311062000146194,
         "error": null
       },
       "sabre": {
-        "swaps": 0,
-        "depth": 123,
-        "n_2q": 129,
+        "swaps": 24,
+        "depth": 102,
+        "n_2q": 81,
         "completed": true,
-        "elapsed_s": 0.9758601109997471,
+        "elapsed_s": 2.538989802999822,
         "error": null
       },
       "ai": null
