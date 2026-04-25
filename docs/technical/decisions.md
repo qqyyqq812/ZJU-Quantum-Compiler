@@ -252,6 +252,34 @@ max_steps = max(500, 10 * n_two_qubit_gates)
 
 ---
 
+## V14.1 踩坑 & 修复（2026-04-25）
+
+### 症状
+V14 训练从 ep5000 进入 Stage 3 (10Q) 后 SWAP 立即从 Stage 2 的 ~66 飙到 500+，eval 结果 AI SWAP≈47 vs SABRE SWAP≈19（差 2.5×）。21000 episodes 训练完全无收敛。
+
+### 根因分析（3 个）
+
+**(a) Truncation 无惩罚**：`env.step` 仅在 `terminated` 分支给终端奖励；`truncated`（跑满 max_steps=600）直接返 0。agent 很快找到退化策略："不断 SWAP 直到超时"比"尝试完成电路但可能做出 50 次不利 SWAP"更安全。
+
+**(b) Stage 2→3 奖励悬崖**：stage≤2 时奖励 = `max(5, done) + 0.1·(sabre_swaps - ai_swaps)`；stage≥3 突然切到 `1.0·(sabre_swaps - ai_swaps)`。10Q 电路 SABRE=19，AI=500 意味着奖励从 +5 级瞬间变 -481，策略梯度爆炸。
+
+**(c) Resume 未传播 stage 到 env**：`envs.call("set_curriculum_stage", ...)` 只在 `promoted` 分支调用。断点续训时 scheduler 内部推到 Stage 3，但 100 个 AsyncVectorEnv worker 的 env 实例 `_curriculum_stage` 还是 0，于是奖励分层和 mask 阶段性全错。
+
+### 修复（commit 061c680, 4856f98）
+
+1. **truncation 惩罚**：`env.step` 的 `elif truncated` 分支给 `-remaining_gates - 0.5·(ai_swaps - sabre)`，强迫 agent 必须完成电路
+2. **Stage 3 桥接**：reward_floor=5 + 0.3·SABRE 相对（而非 1.0×），避开悬崖
+3. **Resume 传播**：`resume_path` 加载后立即 `envs.call("set_curriculum_stage", target_stage)`
+4. **max_steps 600→300**：短回合 + 惩罚 ⇒ 不完成电路代价极高
+5. **CLI --resume 优先 yaml**：yaml 的 `resume: null` 之前覆盖了命令行参数
+
+### 验证
+- 59/59 V14 smoke tests 通过（1 个历史无关 deselect）
+- 本地单 env truncation 回合 reward=-139（原本 0）
+- GPU 续训 ep25333 → Stage 3 状态正确恢复（待观察 SWAP 下降）
+
+---
+
 ## V14 验收标准
 
 | 指标 | V13 | V14 目标 |
