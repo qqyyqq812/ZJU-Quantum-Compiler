@@ -1,0 +1,74 @@
+# V15 本地 smoke 配置 — CPU, 极小规模, 用于验证训练循环端到端通畅
+# 期望：< 5 分钟跑完 5 个 iteration
+
+version: v15-smoke
+algorithm: AlphaZero-MCTS+GNN
+
+topology:
+  name: ibm_tokyo
+  n_qubits: 20
+
+network:
+  gnn_in_channels: 9
+  gnn_hidden: 32        # 大幅缩小（baseline 128）
+  gnn_out: 32
+  graph_pool_dim: 64
+  policy_head_hidden: 64
+  value_head_hidden: 32
+  dropout: 0.0
+
+mcts:
+  n_simulations: 4      # 极少（baseline 100）
+  c_puct: 1.5
+  dirichlet_alpha: 0.3
+  dirichlet_eps: 0.25
+  temperature_warmup: 1.0
+  temperature_play: 0.0
+  temperature_threshold: 5
+
+selfplay:
+  games_per_iter: 2     # 每 iter 仅 2 game
+  max_steps_per_game: 30
+  num_workers: 1
+  reward_scheme: relative_sabre
+
+replay:
+  capacity: 1000
+  min_size_to_train: 8
+  shuffle: true
+
+training:
+  iterations: 5         # 仅 5 iter
+  steps_per_iter: 5
+  batch_size: 8
+  learning_rate: 3.0e-4
+  lr_schedule: cosine
+  weight_decay: 1.0e-4
+  policy_loss_weight: 1.0
+  value_loss_weight: 1.0
+  grad_clip: 1.0
+  log_interval: 1
+  eval_interval: 100    # 不 eval
+  checkpoint_interval: 100  # 不存 ckpt（太大）
+
+curriculum:
+  enabled: true
+  min_episodes_per_stage: 2
+  promotion_patience: 50
+
+environment:
+  use_lightweight_env: true
+  max_steps: 30
+  soft_mask: true
+  tabu_size: 4
+  random_mapping: true
+  use_sabre_cache: true
+
+hardware:
+  device: cpu
+  num_inference_workers: 1
+
+paths:
+  save_dir: /tmp/v15_smoke_run
+  resume: null
+  v14_warmstart: null   # smoke 不用 warmstart

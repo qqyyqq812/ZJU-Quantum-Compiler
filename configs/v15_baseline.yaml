@@ -1,0 +1,98 @@
+# V15 — AlphaZero-style MCTS+GNN for IBM Tokyo 20Q
+# 设计依据：QRoute (Sinha et al. AAAI 2022) + AlphaRouter (Amazon 2024) +
+#           本项目 V14 已有 LightweightEnv (O(1) clone) + GraphSAGE 9D 编码器
+#
+# 与 V14 关系：
+#   - 保留：env.py, light_env.py, gnn_encoder.py, sabre_cache.py, pass_manager.py, curriculum.py
+#   - 替换：PPO trainer (train.py) → AlphaZero self-play loop (v15/train.py)
+#   - 新增：v15/{network,tree,selfplay,replay,train}.py
+#
+# 决策记录：docs/technical/decisions.md §V15
+
+version: v15
+algorithm: AlphaZero-MCTS+GNN
+
+topology:
+  name: ibm_tokyo
+  n_qubits: 20
+
+# ---- 网络结构（沿用 V14 的 9D GNN backbone）----
+network:
+  gnn_in_channels: 9         # GraphSAGE 节点特征维度（已有）
+  gnn_hidden: 128
+  gnn_out: 128               # node_embed 通道数
+  graph_pool_dim: 256        # mean+max 拼接 = 2 * gnn_out
+  policy_head_hidden: 256
+  value_head_hidden: 128
+  dropout: 0.1
+
+# ---- MCTS 搜索 ----
+mcts:
+  n_simulations: 100         # 每步 100 次仿真（QRoute 用 50，AlphaRouter 用 800；折中起步）
+  c_puct: 1.5                # PUCT 探索系数（AlphaZero 标准 1.0-1.5）
+  dirichlet_alpha: 0.3       # 根节点 Dirichlet 噪声 α（AlphaZero=0.03 围棋大动作空间, 路由 38 动作 → 0.3）
+  dirichlet_eps: 0.25        # noise 混合比例（标准 0.25）
+  temperature_warmup: 1.0    # 训练前 30 步用 T=1（按 visit 概率采样，鼓励探索）
+  temperature_play: 0.0      # 30 步后 T→0（贪心选 argmax visits）
+  temperature_threshold: 30  # 切换步数
+
+# ---- Self-Play ----
+selfplay:
+  games_per_iter: 100        # 每轮迭代生成 100 个 self-play game
+  max_steps_per_game: 800    # 与 V14.2 一致
+  num_workers: 8             # 并行 self-play worker（CPU bound; MCTS deepcopy 是大头）
+  reward_scheme: relative_sabre   # 终局价值 z 的计算方式
+                                  # relative_sabre: z = clip((sabre_swaps - ai_swaps)/sabre_swaps, -1, 1)
+                                  # absolute:       z = -ai_swaps / max_steps
+
+# ---- Replay Buffer ----
+replay:
+  capacity: 100000           # 保留最近 10w 条 (state, π, z)
+  min_size_to_train: 1000    # 蓄水池里 ≥ 1000 才开始训练
+  shuffle: true
+
+# ---- 训练 ----
+training:
+  iterations: 1000           # 外循环：每 iteration = N self-play + 一轮训练 + eval
+  steps_per_iter: 200        # 每 iteration 训练 200 个 batch
+  batch_size: 128
+  learning_rate: 3.0e-4      # AlphaZero 标准
+  lr_schedule: cosine        # cosine annealing 到 1e-5
+  weight_decay: 1.0e-4       # L2 正则
+  policy_loss_weight: 1.0
+  value_loss_weight: 1.0     # AlphaZero 默认 1:1
+  entropy_bonus: 0.0         # AlphaZero 不需要 entropy（MCTS 自己提供探索）
+  grad_clip: 1.0
+  log_interval: 10
+  eval_interval: 5           # 每 5 iter eval 一次
+  checkpoint_interval: 10
+
+# ---- 课程学习（沿用 V14 curriculum.py）----
+curriculum:
+  enabled: true
+  min_episodes_per_stage: 50    # V15 用 episode = self-play game，比 V14 PPO step 慢，调小
+  promotion_patience: 500
+  # promotion_thresholds 由 curriculum.py STAGES 决定（不在此覆盖）
+
+# ---- 环境（沿用 V14 LightweightEnv 接口）----
+environment:
+  use_lightweight_env: true     # MCTS 必须用 LightweightEnv（O(1) clone）
+  max_steps: 800
+  soft_mask: true
+  tabu_size: 4
+  random_mapping: true
+  use_sabre_cache: true         # V14-1 的吞吐优化必须保留
+
+# ---- Hardware ----
+hardware:
+  device: cuda                  # 网络训练 GPU；MCTS rollout 在 CPU 上
+  num_inference_workers: 4      # network 推理批量化 worker 数
+
+# ---- 路径 ----
+paths:
+  save_dir: models/v15_tokyo20
+  resume: null
+  v14_warmstart: models/v14_tokyo20/v7_ibm_tokyo_best.pt
+  # ↑ V14 ep25333 权重作为 V15 网络初始化（共享 GNN backbone）
+  #   V14 的 actor 头和 V15 的 policy 头维度匹配 → 直接 load
+  #   V14 的 critic 头 → 重新初始化（V14 critic 学的是 PPO advantage，V15 学的是 MCTS z）
