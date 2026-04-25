@@ -38,9 +38,10 @@ reward:
   early_stage_sabre_weight: 0.1   # stage<=2 的 SABRE 相对奖励权重
 
 environment:
-  # V14+: 从 2000 降到 600, 让 Stage 3/4 episode 不至于拖累 eps/s
-  # 600 步对 10Q/20Q 深电路足够; 超出即视为 truncated, 惩罚由 SABRE 相对奖励体现
-  max_steps: 600
+  # V14.1: 进一步从 600 降到 300. Stage 3 训练时 agent 被观测到"刷 SWAP 到超时"
+  # 的退化策略；缩短 max_steps + truncation 惩罚 ⇒ 迫使 agent 学会完成
+  # 300 步对 10Q/20Q 深电路足够（SABRE 基线 Stage 3 ~20 SWAP, 20Q ~100 SWAP）
+  max_steps: 300
   soft_mask: true      # 仅 stage >= 2 生效（env::get_action_mask）
   tabu_size: 4
   random_mapping: true
