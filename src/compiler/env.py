@@ -217,23 +217,33 @@ class QuantumRoutingEnv(gym.Env):
         terminated = self._dag.is_done()
         truncated = self._step_count >= self.max_steps
         if terminated:
-            # V14 §V14-3: 奖励分层
-            # Stage 0-2 (学会完成)：固定完成奖励 (reward_done ~5.0)，鼓励先完成
-            # Stage 3-4 (学会超越 SABRE)：SABRE 相对奖励作为主要信号
+            # V14.1 §V14-3: 奖励分层（stage 2->3 平滑过渡 + truncation 惩罚）
             stage = self._curriculum_stage
             if stage <= 2:
-                # 早期阶段：完成奖励为主，SABRE 相对奖励弱化
                 reward += max(self.reward_done, self.early_stage_reward_floor)
                 if self.use_sabre_reward and self._sabre_swaps > 0:
                     reward += self.early_stage_sabre_weight * float(
                         self._sabre_swaps - self._total_swaps
                     )
+            elif stage == 3:
+                # Stage 3 桥接：仍给完成奖励 + 较弱 SABRE 相对（0.3x，否则悬崖）
+                reward += max(self.reward_done, self.early_stage_reward_floor)
+                if self.use_sabre_reward and self._sabre_swaps > 0:
+                    reward += 0.3 * float(self._sabre_swaps - self._total_swaps)
             else:
-                # 后期阶段：SABRE 相对奖励为主
+                # Stage 4: 完全 SABRE 相对（+ 完成 floor 防恶性 episode）
+                reward += self.early_stage_reward_floor
                 if self.use_sabre_reward and self._sabre_swaps > 0:
                     reward += float(self._sabre_swaps - self._total_swaps)
                 else:
                     reward += self.reward_done
+        elif truncated:
+            # V14.1 fix: truncated 必须惩罚未完成
+            # 否则 agent 学会"刷 SWAP 到超时"（0 reward）而非完成电路
+            remaining = self._dag.remaining_gates() if hasattr(self._dag, 'remaining_gates') else 0
+            reward -= float(remaining) * 1.0  # 每个剩余门 -1
+            if self.use_sabre_reward and self._sabre_swaps > 0:
+                reward -= 0.5 * float(self._total_swaps - self._sabre_swaps)
 
         return self._get_obs(), reward, terminated, truncated, self._get_info()
 

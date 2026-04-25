@@ -173,6 +173,11 @@ def train(
                 while scheduler.current_stage < target_stage:
                     scheduler._promote()
                 print(f"🔄 课程状态恢复: Stage {scheduler.current_stage} ({scheduler.stage_config.name})")
+                # V14.1 fix: resume 后必须把 stage 传给所有 env worker，否则 env 还以为 stage=0
+                try:
+                    envs.call("set_curriculum_stage", scheduler.current_stage)
+                except Exception as e:
+                    print(f"⚠️  set_curriculum_stage 传播失败: {e}")
             best_eval_swaps = ckpt.get('best_eval_swaps', float('inf'))
             patience_counter = ckpt.get('patience_counter', 0)
             print(f"🔄 完整 checkpoint 重接: {resume_path} (ep{start_episode})")
@@ -434,7 +439,8 @@ def main():
         paths = cfg.get('paths', {})
 
         save_dir = paths.get('save_dir', args.save_dir)
-        resume = paths.get('resume', args.resume)
+        # V14.1 fix: CLI --resume 优先于 yaml (yaml 里常 null 导致覆盖)
+        resume = args.resume if args.resume else paths.get('resume', None)
 
         train(
             topology_name=topology['name'],
