@@ -124,6 +124,7 @@ def train(
     early_stage_reward_floor: float = 5.0,   # V14 §V14-3: stage<=2 完成奖励下限
     early_stage_sabre_weight: float = 0.1,   # V14 §V14-3: stage<=2 SABRE 权重
     max_steps: int = 2000,           # V14+: env 每 episode 最大步数
+    force_stage: int | None = None,  # V14.1: 纯权重 resume 时强制课程阶段
 ) -> dict:
     import torch.multiprocessing
     torch.multiprocessing.set_sharing_strategy('file_system')
@@ -184,9 +185,15 @@ def train(
         else:
             trainer.load(resume_path)
             if scheduler:
-                while scheduler.current_stage < scheduler._max_stage:
+                # V14.1: 用 force_stage 精确控制，否则推到 max_stage (旧行为)
+                tgt = force_stage if force_stage is not None else scheduler._max_stage
+                while scheduler.current_stage < tgt:
                     scheduler._promote()
-            print(f"🔄 从旧权重恢复: {resume_path}")
+                try:
+                    envs.call("set_curriculum_stage", scheduler.current_stage)
+                except Exception as e:
+                    print(f"⚠️  set_curriculum_stage 传播失败: {e}")
+            print(f"🔄 从旧权重恢复: {resume_path} → Stage {scheduler.current_stage if scheduler else '?'}")
 
     if use_curriculum:
         circuits = scheduler.circuits
@@ -425,6 +432,8 @@ def main():
     parser.add_argument('--no-soft-mask', dest='soft_mask', action='store_false')
     parser.add_argument('--tabu-size', type=int, default=4)
     parser.add_argument('--checkpoint-interval', type=int, default=2000)
+    parser.add_argument('--force-stage', type=int, default=None,
+                        help='V14.1: 从纯权重 resume 时强制 curriculum stage (绕过坏 checkpoint)')
     args = parser.parse_args()
 
     # V14: 若传了 --config，走 yaml 路径
@@ -469,6 +478,7 @@ def main():
             early_stage_reward_floor=reward.get('early_stage_reward_floor', 5.0),
             early_stage_sabre_weight=reward.get('early_stage_sabre_weight', 0.1),
             max_steps=env_cfg.get('max_steps', 2000),
+            force_stage=args.force_stage,
         )
         return
 
