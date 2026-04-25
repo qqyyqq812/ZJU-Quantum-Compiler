@@ -41,11 +41,13 @@ mcts:
 
 # ---- Self-Play ----
 selfplay:
-  # V15.1: 从 100 → 20 games/iter。原因：warmstart V14 ep25333 让 curriculum 在 iter 1 就
-  # 跨越 Stage 0→2，iter 2 已经在 Stage 4 (20Q, depth 10-20)，单 iter 变成 25 分钟。
-  # 缩到 20 后单 iter 时间可控（≤ 5 min on Stage 4），晋级也不会一次性飞太多级。
-  games_per_iter: 20
-  max_steps_per_game: 800    # 与 V14.2 一致
+  # V15.1: 从 100 → 20 games/iter。
+  # V15.2 (2026-04-25): 20 → 10 games/iter，同时 max_steps 800 → 400。
+  # 根因：num_workers=8 是线程而非进程，Python GIL 限制下约 1.75 核有效，实测
+  # stage 1 iter 5 用了 80 分钟（55% games 撞满 800 步上限）。400 步够覆盖
+  # SABRE 典型路由深度（QFT-20 ≈ 163 SWAPs），games=10 再减半 → 目标 ≤ 20 min/iter。
+  games_per_iter: 10
+  max_steps_per_game: 400    # V15.2: 800 → 400，覆盖真实路由需求且减少空转
   num_workers: 8             # 并行 self-play worker（CPU bound; MCTS deepcopy 是大头）
   reward_scheme: relative_sabre   # 终局价值 z 的计算方式
                                   # relative_sabre: z = clip((sabre_swaps - ai_swaps)/sabre_swaps, -1, 1)
