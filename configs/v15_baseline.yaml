@@ -28,7 +28,10 @@ network:
 
 # ---- MCTS 搜索 ----
 mcts:
-  n_simulations: 100         # 每步 100 次仿真（QRoute 用 50，AlphaRouter 用 800；折中起步）
+  # V15.1 (2026-04-25): 100 sims × 100 games × 50 步 = 50w forward/iter, 在 Stage 4 (20Q)
+  # 一 iter 跑 ~25 min，太慢。降到 30 sims（QRoute 用 50，AlphaRouter 用 800; 我们先求训练
+  # 闭环跑通，质量不足时后期再升）
+  n_simulations: 30
   c_puct: 1.5                # PUCT 探索系数（AlphaZero 标准 1.0-1.5）
   dirichlet_alpha: 0.3       # 根节点 Dirichlet 噪声 α（AlphaZero=0.03 围棋大动作空间, 路由 38 动作 → 0.3）
   dirichlet_eps: 0.25        # noise 混合比例（标准 0.25）
@@ -38,7 +41,10 @@ mcts:
 
 # ---- Self-Play ----
 selfplay:
-  games_per_iter: 100        # 每轮迭代生成 100 个 self-play game
+  # V15.1: 从 100 → 20 games/iter。原因：warmstart V14 ep25333 让 curriculum 在 iter 1 就
+  # 跨越 Stage 0→2，iter 2 已经在 Stage 4 (20Q, depth 10-20)，单 iter 变成 25 分钟。
+  # 缩到 20 后单 iter 时间可控（≤ 5 min on Stage 4），晋级也不会一次性飞太多级。
+  games_per_iter: 20
   max_steps_per_game: 800    # 与 V14.2 一致
   num_workers: 8             # 并行 self-play worker（CPU bound; MCTS deepcopy 是大头）
   reward_scheme: relative_sabre   # 终局价值 z 的计算方式
