@@ -101,7 +101,7 @@ V14.2 在 5090 GPU 上跑 ~2200 episodes 后，训练 SWAP 从 589 上涨到 722
 **保留 70% V14 工程**（env / GNN / SABRE 缓存 / curriculum / pass_manager）+ **替换学习算法**（PPO → AlphaZero 风格 MCTS+GNN）。
 
 V15 不是从头来过，是站在 V14 的肩膀上：
-- V14 ep25333 权重 → V15 网络 backbone warmstart
+- 当时假设 V14 ep25333 权重可作为 V15 backbone warmstart；该假设已在 2026-05-04 P1 评测中被推翻
 - V14 LightweightEnv O(1) clone → MCTS 必备的快速仿真
 - V14 9D GraphSAGE → V15 PolicyValueNet 共享 backbone
 

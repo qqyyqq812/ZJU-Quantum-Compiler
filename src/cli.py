@@ -57,11 +57,13 @@ def _build_vqe(n_qubits: int):
 
 
 def _build_named_circuit(tag: str):
+    from qiskit import transpile
     from src.benchmarks.circuits import (
         generate_grover,
         generate_qaoa,
         generate_qft,
     )
+    from src.benchmarks.mqt_bench import DEFAULT_BASIS_GATES
 
     gens = {
         "qft": generate_qft,
@@ -71,7 +73,15 @@ def _build_named_circuit(tag: str):
         "vqe": _build_vqe,
     }
     kind, n_str = tag.split("_")
-    return gens[kind](int(n_str))
+    qc = gens[kind](int(n_str))
+    qc_basis = transpile(
+        qc,
+        basis_gates=DEFAULT_BASIS_GATES,
+        optimization_level=0,
+        seed_transpiler=42,
+    )
+    qc_basis.name = tag
+    return qc_basis
 
 
 def _count_swap_overhead(original_cx: int, compiled_cx: int) -> int:

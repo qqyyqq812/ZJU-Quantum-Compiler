@@ -533,7 +533,10 @@ def main() -> int:
                 n_ok_ai += 1
         avg_ratio = sum(ratios) / len(ratios) if ratios else float("nan")
         print(f"  AI 完成:    {n_ok_ai}/{len(main_results)}")
-        print(f"  AI/SABRE ratio (mean over {len(ratios)} 可比对电路): {avg_ratio:.3f}")
+        if ratios:
+            print(f"  AI/SABRE ratio (mean over {len(ratios)} 可比对电路): {avg_ratio:.3f}")
+        else:
+            print("  AI/SABRE ratio (mean over 0 可比对电路): N/A")
     else:
         print("  AI:         未跑通（无模型 / 加载失败）— 表格 AI 列为 N/A")
     print("=" * 72)
