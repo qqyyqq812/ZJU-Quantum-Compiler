@@ -92,7 +92,8 @@ class TestCircuitDAG:
         cm = CouplingMap.from_line(3)
         mapping = {0: 0, 1: 1, 2: 2}
         executed = dag.execute_executable(mapping, cm)
-        assert executed == 1  # 只有 CX(0,1) 相邻可执行
+        assert len(executed) == 1  # 只有 CX(0,1) 相邻可执行
+        assert executed[0].gate_id == 0
 
     def test_to_networkx(self):
         qc = self._make_simple_circuit()

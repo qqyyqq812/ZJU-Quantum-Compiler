@@ -4,13 +4,20 @@
 
 **GitHub**: https://github.com/qqyyqq812/ZJU-Quantum-Compiler
 
+## claude-mem 启动纪律
+
+- 本项目**单独打开为 VSCode/Antigravity 工作区根**（File → Open Folder → `projects/量子电路/`），不要从 `/home/qq/` 根启动会话。
+- claude-mem 按 `basename(cwd)` 自动注入本项目专属历史；从根启动会污染 `qq` 桶。
+- 自检：会话第一条工具调用前确认 `process.cwd()` 是 `/home/qq/projects/量子电路` 而非 `/home/qq/`。
+- 跨桶查（罕见）：`mcp-search query="..." project=null`，不用切窗口。
+
 ## 关键文件导航
 
 | 文件/目录 | 用途 |
 |----------|------|
 | `src/compiler/` | 核心 RL 编译器代码（env.py, policy.py, train.py, gnn_*.py, pass_manager.py） |
 | `src/benchmarks/` | 电路生成、拓扑定义、评测脚本 |
-| `docs/technical/decisions.md` | **版本决策与踩坑**（V9→V14 全部决策）⭐ |
+| `docs/technical/decisions.md` | **版本决策与踩坑**（V9→V15 全部决策）⭐ |
 | `docs/technical/01_物理基础.md` | 量子电路基础知识 |
 | `docs/technical/03_SABRE精读.md` | SABRE 算法细节 |
 | `docs/technical/colab_workflow_and_pitfalls.md` | Colab 踩坑 |
@@ -34,17 +41,23 @@
 
 任何代码改动前，先读对应规则。
 
-## 当前状态 (2026-04-24)
+## 当前状态 (2026-05-04)
 
-- **最新版本**：V14（**代码实现完成**，等待 GPU 训练）
-- **前一版本**：V13 在 GPU 上训练发散（Stage 1 卡死）— 根因见 decisions.md §V14
+- **最新版本**：V15.2 代码存在，但训练未达标，当前暂停继续训练。
+- **P1 评测**：`models/v14_tokyo20/eval_report_mqt.md` 已补
+  `checkpoint_ep25333.pt` 的 AI 列；12 条主集合电路 AI 只完成 4 条，
+  完成且可比的 AI/SABRE 平均为 2.500。
+- **关键结论**：ep25333 不能支持“5Q backbone 稳定可用”的 warmstart 假设。
 - **V14 四大改动**（已实装）：
   1. ✅ SABRE 基线缓存（`src/compiler/sabre_cache.py`）— 吞吐预期 1.0→15 eps/s
   2. ✅ 阶段化 Mask（`env.py::get_action_mask` 读 `_curriculum_stage`）
   3. ✅ 奖励分层（`env.py::step` terminal 根据 stage 切换）
   4. ✅ pass_manager 真集成（`pass_manager.py::_build_routed_circuit` 直接发 SwapGate）
-- **测试状态**：9/9 V14 smoke tests 通过，57/58 全量 pytest 通过
-- **GPU**：RTX 5090 32GB (AutoDL) — 目前离线，等待开机
+- **V15 问题**：self-play 基本串行，`num_workers`/`num_inference_workers`
+  配置未真正接入；后续必须先修 batch inference/并行 self-play，而不是继续调 yaml。
+- **云端**：只读健康检查已完成；远端 `eb55a96`，GPU idle，无 V14/V15 训练进程。
+- **Golden Pool**：`/home/qq/docs/GitHub_Golden_Pool/量子电路/` 是历史参考池，
+  不直接覆盖当前仓库。
 
 ## V14 运行流程
 
@@ -52,12 +65,14 @@
 # 1. 本地 smoke（CPU，1000 ep，3-5 分钟）
 python -m src.compiler.train --config configs/v14_local_smoke.yaml
 
-# 2. GPU 训练（RTX 5090，100k ep，4-6 小时）
-#    前置: 开 AutoDL 实例、ssh 进去、git pull、pip install -r requirements.txt
-bash run_train_v14.sh configs/v14_baseline.yaml
+# 2. P1 评测（当前主线）
+.venv/bin/python scripts/eval_mqt_bench.py \
+    --ai-model models/v14_tokyo20/checkpoint_ep25333.pt \
+    --n-qubits 5,10,20 \
+    --benchmarks qft,qaoa,ghz,vqe \
+    --output models/v14_tokyo20/eval_report_mqt.md
 
-# 3. 评测（生成 models/v14_tokyo20/eval_report_v14.md）
-python scripts/eval_v14_vs_sabre.py --model models/v14_tokyo20/v7_ibm_tokyo_best.pt
+# 3. 不要直接重启 V15；先读 decisions.md 顶部当前状态
 ```
 
 ## 快速开始

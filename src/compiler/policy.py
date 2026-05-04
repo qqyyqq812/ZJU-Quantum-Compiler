@@ -166,7 +166,13 @@ class PolicyNetwork(nn.Module):
         
         return dist, values
 
-    def get_action(self, obs: np.ndarray, action_mask: np.ndarray | None = None, gnn_input: dict | None = None) -> tuple[int, float, float]:
+    def get_action(
+        self,
+        obs: np.ndarray,
+        action_mask: np.ndarray | None = None,
+        gnn_input: dict | None = None,
+        deterministic: bool = False,
+    ) -> tuple[int, float, float]:
         """单步推理 (Rollout使用)"""
         with torch.no_grad():
             device = next(self.parameters()).device
@@ -187,7 +193,10 @@ class PolicyNetwork(nn.Module):
                 logits = logits.masked_fill(mask_t == 0, -1e8)
                 
             dist = Categorical(logits=logits)
-            action = dist.sample()
+            if deterministic:
+                action = torch.argmax(logits, dim=-1)
+            else:
+                action = dist.sample()
             log_prob = dist.log_prob(action)
             
         return action.item(), log_prob.item(), values.item()

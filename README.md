@@ -9,7 +9,7 @@
 [![Qiskit](https://img.shields.io/badge/qiskit-2.0+-purple.svg)](https://www.ibm.com/quantum/qiskit)
 [![PyTorch](https://img.shields.io/badge/pytorch-2.0+-orange.svg)](https://pytorch.org)
 
-将量子电路映射到真实硬件拓扑（IBM Tokyo 20Q、Google Sycamore、Linear/Grid 等）时，需要插入 SWAP 门以满足比特连通性约束。本项目用强化学习训练一个**比 Qiskit 启发式算法 SABRE 做得更好**的 AI 路由器。
+将量子电路映射到真实硬件拓扑（IBM Tokyo 20Q、Google Sycamore、Linear/Grid 等）时，需要插入 SWAP 门以满足比特连通性约束。本项目探索用强化学习训练一个能对标 Qiskit 启发式算法 SABRE 的 AI 路由器。当前 checkpoint 尚未超过 SABRE。
 
 ## ⚡ 30 秒上手
 
@@ -51,14 +51,21 @@ qcompiler eval --circuits qft_5,grover_5 # 跑 V14 vs SABRE 对比
 └──────────────────────────────────────────────────────────┘
 ```
 
-## 📊 V14.2 实测数据（Stage 0-2 收敛）
+## 📊 当前评测状态
 
-| 电路 | qubits | AI SWAP | SABRE SWAP | AI/SABRE | 完成率 |
-|------|--------|---------|------------|----------|--------|
-| QFT-3 | 3 | 见 [notebooks/05_demo_v14_vs_sabre.ipynb](notebooks/05_demo_v14_vs_sabre.ipynb) | | | |
-| QFT-5 | 5 | | | | |
-| QAOA-5 | 5 | | | | |
-| Grover-3 | 3 | | | | |
+2026-05-04 的 P1 评测使用 `models/v14_tokyo20/checkpoint_ep25333.pt`
+在 IBM Tokyo 20Q 拓扑上跑了 12 条 MQT-Bench 主集合电路
+（qft/qaoa/ghz/vqe × 5/10/20 qubits）。结果显示该 checkpoint
+还不能作为稳定 AI 路由器使用。
+
+| 指标 | 结果 |
+|------|------|
+| SABRE 完成率 | 12/12 |
+| AI 完成率 | 4/12 |
+| AI 超越 SABRE | 0/4 |
+| AI/SABRE 平均比例 | 2.500（仅完成且 SABRE>0 的 2 条） |
+
+完整表格见 [`models/v14_tokyo20/eval_report_mqt.md`](models/v14_tokyo20/eval_report_mqt.md)。
 
 **训练曲线**（V14.2，4616 episodes，IBM Tokyo 20Q）：
 
@@ -74,8 +81,8 @@ qcompiler eval --circuits qft_5,grover_5 # 跑 V14 vs SABRE 对比
 | V10 | PPO + Hard Mask | 消除软约束漏洞 | ✅ |
 | V11 | DQN | 对比实验，验证 PPO 优越性 | ✅ |
 | V13 | PPO + GNN 9D | SABRE 相对奖励 + 纯 PyTorch GraphSAGE | ⚠️ Stage 1 发散 |
-| **V14** | PPO + GNN（V13 修复版）| SABRE 缓存 / 阶段化 mask / reward 分层 / pass_manager 真集成 | ✅ Stage 0-2 / ❌ Stage 3 卡住 |
-| **V15** | **AlphaZero-MCTS + GNN** | **保留 V14 工程 + MCTS 自博弈** | 🚧 开发中 |
+| **V14** | PPO + GNN（V13 修复版）| SABRE 缓存 / 阶段化 mask / reward 分层 / pass_manager 真集成 | ❌ P1 评测未达标 |
+| **V15** | **AlphaZero-MCTS + GNN** | **保留 V14 工程 + MCTS 自博弈** | ❌ iter326 未收敛，暂停继续训练 |
 
 > 完整决策记录：[`docs/technical/decisions.md`](docs/technical/decisions.md)
 
@@ -91,7 +98,10 @@ V14.2 在 Stage 3 (10Q) 上 PPO 卡死后，调研发现 20Q 已知有效的 RL 
 | **QRoute** (AAAI 2022) | **MCTS + GNN** | ✅ | 超过 SABRE/TKET |
 | Zhou 2024 (PPO+GNN) | PPO + GNN（最近似 V14）| ❌ 闭源 | 声称 -5~15% |
 
-V15 决定：**保留 V14 全部工程基建（env / GNN / 课程学习 / SABRE 缓存），将 PPO 学习算法替换为 AlphaZero-style MCTS + 自博弈**。详见 [`docs/technical/decisions.md §V15`](docs/technical/decisions.md)。
+V15 已实现 AlphaZero-style MCTS + 自博弈骨架，但 iter326 未收敛。
+当前结论是不要继续按现有 yaml 长跑；若继续 V15，必须先修 self-play
+并行、batch inference 和 stage 升级策略。详见
+[`docs/technical/decisions.md §V15`](docs/technical/decisions.md)。
 
 ## 🏗️ 项目结构
 
@@ -150,14 +160,17 @@ python scripts/eval_v14_vs_sabre.py \
     --model models/v14_tokyo20/v7_ibm_tokyo_best.pt \
     --topology ibm_tokyo
 
-# 4. MQT-Bench 标准电路评测
-python scripts/eval_mqt_bench.py
+# 4. MQT-Bench 标准电路评测（当前 P1 主线）
+python scripts/eval_mqt_bench.py \
+    --ai-model models/v14_tokyo20/checkpoint_ep25333.pt \
+    --n-qubits 5,10,20 \
+    --benchmarks qft,qaoa,ghz,vqe \
+    --output models/v14_tokyo20/eval_report_mqt.md
 
 # 5. 重画训练曲线
 python scripts/plot_training_curves.py
 
-# 6. （需要 GPU）启动 V15 训练
-python scripts/train_v15.py --config configs/v15_baseline.yaml
+# 6. V15 暂停长跑；先读 docs/technical/decisions.md 顶部当前状态
 ```
 
 GPU 部署协议见 [`.claude/rules/deployment.md`](.claude/rules/deployment.md)。

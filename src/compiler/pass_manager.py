@@ -22,6 +22,18 @@ from src.compiler.policy import PolicyNetwork
 from src.compiler.mcts import RouterMCTS
 
 
+def _load_policy_state_dict(model_path: str):
+    """Load a V14 policy state dict from a raw weight file or train checkpoint."""
+    import torch
+
+    checkpoint = torch.load(model_path, map_location="cpu", weights_only=True)
+    if isinstance(checkpoint, dict) and "model_state" in checkpoint:
+        return checkpoint["model_state"]
+    if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
+        return checkpoint["state_dict"]
+    return checkpoint
+
+
 class AIRouter:
     """AI 路由器: 使用训练好的 PPO 策略做路由决策。
 
@@ -52,12 +64,17 @@ class AIRouter:
             obs_dim=self.env.observation_space.shape[0],
             n_actions=self.env.action_space.n,
         )
+        self.model_load_error: str | None = None
 
         if model_path and Path(model_path).exists():
-            import torch
-            self.policy.load_state_dict(torch.load(model_path, weights_only=True))
-            self.policy.eval()
-            self._has_model = True
+            try:
+                state_dict = _load_policy_state_dict(model_path)
+                self.policy.load_state_dict(state_dict)
+                self.policy.eval()
+                self._has_model = True
+            except (RuntimeError, ValueError, TypeError) as exc:
+                self.model_load_error = str(exc)
+                self._has_model = False
         else:
             self._has_model = False
 
@@ -134,7 +151,10 @@ class AIRouter:
                     action = mcts.search(self.env, obs, einfo)
                 else:
                     action, _, _ = self.policy.get_action(
-                        obs, action_mask=mask, gnn_input=einfo.get("gnn_input")
+                        obs,
+                        action_mask=mask,
+                        gnn_input=einfo.get("gnn_input"),
+                        deterministic=True,
                     )
             else:
                 action = self.env.action_space.sample()

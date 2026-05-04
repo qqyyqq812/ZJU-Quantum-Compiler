@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import pytest
+import torch
 from qiskit import QuantumCircuit
 from qiskit.transpiler import CouplingMap
 
@@ -61,3 +62,46 @@ def test_route_count_matches_trace_swaps():
     compiled, info = router.route(qc, max_steps=200)
     swap_count_in_circuit = sum(1 for i in compiled.data if i.operation.name == "swap")
     assert swap_count_in_circuit == info["total_swaps"]
+
+
+def test_router_loads_raw_policy_state_dict_on_cpu(tmp_path):
+    """V14 eval must load raw CUDA-trained weights on CPU-only machines."""
+    cm = CouplingMap.from_line(3)
+    template = AIRouter(coupling_map=cm, model_path=None)
+    model_path = tmp_path / "policy.pt"
+    torch.save(template.policy.state_dict(), model_path)
+
+    router = AIRouter(coupling_map=cm, model_path=str(model_path))
+
+    assert router._has_model is True
+
+
+def test_router_loads_training_checkpoint_model_state(tmp_path):
+    """V14 ep checkpoints wrap policy weights under the model_state key."""
+    cm = CouplingMap.from_line(3)
+    template = AIRouter(coupling_map=cm, model_path=None)
+    checkpoint_path = tmp_path / "checkpoint_ep25333.pt"
+    torch.save(
+        {
+            "model_state": template.policy.state_dict(),
+            "optimizer_state": {},
+            "episode": 25333,
+        },
+        checkpoint_path,
+    )
+
+    router = AIRouter(coupling_map=cm, model_path=str(checkpoint_path))
+
+    assert router._has_model is True
+
+
+def test_router_degrades_when_checkpoint_architecture_is_incompatible(tmp_path):
+    """Legacy V3/V4 weights should not crash import-time router construction."""
+    cm = CouplingMap.from_line(3)
+    model_path = tmp_path / "legacy_policy.pt"
+    torch.save({"shared.0.weight": torch.zeros(1)}, model_path)
+
+    router = AIRouter(coupling_map=cm, model_path=str(model_path))
+
+    assert router._has_model is False
+    assert router.model_load_error

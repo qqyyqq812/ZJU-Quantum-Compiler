@@ -187,7 +187,7 @@ class CircuitDAG:
             mapping: 逻辑比特 → 物理比特 的映射
             coupling_map: 物理拓扑
         Returns:
-            执行的门数
+            已执行的门节点列表
         """
         edges = set(tuple(e) for e in coupling_map.get_edges())
         executed_gates = []

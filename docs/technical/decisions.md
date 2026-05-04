@@ -1,10 +1,44 @@
 # 技术决策记录 (量子电路)
 
-## 当前版本状态 (V14)
+## 当前版本状态 (V15.2 / P1 评测后)
 
-**最后更新**：2026-04-24
+**最后更新**：2026-05-04
 **GPU 环境**：RTX 5090 32GB (AutoDL)
-**当前阶段**：V14 代码实现中 — 修复 V13 发散根因 + pass_manager 假集成
+**当前阶段**：暂停继续训练；先用 P1 评测和运行健康检查决定下一步。
+
+2026-05-04 的 P1 评测已经补齐 `models/v14_tokyo20/checkpoint_ep25333.pt`
+的 AI 列。评测入口已支持在 CPU 上加载 CUDA checkpoint，并能从
+训练 checkpoint 的 `model_state` 读取权重。主集合为 12 条
+MQT-Bench 电路（qft/qaoa/ghz/vqe × 5/10/20 qubits，排除
+`grover_20` outlier 的主均值），结果如下：
+
+| 指标 | 结果 |
+|-----|------|
+| SABRE 完成率 | 12/12 |
+| AI 完成率 | 4/12 |
+| AI 超越 SABRE | 0/4 |
+| AI/SABRE 平均比例 | 2.500（仅完成且 SABRE>0 的 2 条） |
+
+结论：`checkpoint_ep25333.pt` 不能支持“V14 backbone 已在 5Q 稳定可用”
+这个 warmstart 假设。`qft_5` 与 `qaoa_5` 均未完成，只有 GHZ/VQE 这类
+低路由压力电路完成。当前不建议继续按 `configs/v15_baseline.yaml`
+重启 V15 训练。
+
+V15 的最新 history 到 iter 326：Stage 2 后平均 SWAP 约 241-281 横盘，
+`avg_outcome_z` 约 -0.4，完成率约 30-50%，`value_loss` 降至
+约 1e-3 以下。代码侧还发现 `selfplay.num_workers` 和
+`hardware.num_inference_workers` 配置没有真正接入训练循环，self-play
+基本串行，MCTS leaf evaluation 是单状态推理并频繁 CPU/GPU 往返。
+因此，V15 后续如果继续，优先级是架构修复（多局 self-play 并行、
+batch inference、stage 升级时 value head/reset 策略），不是继续调 yaml。
+
+云端只读健康检查已完成：`/root/quantum` 在 commit `eb55a96`，工作树干净；
+RTX 5090 利用率 0%，显存约 671 MiB / 32607 MiB，未发现 V14/V15 训练进程。
+`history_v15.json` 停在 iter 326，说明当前云端没有继续推进量子电路训练。
+
+`/home/qq/docs/GitHub_Golden_Pool/量子电路/` 已定位为历史 Golden Pool，
+含 222 个文件，包括旧源码、旧模型、日志和已被当前文档治理规则禁止的
+handoff/research 文档。它应作为只读参考和迁移候选池，不能直接覆盖当前仓库。
 
 ---
 
@@ -362,8 +396,12 @@ V14 的 PPO+GNN+SABRE 相对奖励路线最近似 Zhou 2024（**未开源、未�
 **V15-1: 沿用 LightweightEnv 而非自建 env**
 理由：MCTS 需要 ~100 次仿真 × 800 步 = 80k env 拷贝。`LightweightEnv.clone()` 是 O(1)（只复制 dict + numpy bool 数组），比 deepcopy QuantumRoutingEnv 快 1000+ 倍。这是项目已有积累，直接复用。
 
-**V15-2: 共享 GNN backbone，重新初始化双头**
-V14 ep25333 的 GraphSAGE 编码器在 5Q 任务上已收敛到合理特征空间。V15 网络的 backbone 直接 load V14 权重做 warmstart；policy/value 双头从零训（监督信号不同：PPO advantage vs MCTS visit/outcome）。
+**V15-2: 共享 GNN backbone，重新初始化双头（已被 P1 评测推翻）**
+原假设是 V14 ep25333 的 GraphSAGE 编码器在 5Q 任务上已收敛到合理特征空间，
+可作为 V15 warmstart。2026-05-04 的 P1 评测显示该假设不成立：
+`qft_5` 与 `qaoa_5` 均未完成，12 条主集合电路 AI 只完成 4 条。
+因此后续 V15 不应继续依赖 ep25333 作为可靠 warmstart；若继续 MCTS 路线，
+需要先重建 bootstrap 数据或改用 imitation learning / SABRE traces。
 
 **V15-3: Reward scheme = relative_sabre, clip ∈ [-1, 1]**
 完成时 `z = clip((sabre_swaps - ai_swaps) / sabre_swaps, -1, 1)`，超时 `z = -1`。tanh value head 天然匹配 [-1, 1]，避免 V14 那种 `−500` reward 量级导致的梯度爆炸。
@@ -392,15 +430,15 @@ V15 不废弃任何之前版本：
 - V14.0~14.2 的所有改动（SABRE 缓存、阶段化 mask、reward 分层、pass_manager 真集成、truncation 惩罚、Stage 3 桥接、resume 传播、max_steps=800）→ V15 全部保留在 env.py 中
 - V14.2 ep25333 权重 → V15 网络 warmstart 起点
 
-### 后续里程碑（V15 时间线）
+### 后续里程碑（V15 时间线，2026-05-04 更新）
 
 - [x] V15 代码骨架（network/tree/replay/selfplay/train + smoke tests + yaml）— 2026-04-25
-- [ ] CPU 本地 smoke：`pytest tests/test_v15_smoke.py -v` 全绿
-- [ ] CPU 本地 1 iteration 跑通（games_per_iter=2, n_simulations=4）
-- [ ] GPU push V15：cd /root/quantum && git pull && nohup bash -c "python scripts/train_v15.py --config configs/v15_baseline.yaml" &
-- [ ] GPU 训练 5-7 天（共享 5090 与近似乘法器项目，量子占 ~5GB 显存可并行）
-- [ ] eval_report_v15.md：MQT-Bench 上 v14 ep25333 / v15 / SABRE / LightSABRE 四方对比
-- [ ] AI-Collaboration.md V13→V15 章节扩写
+- [x] CPU 本地 smoke：`tests/test_v15_smoke.py` 通过
+- [x] P1 评测：`models/v14_tokyo20/eval_report_mqt.md` 已补 AI 列
+- [x] 云端只读健康确认：commit `eb55a96`，GPU idle，无 V14/V15 训练进程
+- [ ] V15 架构方案：self-play 并行 + batch inference + stage 升级策略
+- [ ] 若继续训练，先用 `/tmp` 小规模 smoke 验证 GPU 利用率和收敛面，再决定是否开机长跑
+- [ ] eval_report_v15.md：仅在新 V15 训练真正完成后再生成
 
 ### 参考代码
 

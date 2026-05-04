@@ -48,3 +48,4 @@ scripts/remote_exec.py
 # 备份文件
 *.backup_*
 README.md.backup_*
+AGENTS.md

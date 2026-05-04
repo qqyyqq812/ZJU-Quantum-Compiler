@@ -140,6 +140,19 @@ def run_ai(qc: QuantumCircuit, router, max_steps: int) -> dict:
         }
 
 
+def skipped_ai(reason: str) -> dict:
+    """Return an AI result placeholder for circuits intentionally not routed."""
+    return {
+        "swaps": "SKIP",
+        "depth": -1,
+        "n_2q": "N/A",
+        "completed": False,
+        "elapsed_s": 0.0,
+        "error": reason,
+        "skipped": True,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Router loading（容错：模型不存在或加载失败 → 只跑 SABRE 部分）
 # ---------------------------------------------------------------------------
@@ -180,6 +193,7 @@ def write_markdown_report(
 ) -> None:
     """生成 eval_report_mqt.md（遵守 .claude/rules/experiment-log.md 格式）。"""
     has_ai = any(r.get("ai") is not None for r in results)
+    main_results = [r for r in results if not r.get("outlier")]
 
     lines = []
     lines.append("# V14 MQT-Bench 评测报告")
@@ -201,18 +215,29 @@ def write_markdown_report(
     # 主表格 — V14 P1 标准格式
     lines.append("## 路由 SWAP 对比")
     lines.append("")
-    lines.append("| Circuit | n_qubits | SABRE SWAP | SABRE time(ms) | AI SWAP | AI time(ms) | AI/SABRE ratio |")
-    lines.append("|---------|----------|------------|----------------|---------|-------------|----------------|")
+    lines.append("| Circuit | n_qubits | SABRE SWAP | SABRE time(ms) | AI status | AI SWAP | AI gates | AI time(ms) | AI/SABRE ratio |")
+    lines.append("|---------|----------|------------|----------------|-----------|---------|----------|-------------|----------------|")
 
     for r in results:
         sabre = r["sabre"]
         sabre_swap = sabre["swaps"] if sabre["completed"] else "FAIL"
         sabre_ms = f"{sabre['elapsed_s'] * 1000:.2f}" if sabre["completed"] else "N/A"
 
-        if r["ai"] is not None and r["ai"]["completed"]:
+        if r["ai"] is not None:
+            if r["ai"].get("skipped"):
+                ai_status = "SKIPPED"
+            else:
+                ai_status = "OK" if r["ai"]["completed"] else "INCOMPLETE"
             ai_swap = r["ai"]["swaps"]
-            ai_ms = f"{r['ai']['elapsed_s'] * 1000:.2f}"
-            if sabre["completed"] and sabre["swaps"] > 0:
+            ai_gates = r["ai"].get("n_2q", "N/A")
+            ai_ms = (
+                f"{r['ai']['elapsed_s'] * 1000:.2f}"
+                if not r["ai"].get("skipped")
+                else "N/A"
+            )
+            if r["ai"].get("skipped"):
+                ratio_str = "N/A"
+            elif sabre["completed"] and sabre["swaps"] > 0:
                 ratio = ai_swap / sabre["swaps"]
                 ratio_str = f"{ratio:.3f}"
             elif sabre["completed"] and sabre["swaps"] == 0 and ai_swap == 0:
@@ -220,43 +245,64 @@ def write_markdown_report(
             else:
                 ratio_str = "N/A"
         else:
+            ai_status = "N/A"
             ai_swap = "N/A"
+            ai_gates = "N/A"
             ai_ms = "N/A"
             ratio_str = "N/A"
 
         lines.append(
             f"| {r['name']} | {r['qubits']} | {sabre_swap} | {sabre_ms} | "
-            f"{ai_swap} | {ai_ms} | {ratio_str} |"
+            f"{ai_status} | {ai_swap} | {ai_gates} | {ai_ms} | {ratio_str} |"
         )
 
     lines.append("")
+    outliers = [r["name"] for r in results if r.get("outlier")]
+    if outliers:
+        lines.append("> **Note:** Outlier circuits are shown in the table but excluded from main averages.")
+        lines.append(f"> Outliers: {', '.join(outliers)}.")
+        lines.append("")
 
     # 汇总统计
     lines.append("## 汇总")
     lines.append("")
-    n_ok_sabre = sum(1 for r in results if r["sabre"]["completed"])
+    n_ok_sabre = sum(1 for r in main_results if r["sabre"]["completed"])
     avg_sabre = (
-        sum(r["sabre"]["swaps"] for r in results if r["sabre"]["completed"])
+        sum(r["sabre"]["swaps"] for r in main_results if r["sabre"]["completed"])
         / max(n_ok_sabre, 1)
     )
-    lines.append(f"- SABRE 完成率: **{n_ok_sabre}/{len(results)}** "
-                 f"({n_ok_sabre / max(len(results), 1) * 100:.0f}%)")
-    lines.append(f"- SABRE 平均 SWAP: **{avg_sabre:.1f}**")
+    lines.append(f"- 主集合电路数: **{len(main_results)}/{len(results)}**")
+    lines.append(f"- SABRE 完成率: **{n_ok_sabre}/{len(main_results)}** "
+                 f"({n_ok_sabre / max(len(main_results), 1) * 100:.0f}%)")
+    lines.append(f"- SABRE 平均 SWAP（排除 outlier）: **{avg_sabre:.1f}**")
     if has_ai:
-        n_ok_ai = sum(1 for r in results if r["ai"] and r["ai"]["completed"])
+        n_ok_ai = sum(1 for r in main_results if r["ai"] and r["ai"]["completed"])
         n_wins = sum(
-            1 for r in results
+            1 for r in main_results
             if r["ai"] and r["ai"]["completed"] and r["sabre"]["completed"]
+            and not r["ai"].get("skipped")
             and r["ai"]["swaps"] < r["sabre"]["swaps"]
         )
         comparable = sum(
-            1 for r in results
+            1 for r in main_results
             if r["ai"] and r["ai"]["completed"] and r["sabre"]["completed"]
+            and not r["ai"].get("skipped")
         )
-        lines.append(f"- AI 完成率: **{n_ok_ai}/{len(results)}** "
-                     f"({n_ok_ai / max(len(results), 1) * 100:.0f}%)")
+        ratio_rows = [
+            r["ai"]["swaps"] / r["sabre"]["swaps"]
+            for r in main_results
+            if r["ai"] and r["ai"]["completed"] and r["sabre"]["completed"]
+            and not r["ai"].get("skipped")
+            and r["sabre"]["swaps"] > 0
+        ]
+        lines.append(f"- AI 完成率: **{n_ok_ai}/{len(main_results)}** "
+                     f"({n_ok_ai / max(len(main_results), 1) * 100:.0f}%)")
         lines.append(f"- AI 超越 SABRE: **{n_wins}/{comparable}** "
                      f"({n_wins / max(comparable, 1) * 100:.0f}%)")
+        if ratio_rows:
+            lines.append(f"- AI/SABRE 平均比例（仅完成且 SABRE>0）: **{sum(ratio_rows) / len(ratio_rows):.3f}**")
+        else:
+            lines.append("- AI/SABRE 平均比例（仅完成且 SABRE>0）: **N/A**")
     lines.append("")
 
     # 与 V13 的差异 段（强制要求，experiment-log.md §与 V13 的差异）
@@ -264,13 +310,13 @@ def write_markdown_report(
     lines.append("")
     lines.append("- **V14-1 SABRE baseline 缓存**：训练吞吐 1.0 → 15 eps/s，"
                  "本评测与训练时使用同一份 SABRE 实现，可复现对照。")
-    lines.append("- **V14-2 阶段化 Mask**：5Q 阶段（Stage 0-2）已稳定收敛，本表 5Q 列代表 "
-                 "V14.2 ep25333 的稳定能力；10Q/20Q（Stage 3+）仍未收敛，建议参考 SABRE 列。")
+    lines.append("- **V14-2 阶段化 Mask**：本次 P1 评测没有支持“5Q 已稳定可用”的旧假设；"
+                 "`qft_5` 与 `qaoa_5` 均未完成。")
     lines.append("- **V14-3 奖励分层**：terminal reward 按 stage 切换；")
     lines.append("- **V14-4 pass_manager 真集成**：AI SWAP 数（route_count_only）可被外部独立复现，"
                  "不再调用 Qiskit SABRE 重编译。")
-    lines.append("- **V13 vs V14 在 5Q QFT 上的 SWAP 数**：参见 "
-                 "`models/v12_tokyo20/eval_report_v12.md` vs 本报告。")
+    lines.append("- **V14 ep25333 战力结论**：主集合电路完成率和 AI/SABRE 比例见本报告汇总；"
+                 "暂不能作为 V15 warmstart 的可靠证据。")
     lines.append("")
 
     # AI 模型未加载的情况
@@ -329,6 +375,12 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="qft,qaoa,grover,ghz,vqe",
         help="逗号分隔的电路名（默认 qft,qaoa,grover,ghz,vqe — V14 P1 验收 5 类）",
+    )
+    parser.add_argument(
+        "--skip-ai-outliers",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="跳过 outlier 电路的 AI 路由，但保留 SABRE 行（默认开启）。",
     )
     return parser.parse_args()
 
@@ -391,11 +443,21 @@ def main() -> int:
     print(f"\n[4/4] 跑 pipelines...")
     results = []
     for name, qc in circuits.items():
+        outlier = name == "grover_20"
         no_route = run_no_routing(qc, DEFAULT_BASIS_GATES)
         sabre = run_sabre(qc, cm, DEFAULT_BASIS_GATES)
-        ai = run_ai(qc, router, args.max_steps) if router else None
+        if router and outlier and args.skip_ai_outliers:
+            ai = skipped_ai("outlier skipped by --skip-ai-outliers")
+        else:
+            ai = run_ai(qc, router, args.max_steps) if router else None
 
-        ai_str = f"AI={ai['swaps']:>3d}" if ai else "AI=---"
+        if ai:
+            if ai.get("skipped"):
+                ai_str = "AI=SKIP (OUTLIER)"
+            else:
+                ai_str = f"AI={ai['swaps']:>3d} ({'OK' if ai['completed'] else 'INCOMPLETE'})"
+        else:
+            ai_str = "AI=---"
         print(
             f"    {name:<14s} qubits={qc.num_qubits:>2d} size={qc.size():>4d} | "
             f"SABRE={sabre['swaps']:>3d} (depth={sabre['depth']:>3d}, "
@@ -409,6 +471,7 @@ def main() -> int:
             "no_routing": no_route,
             "sabre": sabre,
             "ai": ai,
+            "outlier": outlier,
         })
 
     # 5) 写报告
@@ -440,9 +503,10 @@ def main() -> int:
         )
 
     # 6) Summary（V14 P1 验收必须打印）
-    n_ok_sabre = sum(1 for r in results if r["sabre"]["completed"])
+    main_results = [r for r in results if not r.get("outlier")]
+    n_ok_sabre = sum(1 for r in main_results if r["sabre"]["completed"])
     avg_sabre = (
-        sum(r["sabre"]["swaps"] for r in results if r["sabre"]["completed"])
+        sum(r["sabre"]["swaps"] for r in main_results if r["sabre"]["completed"])
         / max(n_ok_sabre, 1)
     )
     has_ai = any(r["ai"] is not None and r["ai"]["completed"] for r in results)
@@ -450,24 +514,25 @@ def main() -> int:
     print("\n" + "=" * 72)
     print("Summary")
     print("=" * 72)
-    print(f"  电路总数: {len(results)}")
-    print(f"  SABRE 完成: {n_ok_sabre}/{len(results)}")
-    print(f"  SABRE 平均 SWAP: {avg_sabre:.2f}")
+    print(f"  电路总数: {len(results)} (主集合 {len(main_results)})")
+    print(f"  SABRE 完成: {n_ok_sabre}/{len(main_results)}")
+    print(f"  SABRE 平均 SWAP（排除 outlier）: {avg_sabre:.2f}")
     if has_ai:
         ratios = []
         n_ok_ai = 0
-        for r in results:
+        for r in main_results:
             if (
                 r["ai"] is not None
                 and r["ai"]["completed"]
                 and r["sabre"]["completed"]
+                and not r["ai"].get("skipped")
                 and r["sabre"]["swaps"] > 0
             ):
                 ratios.append(r["ai"]["swaps"] / r["sabre"]["swaps"])
             if r["ai"] is not None and r["ai"]["completed"]:
                 n_ok_ai += 1
         avg_ratio = sum(ratios) / len(ratios) if ratios else float("nan")
-        print(f"  AI 完成:    {n_ok_ai}/{len(results)}")
+        print(f"  AI 完成:    {n_ok_ai}/{len(main_results)}")
         print(f"  AI/SABRE ratio (mean over {len(ratios)} 可比对电路): {avg_ratio:.3f}")
     else:
         print("  AI:         未跑通（无模型 / 加载失败）— 表格 AI 列为 N/A")
