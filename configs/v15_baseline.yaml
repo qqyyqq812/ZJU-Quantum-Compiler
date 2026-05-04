@@ -100,7 +100,7 @@ hardware:
 paths:
   save_dir: models/v15_tokyo20
   resume: null
-  v14_warmstart: models/v14_tokyo20/v7_ibm_tokyo_best.pt
-  # ↑ V14 ep25333 权重作为 V15 网络初始化（共享 GNN backbone）
-  #   V14 的 actor 头和 V15 的 policy 头维度匹配 → 直接 load
-  #   V14 的 critic 头 → 重新初始化（V14 critic 学的是 PPO advantage，V15 学的是 MCTS z）
+  v14_warmstart: null
+  # P1 评测后禁用 V14 warmstart：checkpoint_ep25333.pt 未支持
+  # “5Q backbone 稳定可用”假设。后续若恢复 warmstart，先用
+  # imitation / SABRE traces 重建 bootstrap 数据。

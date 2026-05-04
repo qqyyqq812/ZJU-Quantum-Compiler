@@ -1,0 +1,82 @@
+# V15 short POC — bounded cloud run for teacher-facing sprint
+#
+# Purpose:
+#   Verify that selfplay.num_workers is wired into the V15 loop and collect
+#   iter_s / completion / avg_swaps evidence without overwriting long-run history.
+#
+# Expected use on cloud:
+#   python scripts/train_v15.py --config configs/v15_poc_short.yaml
+
+version: v15-poc-short
+algorithm: AlphaZero-MCTS+GNN
+
+topology:
+  name: ibm_tokyo
+  n_qubits: 20
+
+network:
+  gnn_in_channels: 9
+  gnn_hidden: 32
+  gnn_out: 32
+  graph_pool_dim: 64
+  policy_head_hidden: 64
+  value_head_hidden: 32
+  dropout: 0.0
+
+mcts:
+  n_simulations: 6
+  c_puct: 1.5
+  dirichlet_alpha: 0.3
+  dirichlet_eps: 0.25
+  temperature_warmup: 1.0
+  temperature_play: 0.0
+  temperature_threshold: 5
+
+selfplay:
+  games_per_iter: 4
+  max_steps_per_game: 80
+  num_workers: 2
+  worker_device: cpu
+  reward_scheme: relative_sabre
+
+replay:
+  capacity: 5000
+  min_size_to_train: 16
+  shuffle: true
+
+training:
+  iterations: 20
+  max_wall_time_s: 1800
+  steps_per_iter: 10
+  batch_size: 16
+  learning_rate: 3.0e-4
+  lr_schedule: cosine
+  weight_decay: 1.0e-4
+  policy_loss_weight: 1.0
+  value_loss_weight: 1.0
+  grad_clip: 1.0
+  log_interval: 1
+  eval_interval: 100
+  checkpoint_interval: 100
+
+curriculum:
+  enabled: true
+  min_episodes_per_stage: 4
+  promotion_patience: 50
+
+environment:
+  use_lightweight_env: true
+  max_steps: 80
+  soft_mask: true
+  tabu_size: 4
+  random_mapping: true
+  use_sabre_cache: true
+
+hardware:
+  device: cuda
+  num_inference_workers: 1
+
+paths:
+  save_dir: /tmp/qc_v15_poc_short
+  resume: null
+  v14_warmstart: null

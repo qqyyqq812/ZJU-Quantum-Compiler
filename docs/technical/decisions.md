@@ -6,6 +6,13 @@
 **GPU 环境**：RTX 5090 32GB (AutoDL)
 **当前阶段**：暂停继续训练；先用 P1 评测和运行健康检查决定下一步。
 
+2026-05-04 晚间追加一周闭环策略：优先完成老师展示可交付版本，同时保留
+V15 受控短训验证。展示入口以 `qcompiler` 和 `run_teacher_eval.sh` 为主，
+所有 AI 结果必须显示 `OK` / `INCOMPLETE` / `N/A`，不能把未完成路由包装成
+胜利。V15 短训使用 `configs/v15_poc_short.yaml`，输出到 `/tmp/qc_v15_poc_short`，
+只验证 `selfplay.num_workers` 接线、`iter_s`、completion、avg_swaps 和资源利用，
+不覆盖 `models/v15_tokyo20` 历史产物。
+
 2026-05-04 的 P1 评测已经补齐 `models/v14_tokyo20/checkpoint_ep25333.pt`
 的 AI 列。评测入口已支持在 CPU 上加载 CUDA checkpoint，并能从
 训练 checkpoint 的 `model_state` 读取权重。主集合为 12 条
@@ -417,10 +424,10 @@ AlphaZero 围棋用 α=0.03（动作空间 ~362）。路由 38 动作，按 αN 
 | 指标 | V14 目标 | V14 实测 | V15 目标 |
 |-----|---------|---------|---------|
 | 训练稳定性 | ✅ SWAP 单调下降 | ❌ Stage 3 恶化 | ✅ relative_sabre z 单调上升 |
-| Stage 0-2 (3-5Q) 完成率 | — | ≥95% (ep25333) | ≥98% (warmstart 起点) |
+| Stage 0-2 (3-5Q) 完成率 | — | P1 未达标；主集合 AI 4/12 | 先重建 bootstrap，再谈目标 |
 | Stage 3 (10Q) 完成率 | ≥80% | ❌ 67-100% 震荡 | ≥85% |
 | Stage 4 (20Q Tokyo) AI/SABRE | ≤1.05 | 未达 | ≤1.10 (匹配 QRoute SOTA) |
-| 训练时间 | 4-6h | 已 8h+ 未收敛 | 5-7 天（self-play 比 PPO 慢但更稳） |
+| 训练时间 | 4-6h | 已 8h+ 未收敛 | 先做 `/tmp` 短训 POC，不再盲目长跑 |
 
 ### 与 V14 之前版本的关系
 
@@ -428,7 +435,7 @@ V15 不废弃任何之前版本：
 - V9-V12 的 history 文件留存（评分要求"保留失败版本作反例"）
 - V13 的 9D GNN 改造 + 随机初始映射 → V15 直接用
 - V14.0~14.2 的所有改动（SABRE 缓存、阶段化 mask、reward 分层、pass_manager 真集成、truncation 惩罚、Stage 3 桥接、resume 传播、max_steps=800）→ V15 全部保留在 env.py 中
-- V14.2 ep25333 权重 → V15 网络 warmstart 起点
+- V14.2 ep25333 权重保留为历史产物；P1 后不再视为可靠 warmstart 起点
 
 ### 后续里程碑（V15 时间线，2026-05-04 更新）
 
@@ -436,8 +443,10 @@ V15 不废弃任何之前版本：
 - [x] CPU 本地 smoke：`tests/test_v15_smoke.py` 通过
 - [x] P1 评测：`models/v14_tokyo20/eval_report_mqt.md` 已补 AI 列
 - [x] 云端只读健康确认：commit `eb55a96`，GPU idle，无 V14/V15 训练进程
-- [ ] V15 架构方案：self-play 并行 + batch inference + stage 升级策略
-- [ ] 若继续训练，先用 `/tmp` 小规模 smoke 验证 GPU 利用率和收敛面，再决定是否开机长跑
+- [x] V15 POC 配置：`configs/v15_poc_short.yaml`，输出 `/tmp/qc_v15_poc_short`
+- [x] V15 self-play `num_workers` 最小接线：多进程 CPU worker 生成 self-play 样本
+- [ ] batch inference + stage 升级策略：下一阶段，不混入本周展示闭环
+- [ ] 若继续训练，先用 `/tmp` 小规模 POC 验证 GPU 利用率和收敛面，再决定是否长跑
 - [ ] eval_report_v15.md：仅在新 V15 训练真正完成后再生成
 
 ### 参考代码

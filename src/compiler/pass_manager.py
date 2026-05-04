@@ -106,8 +106,11 @@ class AIRouter:
         # 2. 根据 trace 构建真实电路
         compiled = self._build_routed_circuit(circuit, trace)
 
+        executed_gates = sum(1 for e in trace if e[0] == "gate")
         route_info = {
             "total_swaps": sum(1 for e in trace if e[0] == "swap"),
+            "executed_gates": executed_gates,
+            "done": executed_gates == circuit.size() if circuit.size() > 0 else True,
             "trace_events": len(trace),
             "final_mapping": final_mapping,
             "has_model": self._has_model,

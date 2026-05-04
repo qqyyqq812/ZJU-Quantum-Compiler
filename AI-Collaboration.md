@@ -138,3 +138,36 @@ V15 设计是 AI 与人工协同的产物：
 | 代码骨架 | 大幅提升 | V15 的 5 模块 ~1200 行从设计到实装 ~2 小时（含审查） |
 | Reward 设计 | 显著 | tanh value head + clip [-1,1] 是 AI 提出的，避免重蹈 V14 -500 量级覆辙 |
 | 训练调参 | 一般 | 仍需 GPU 实际跑数据 |
+
+---
+
+## P1 评测闭环与展示冲刺（2026-05-04）
+
+### 触发事件
+
+接手复查时发现旧 MQT 报告的 AI 列为 N/A，且 V15 云端训练停在 iter326。
+项目如果继续宣称“V14 backbone 稳定、V15 warmstart 可行”，证据不足。
+
+### AI 协同处理
+
+1. **评测入口修复**：`AIRouter` 支持 CPU 加载 CUDA checkpoint，并能从
+   `checkpoint_ep25333.pt` 的 `model_state` 读取权重；不兼容 checkpoint
+   会降级为未加载，而不是中断评测。
+2. **P1 MQT-Bench 评测**：补齐 `models/v14_tokyo20/eval_report_mqt.md`
+   的 AI 列，主集合为 qft/qaoa/ghz/vqe × 5/10/20，`grover_20`
+   作为 outlier 不进主均值。
+3. **真实结论固化**：AI 完成 4/12，超越 SABRE 0/4，AI/SABRE 平均比例
+   2.500；`qft_5` 与 `qaoa_5` 均未完成，V14 warmstart 假设被推翻。
+4. **V15 架构诊断**：确认 `selfplay.num_workers` 未真正接入训练循环，
+   self-play 基本串行；后续训练必须先修并行 self-play 和 batch inference。
+5. **展示入口收口**：将项目口径切换为“可复现评测 + 失败诊断 + 下一步路线”，
+   并通过 `qcompiler` 与 `run_teacher_eval.sh` 生成老师展示证据包。
+
+### 展示口径
+
+当前项目不包装成“AI 已经超过 SABRE”。更准确的展示方式是：
+
+- 已完成量子路由 MDP、GNN/RL 编译器、Qiskit 集成、MQT-Bench 评测链路。
+- 已发现并修复 pass_manager 假集成、checkpoint 加载和评测报告 N/A 问题。
+- 已用真实 P1 数据证明当前 checkpoint 未达标，并定位 V15 训练瓶颈。
+- 下一步是受控短训验证并行 self-play，而不是继续盲目长跑。

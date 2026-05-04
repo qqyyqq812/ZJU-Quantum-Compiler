@@ -16,8 +16,10 @@ from __future__ import annotations
 import json
 import logging
 import math
+import multiprocessing as mp
 import random
 import time
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -27,7 +29,8 @@ import torch
 import torch.nn.functional as F
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
-from src.compiler.curriculum import CurriculumScheduler
+from src.benchmarks.topologies import get_topology
+from src.compiler.curriculum import CurriculumScheduler, build_stage_circuits
 from src.compiler.env import QuantumRoutingEnv
 from src.compiler.v15.network import NetworkConfig, PolicyValueNet
 from src.compiler.v15.replay import ReplayBuffer
@@ -52,6 +55,9 @@ class TrainConfig:
     eval_interval: int = 5
     checkpoint_interval: int = 10
     save_dir: str = "models/v15_tokyo20"
+    num_workers: int = 1
+    worker_device: str = "cpu"
+    max_wall_time_s: float = 0.0
 
 
 def _batch_to_device(
@@ -121,6 +127,146 @@ def train_one_iteration(
         "policy_loss": float(np.mean(pol_losses)),
         "value_loss": float(np.mean(val_losses)),
     }
+
+
+def _build_env_for_selfplay(
+    full_cfg: dict[str, Any],
+    coupling_map,
+    circuit,
+    stage: int,
+    use_sabre_cache: bool,
+) -> QuantumRoutingEnv:
+    env = QuantumRoutingEnv(
+        coupling_map=coupling_map,
+        max_steps=int(full_cfg["environment"].get("max_steps", 800)),
+        soft_mask=bool(full_cfg["environment"].get("soft_mask", True)),
+        tabu_size=int(full_cfg["environment"].get("tabu_size", 4)),
+        use_sabre_reward=use_sabre_cache,
+    )
+    env.set_circuit(circuit, topology_name=full_cfg["topology"]["name"])
+    env.set_curriculum_stage(stage)
+    env.reset()
+    return env
+
+
+def _selfplay_worker(job: dict[str, Any]) -> tuple[list, dict]:
+    """Process worker for V15 self-play POC.
+
+    Workers intentionally run inference on CPU snapshots. This avoids sharing CUDA
+    state across forked processes while still proving that `selfplay.num_workers`
+    is wired into the expensive self-play loop.
+    """
+    torch.set_num_threads(1)
+    rng_np = np.random.default_rng(int(job["seed"]))
+    coupling_map = get_topology(job["topology_name"])
+
+    net_cfg = NetworkConfig(**job["net_cfg"])
+    network = PolicyValueNet(net_cfg)
+    network.load_state_dict(job["state_dict"])
+    network.to(torch.device(job["worker_device"]))
+    network.eval()
+
+    circuits = build_stage_circuits(int(job["stage"]))
+    circuit = circuits[int(job["circuit_index"]) % len(circuits)]
+    env = _build_env_for_selfplay(
+        job["full_cfg"],
+        coupling_map,
+        circuit,
+        int(job["stage"]),
+        bool(job["use_sabre_cache"]),
+    )
+    sabre_swaps = int(getattr(env, "_sabre_swaps", 0))
+    samples, info = play_one_episode(
+        env,
+        network,
+        MCTSConfig(**job["mcts_cfg"]),
+        SelfPlayConfig(**job["sp_cfg"]),
+        sabre_swaps,
+        rng=rng_np,
+    )
+    return samples, info
+
+
+def _run_selfplay_batch(
+    network: PolicyValueNet,
+    scheduler: CurriculumScheduler,
+    train_cfg: TrainConfig,
+    full_cfg: dict[str, Any],
+    coupling_map,
+    mcts_cfg: MCTSConfig,
+    sp_cfg: SelfPlayConfig,
+    use_sabre_cache: bool,
+    rng_np: np.random.Generator,
+) -> list[tuple[list, dict]]:
+    circuits = scheduler.circuits
+    if train_cfg.num_workers <= 1:
+        out = []
+        for g in range(train_cfg.games_per_iter):
+            env = _build_env_for_selfplay(
+                full_cfg,
+                coupling_map,
+                circuits[g % len(circuits)],
+                scheduler.current_stage,
+                use_sabre_cache,
+            )
+            sabre_swaps = int(getattr(env, "_sabre_swaps", 0))
+            out.append(
+                play_one_episode(
+                    env, network, mcts_cfg, sp_cfg, sabre_swaps, rng=rng_np
+                )
+            )
+        return out
+
+    state_dict = {
+        k: v.detach().cpu()
+        for k, v in network.state_dict().items()
+    }
+    net_cfg = {
+        "gnn_in_channels": network.cfg.gnn_in_channels,
+        "gnn_hidden": network.cfg.gnn_hidden,
+        "gnn_out": network.cfg.gnn_out,
+        "graph_pool_dim": network.cfg.graph_pool_dim,
+        "policy_head_hidden": network.cfg.policy_head_hidden,
+        "value_head_hidden": network.cfg.value_head_hidden,
+        "n_actions": network.cfg.n_actions,
+        "dropout": network.cfg.dropout,
+    }
+    base_job = {
+        "full_cfg": full_cfg,
+        "topology_name": full_cfg["topology"]["name"],
+        "stage": scheduler.current_stage,
+        "use_sabre_cache": use_sabre_cache,
+        "worker_device": train_cfg.worker_device,
+        "state_dict": state_dict,
+        "net_cfg": net_cfg,
+        "mcts_cfg": {
+            "n_simulations": mcts_cfg.n_simulations,
+            "c_puct": mcts_cfg.c_puct,
+            "dirichlet_alpha": mcts_cfg.dirichlet_alpha,
+            "dirichlet_eps": mcts_cfg.dirichlet_eps,
+            "discount": mcts_cfg.discount,
+        },
+        "sp_cfg": {
+            "max_steps_per_game": sp_cfg.max_steps_per_game,
+            "temperature_warmup": sp_cfg.temperature_warmup,
+            "temperature_play": sp_cfg.temperature_play,
+            "temperature_threshold": sp_cfg.temperature_threshold,
+            "reward_scheme": sp_cfg.reward_scheme,
+        },
+    }
+    jobs = []
+    for g in range(train_cfg.games_per_iter):
+        job = dict(base_job)
+        job["circuit_index"] = g
+        job["seed"] = int(rng_np.integers(0, 2**31 - 1))
+        jobs.append(job)
+
+    ctx = mp.get_context("spawn")
+    with ProcessPoolExecutor(
+        max_workers=train_cfg.num_workers,
+        mp_context=ctx,
+    ) as executor:
+        return list(executor.map(_selfplay_worker, jobs))
 
 
 def run_training(
@@ -219,6 +365,9 @@ def run_training(
         eval_interval=int(tr_d.get("eval_interval", 5)),
         checkpoint_interval=int(tr_d.get("checkpoint_interval", 10)),
         save_dir=str(full_cfg["paths"]["save_dir"]),
+        num_workers=max(1, int(sp_d.get("num_workers", 1))),
+        worker_device=str(sp_d.get("worker_device", "cpu")),
+        max_wall_time_s=float(tr_d.get("max_wall_time_s", 0.0)),
     )
 
     save_dir = Path(train_cfg.save_dir)
@@ -249,32 +398,29 @@ def run_training(
         "avg_outcome_z": [],
         "completion_rate": [],
         "stage": [],
+        "iter_s": [],
+        "selfplay_workers": [],
     }
 
+    run_t0 = time.time()
     for it in range(1, train_cfg.iterations + 1):
         t0 = time.time()
         # ---- Self-play ----
-        circuits = scheduler.circuits
         ep_swaps: list[int] = []
         ep_zs: list[float] = []
         ep_completed: list[bool] = []
-        for g in range(train_cfg.games_per_iter):
-            circ = circuits[g % len(circuits)]
-            env = QuantumRoutingEnv(
-                coupling_map=coupling_map,
-                max_steps=int(full_cfg["environment"].get("max_steps", 800)),
-                soft_mask=bool(full_cfg["environment"].get("soft_mask", True)),
-                tabu_size=int(full_cfg["environment"].get("tabu_size", 4)),
-                use_sabre_reward=use_sabre_cache,
-            )
-            env.set_circuit(circ, topology_name=full_cfg["topology"]["name"])
-            env.set_curriculum_stage(scheduler.current_stage)
-            env.reset()
-            # SABRE baseline cached by env.reset() via sabre_cache module (V14-1)
-            sabre_swaps = int(getattr(env, "_sabre_swaps", 0))
-            samples, info = play_one_episode(
-                env, network, mcts_cfg, sp_cfg, sabre_swaps, rng=rng_np
-            )
+        episodes = _run_selfplay_batch(
+            network,
+            scheduler,
+            train_cfg,
+            full_cfg,
+            coupling_map,
+            mcts_cfg,
+            sp_cfg,
+            use_sabre_cache,
+            rng_np,
+        )
+        for samples, info in episodes:
             buffer.push_many(samples)
             ep_swaps.append(info["total_swaps"])
             ep_zs.append(info["outcome_z"])
@@ -303,6 +449,7 @@ def run_training(
         if scheduler_lr is not None:
             scheduler_lr.step()
 
+        dt = time.time() - t0
         history["iter"].append(it)
         history["policy_loss"].append(losses["policy_loss"])
         history["value_loss"].append(losses["value_loss"])
@@ -310,14 +457,16 @@ def run_training(
         history["avg_outcome_z"].append(float(np.mean(ep_zs)))
         history["completion_rate"].append(float(np.mean(ep_completed)))
         history["stage"].append(scheduler.current_stage)
+        history["iter_s"].append(float(dt))
+        history["selfplay_workers"].append(train_cfg.num_workers)
 
         if it % train_cfg.log_interval == 0:
-            dt = time.time() - t0
             logger.info(
-                "iter %d  stage=%d  swap=%.1f  z=%.3f  comp=%.0f%%  "
+                "iter %d  stage=%d  workers=%d  swap=%.1f  z=%.3f  comp=%.0f%%  "
                 "pol=%.4f  val=%.4f  buf=%d  %.1fs",
                 it,
                 scheduler.current_stage,
+                train_cfg.num_workers,
                 avg_sw,
                 history["avg_outcome_z"][-1],
                 100 * history["completion_rate"][-1],
@@ -344,5 +493,15 @@ def run_training(
         # Persist history each iter
         with (save_dir / "history_v15.json").open("w") as f:
             json.dump(history, f, indent=2)
+
+        if train_cfg.max_wall_time_s > 0:
+            elapsed_total = time.time() - run_t0
+            if elapsed_total >= train_cfg.max_wall_time_s:
+                logger.info(
+                    "Reached max_wall_time_s=%.1f after iter %d; stopping POC run.",
+                    train_cfg.max_wall_time_s,
+                    it,
+                )
+                break
 
     return history

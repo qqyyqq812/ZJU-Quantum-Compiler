@@ -22,7 +22,7 @@ pip install -e .
 qcompiler info                           # 看看有哪些预训练模型
 qcompiler compile examples/qft5.qasm \
         --topology tokyo --backend sabre # 用 SABRE 编译
-qcompiler eval --circuits qft_5,grover_5 # 跑 V14 vs SABRE 对比
+qcompiler eval --circuits qft_5,qaoa_5,ghz_5 # 跑 SABRE/AI 状态对比
 ```
 
 或打开 [`notebooks/05_demo_v14_vs_sabre.ipynb`](notebooks/05_demo_v14_vs_sabre.ipynb) 看交互式演示。
@@ -155,10 +155,11 @@ pip install -e .[dev]
 # 2. 跑全部测试
 pytest tests/ -v
 
-# 3. V14 评测：AI vs SABRE 对比表
-python scripts/eval_v14_vs_sabre.py \
-    --model models/v14_tokyo20/v7_ibm_tokyo_best.pt \
-    --topology ibm_tokyo
+# 3. 本地 CLI 演示：SABRE / AI 状态对比
+qcompiler eval \
+    --model models/v14_tokyo20/checkpoint_ep25333.pt \
+    --circuits qft_5,qaoa_5,ghz_5 \
+    --topology tokyo
 
 # 4. MQT-Bench 标准电路评测（当前 P1 主线）
 python scripts/eval_mqt_bench.py \
@@ -171,6 +172,9 @@ python scripts/eval_mqt_bench.py \
 python scripts/plot_training_curves.py
 
 # 6. V15 暂停长跑；先读 docs/technical/decisions.md 顶部当前状态
+
+# 7. 老师展示证据包
+bash run_teacher_eval.sh
 ```
 
 GPU 部署协议见 [`.claude/rules/deployment.md`](.claude/rules/deployment.md)。

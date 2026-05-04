@@ -55,6 +55,16 @@ def test_yaml_loads_and_has_required_keys() -> None:
 
 
 @pytest.mark.unit
+def test_v15_poc_short_config_is_bounded() -> None:
+    with open("configs/v15_poc_short.yaml") as f:
+        cfg = yaml.safe_load(f)
+    assert cfg["selfplay"]["num_workers"] > 1
+    assert cfg["selfplay"]["worker_device"] == "cpu"
+    assert cfg["training"]["max_wall_time_s"] > 0
+    assert str(cfg["paths"]["save_dir"]).startswith("/tmp/")
+
+
+@pytest.mark.unit
 def test_network_forward_shapes(tiny_env: QuantumRoutingEnv, tiny_net: PolicyValueNet) -> None:
     info = tiny_env._get_info()
     graph = info["gnn_input"]["graph"]

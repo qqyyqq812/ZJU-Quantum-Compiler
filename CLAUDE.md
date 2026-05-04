@@ -84,8 +84,9 @@ python -m src.compiler.train --config configs/v14_local_smoke.yaml
 # GPU 训练（AutoDL）— 参见 .claude/rules/deployment.md
 bash run_train_v14.sh
 
-# 评测（对比 SABRE）
-python -m src.benchmarks.evaluate --model models/v14_tokyo20/v7_ibm_tokyo_best.pt
+# 展示评测（对比 SABRE / AI status）
+qcompiler eval --model models/v14_tokyo20/checkpoint_ep25333.pt \
+    --circuits qft_5,qaoa_5,ghz_5 --topology tokyo
 ```
 
 ## 开发硬规则（摘要，详细见 .claude/rules/）
