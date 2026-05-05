@@ -1,210 +1,215 @@
 # ZJU Quantum Circuit AI Compiler
 
-> **课题四**：复杂拓扑结构下的量子电路人工智能编译与动态路由优化
->
-> AI compiler for quantum circuits — RL-driven dynamic routing under complex hardware topologies.
+> A reproducible quantum circuit routing playground for comparing Qiskit SABRE
+> with experimental RL/GNN-based AI routers on constrained hardware topologies.
 
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Qiskit](https://img.shields.io/badge/qiskit-2.0+-purple.svg)](https://www.ibm.com/quantum/qiskit)
 [![PyTorch](https://img.shields.io/badge/pytorch-2.0+-orange.svg)](https://pytorch.org)
 
-将量子电路映射到真实硬件拓扑（IBM Tokyo 20Q、Google Sycamore、Linear/Grid 等）时，需要插入 SWAP 门以满足比特连通性约束。本项目探索用强化学习训练一个能对标 Qiskit 启发式算法 SABRE 的 AI 路由器。当前 checkpoint 尚未超过 SABRE。
+This repository studies how to map logical quantum circuits onto real hardware
+topologies such as IBM Tokyo 20Q. The stable public path is SABRE-based
+compilation. The AI router is included as an experimental research component:
+the current V14/V15 checkpoints have **not** beaten SABRE on the latest P1
+benchmark.
 
-## ⚡ 30 秒上手
+## Public playground
+
+Open the static project page:
+
+- GitHub Pages: `https://qqyyqq812.github.io/ZJU-Quantum-Compiler/`
+- Local file: [`docs/index.html`](docs/index.html)
+
+The page explains the project, shows example QASM circuits, lists the latest
+V14 P1 benchmark table, and gives commands you can run locally. It works without
+Python or a GPU. If you start the optional FastAPI server, the page can also
+call your local compiler backend.
+
+## 30-second local start
 
 ```bash
 git clone https://github.com/qqyyqq812/ZJU-Quantum-Compiler.git
 cd ZJU-Quantum-Compiler
-pip install -e .
-
-# CLI 演示
-qcompiler info                           # 看看有哪些预训练模型
-qcompiler compile examples/qft5.qasm \
-        --topology tokyo --backend sabre # 用 SABRE 编译
-qcompiler eval --circuits qft_5,qaoa_5,ghz_5 # 跑 SABRE/AI 状态对比
-```
-
-或打开 [`notebooks/05_demo_v14_vs_sabre.ipynb`](notebooks/05_demo_v14_vs_sabre.ipynb) 看交互式演示。
-
-## 🧠 它怎么工作
-
-```
-┌──────────────────────────────────────────────────────────┐
-│ 输入: 任意 QuantumCircuit + 物理拓扑 CouplingMap          │
-└────────────────────────┬─────────────────────────────────┘
-                         │
-   ┌─────────────────────▼──────────────────────┐
-   │  Quantum Routing Env (gymnasium)           │
-   │  - Action: 38 个 SWAP 边 + PASS            │
-   │  - State: 9D 节点特征 × 物理图 + 前沿门距离 │
-   │  - Reward: 完成奖励 + SABRE 相对奖励        │
-   └─────────────────────┬──────────────────────┘
-                         │
-   ┌─────────────────────▼──────────────────────┐
-   │  V14: PPO + GraphSAGE 9D                   │
-   │  V15: AlphaZero-MCTS + GraphSAGE 9D (开发中)│
-   └─────────────────────┬──────────────────────┘
-                         │
-┌────────────────────────▼─────────────────────────────────┐
-│ 输出: 路由后电路 + AI SWAP 数 + SABRE 对比               │
-└──────────────────────────────────────────────────────────┘
-```
-
-## 📊 当前评测状态
-
-2026-05-04 的 P1 评测使用 `models/v14_tokyo20/checkpoint_ep25333.pt`
-在 IBM Tokyo 20Q 拓扑上跑了 12 条 MQT-Bench 主集合电路
-（qft/qaoa/ghz/vqe × 5/10/20 qubits）。结果显示该 checkpoint
-还不能作为稳定 AI 路由器使用。
-
-| 指标 | 结果 |
-|------|------|
-| SABRE 完成率 | 12/12 |
-| AI 完成率 | 4/12 |
-| AI 超越 SABRE | 0/4 |
-| AI/SABRE 平均比例 | 2.500（仅完成且 SABRE>0 的 2 条） |
-
-完整表格见 [`models/v14_tokyo20/eval_report_mqt.md`](models/v14_tokyo20/eval_report_mqt.md)。
-
-**训练曲线**（V14.2，4616 episodes，IBM Tokyo 20Q）：
-
-![training curve](docs/figures/v14_training_curve.png)
-
-![v9 vs v14 compare](docs/figures/v9_v14_compare.png)
-
-## 🚀 算法演进历程
-
-| 版本 | 算法 | 关键特性 | 状态 |
-|------|------|----------|------|
-| V9 | PPO baseline | 20Q IBM Tokyo + 硬掩码 | ✅ 收敛（45k ep） |
-| V10 | PPO + Hard Mask | 消除软约束漏洞 | ✅ |
-| V11 | DQN | 对比实验，验证 PPO 优越性 | ✅ |
-| V13 | PPO + GNN 9D | SABRE 相对奖励 + 纯 PyTorch GraphSAGE | ⚠️ Stage 1 发散 |
-| **V14** | PPO + GNN（V13 修复版）| SABRE 缓存 / 阶段化 mask / reward 分层 / pass_manager 真集成 | ❌ P1 评测未达标 |
-| **V15** | **AlphaZero-MCTS + GNN** | **保留 V14 工程 + MCTS 自博弈** | ❌ iter326 未收敛，暂停继续训练 |
-
-> 完整决策记录：[`docs/technical/decisions.md`](docs/technical/decisions.md)
-
-## 🎯 V15 路线（2026-04 启动）
-
-V14.2 在 Stage 3 (10Q) 上 PPO 卡死后，调研发现 20Q 已知有效的 RL 路线全部是 **MCTS+神经网络**：
-
-| 方法 | 路线 | 是否开源 | 20Q Tokyo 表现 |
-|------|------|----------|---------------|
-| LightSABRE (IBM 2024) | 启发式（Rust 重写）| ✅ | -18.9% vs 原 SABRE |
-| AIRouting (IBM 2024) | RL Transformer | ✅ qiskit-ibm-transpiler | 100+Q heavy-hex SOTA |
-| **AlphaRouter** (Amazon 2024) | **MCTS + Transformer** | 🟡 公开 | **-10~20% SWAP** |
-| **QRoute** (AAAI 2022) | **MCTS + GNN** | ✅ | 超过 SABRE/TKET |
-| Zhou 2024 (PPO+GNN) | PPO + GNN（最近似 V14）| ❌ 闭源 | 声称 -5~15% |
-
-V15 已实现 AlphaZero-style MCTS + 自博弈骨架，但 iter326 未收敛。
-当前结论是不要继续按现有 yaml 长跑；若继续 V15，必须先修 self-play
-并行、batch inference 和 stage 升级策略。详见
-[`docs/technical/decisions.md §V15`](docs/technical/decisions.md)。
-
-## 🏗️ 项目结构
-
-```
-ZJU-Quantum-Compiler/
-├── src/
-│   ├── compiler/          # 核心 RL 编译器（env / policy / train / GNN）
-│   │   ├── env.py            # gymnasium 环境（V14 完成）
-│   │   ├── light_env.py      # O(1) clone 的轻量 env（MCTS 必备）
-│   │   ├── gnn_encoder.py    # 纯 PyTorch GraphSAGE
-│   │   ├── pass_manager.py   # AIRouter — Qiskit transpiler 集成
-│   │   ├── sabre_cache.py    # V14-1: SABRE baseline 缓存
-│   │   ├── curriculum.py     # 5 阶段课程学习调度
-│   │   └── v15/              # V15 AlphaZero MCTS+GNN（新增）
-│   │       ├── network.py    # PolicyValueNet
-│   │       ├── tree.py       # PUCT MCTS + Dirichlet noise
-│   │       ├── selfplay.py   # 自博弈生成 (state, π, z)
-│   │       ├── replay.py     # 训练样本 buffer
-│   │       └── train.py      # 外循环
-│   ├── benchmarks/        # 电路生成 / 拓扑定义 / 评测
-│   │   ├── circuits.py       # generate_qft / qaoa / grover / random
-│   │   ├── topologies.py     # IBM Tokyo / Google Sycamore / 自定义
-│   │   └── mqt_bench.py      # MQT-Bench 标准电路
-│   └── cli.py             # `qcompiler` 命令行入口
-├── configs/               # YAML 训练配置（v9 / v13 / v14 / v15）
-├── notebooks/             # Jupyter 演示
-│   └── 05_demo_v14_vs_sabre.ipynb   # 主演示 notebook
-├── scripts/               # 训练 / 评测脚本
-│   ├── train_v15.py          # V15 训练入口
-│   ├── eval_v14_vs_sabre.py  # V14 评测
-│   ├── eval_mqt_bench.py     # MQT-Bench 评测
-│   └── plot_training_curves.py
-├── models/                # 训练产出（已 .gitignore *.pt）
-│   └── v14_tokyo20/          # V14 ep25333 权重 + history
-├── docs/                  # 技术文档
-│   ├── technical/
-│   │   ├── decisions.md      # 版本决策与踩坑（V9 → V15）⭐
-│   │   ├── 03_SABRE精读.md
-│   │   └── 05_文献综述.md
-│   └── figures/              # README 引用的训练曲线
-├── tests/                 # pytest 烟雾测试
-└── pyproject.toml         # pip 安装配置
-```
-
-## 🧪 复现关键结果
-
-```bash
-# 1. 安装
 pip install -e .[dev]
 
-# 2. 跑全部测试
-pytest tests/ -v
+qcompiler info
+qcompiler compile examples/qft5.qasm --topology tokyo --backend sabre
+qcompiler eval --circuits qft_5,qaoa_5,ghz_5 --topology tokyo
+```
 
-# 3. 本地 CLI 演示：SABRE / AI 状态对比
+Use the optional local API when you want the website to call a live backend:
+
+```bash
+uvicorn src.server.app:app --reload --port 8765
+```
+
+Then open [`docs/index.html`](docs/index.html) in a browser and use **Run with
+local API**.
+
+## What the project does
+
+Quantum hardware only allows two-qubit gates between connected physical qubits.
+When a logical circuit asks for a gate between distant qubits, the compiler must
+insert SWAP gates. This project provides:
+
+- a Qiskit SABRE baseline for reliable routing,
+- an experimental `AIRouter` based on PPO/GNN training history,
+- benchmark scripts for MQT-Bench-style circuits,
+- a public playground and local API for examples,
+- technical notes that document why each version changed.
+
+```text
+QuantumCircuit + CouplingMap
+          |
+          v
+Routing environment and circuit DAG
+          |
+          +--> Qiskit SABRE baseline
+          |
+          +--> Experimental AIRouter checkpoint
+          |
+          v
+Routed circuit or honest status: OK / INCOMPLETE / N/A
+```
+
+## Current benchmark status
+
+The latest public P1 evaluation was generated on May 4, 2026 with
+`models/v14_tokyo20/checkpoint_ep25333.pt` on the IBM Tokyo 20Q topology. The
+main set covers `qft`, `qaoa`, `ghz`, and `vqe` circuits at 5, 10, and 20
+qubits.
+
+| Metric | Result |
+| --- | --- |
+| SABRE completion | 12/12 |
+| AI completion | 4/12 |
+| AI beats SABRE | 0/4 completed comparable rows |
+| Mean AI/SABRE ratio | 2.500 on completed rows with SABRE > 0 |
+
+Read the full report:
+[`models/v14_tokyo20/eval_report_mqt.md`](models/v14_tokyo20/eval_report_mqt.md).
+The machine-readable source is
+[`models/v14_tokyo20/eval_report_mqt.json`](models/v14_tokyo20/eval_report_mqt.json).
+
+![V14 training curve](docs/figures/v14_training_curve.png)
+
+## Examples
+
+The checked-in examples are small enough to inspect and fast enough to run on
+CPU:
+
+| File | Purpose | Suggested command |
+| --- | --- | --- |
+| [`examples/qft5.qasm`](examples/qft5.qasm) | Dense QFT interactions | `qcompiler compile examples/qft5.qasm --topology tokyo --backend sabre` |
+| [`examples/ghz5.qasm`](examples/ghz5.qasm) | Small entanglement chain | `qcompiler compile examples/ghz5.qasm --topology tokyo --backend sabre` |
+| [`examples/qaoa5.qasm`](examples/qaoa5.qasm) | One QAOA-style layer | `qcompiler eval --circuits qaoa_5 --topology tokyo` |
+
+Run an AI comparison when the V14 checkpoint exists locally:
+
+```bash
 qcompiler eval \
     --model models/v14_tokyo20/checkpoint_ep25333.pt \
     --circuits qft_5,qaoa_5,ghz_5 \
     --topology tokyo
+```
 
-# 4. MQT-Bench 标准电路评测（当前 P1 主线）
+The AI columns are diagnostic. `INCOMPLETE` means the route did not finish
+within the configured step limit.
+
+## Local API
+
+Start the API:
+
+```bash
+uvicorn src.server.app:app --reload --port 8765
+```
+
+Useful endpoints:
+
+| Endpoint | Description |
+| --- | --- |
+| `GET /api/status` | Version, topology aliases, model path, and AI load status |
+| `GET /api/examples` | Public QASM example list |
+| `POST /api/compile` | Compile an example or inline OpenQASM with `backend=sabre\|ai` |
+| `GET /api/benchmarks` | Return the checked-in V14 P1 summary without rerunning it |
+
+Example request:
+
+```bash
+curl -s http://localhost:8765/api/compile \
+  -H 'content-type: application/json' \
+  -d '{"example":"qft5","backend":"sabre","topology":"tokyo"}'
+```
+
+## Reproduce the P1 report
+
+```bash
 python scripts/eval_mqt_bench.py \
     --ai-model models/v14_tokyo20/checkpoint_ep25333.pt \
     --n-qubits 5,10,20 \
     --benchmarks qft,qaoa,ghz,vqe \
     --output models/v14_tokyo20/eval_report_mqt.md
-
-# 5. 重画训练曲线
-python scripts/plot_training_curves.py
-
-# 6. V15 暂停长跑；先读 docs/technical/decisions.md 顶部当前状态
-
-# 7. 老师展示证据包
-bash run_teacher_eval.sh
 ```
 
-GPU 部署协议见 [`.claude/rules/deployment.md`](.claude/rules/deployment.md)。
+For a shorter local evidence pack:
 
-## 📐 评分对标
+```bash
+bash run_public_demo.sh
+```
 
-| 维度 | 占比 | 支撑 |
-|------|------|------|
-| 项目周期管理 | 20% | Git 周活跃 commit 历史（V9 → V15）|
-| 工程规范 | 25% | `pyproject.toml` + yaml 配置 + `.claude/rules/` + `pytest` |
-| 算法设计 | 30% | `src/compiler/` + `decisions.md` 完整决策链 + V15 SOTA 对标 |
-| 社区展示 | 15% | 本 README + `notebooks/05_demo*.ipynb` + 训练曲线 PNG |
-| AI 协同 | 10% | [`AI-Collaboration.md`](AI-Collaboration.md) V13→V15 完整记录 |
+This writes to `results/public_demo/`, which is ignored by Git.
 
-## 📚 参考文献
+## Algorithm history
 
-- **SABRE**: Li, G. et al. "Tackling the Qubit Mapping Problem for NISQ-Era Quantum Devices." ASPLOS 2019. [arXiv:1809.02573](https://arxiv.org/abs/1809.02573)
-- **LightSABRE**: Hayes, J. et al. "LightSABRE: A Lightweight and Enhanced SABRE Algorithm." 2024. [arXiv:2409.08368](https://arxiv.org/abs/2409.08368)
-- **QRoute**: Sinha, A. et al. "Qubit routing using graph neural network aided Monte Carlo tree search." AAAI 2022.
-- **AlphaRouter**: Park, S. et al. "AlphaRouter: Quantum Circuit Routing with Reinforcement Learning and MCTS." 2024. [arXiv:2410.05115](https://arxiv.org/abs/2410.05115)
-- **AlphaZero**: Silver, D. et al. "Mastering chess and shogi by self-play with a general reinforcement learning algorithm." Science 2018.
+| Version | Algorithm | Main change | Current status |
+| --- | --- | --- | --- |
+| V9 | PPO baseline | IBM Tokyo 20Q with hard masks | Historical convergence run |
+| V10 | PPO + hard mask | Closed the soft-constraint loophole | Historical |
+| V11 | DQN | Compared against PPO | Historical |
+| V13 | PPO + GNN 9D | SABRE-relative reward and pure PyTorch GraphSAGE | Stage 1 unstable |
+| V14 | PPO + GNN fixes | SABRE cache, staged masks, true pass-manager integration | P1 did not pass |
+| V15 | AlphaZero-style MCTS + GNN | Self-play and MCTS research path | Short POC only |
 
-## 🤝 贡献
+Read the detailed trail in
+[`docs/technical/decisions.md`](docs/technical/decisions.md).
 
-本项目是 ZJU 课题四学生作业。AI 协同方法论见 [`AI-Collaboration.md`](AI-Collaboration.md)。
+## Project layout
 
-## 📄 License
+```text
+ZJU-Quantum-Compiler/
+├── docs/                  # GitHub Pages site and technical notes
+├── examples/              # Public QASM examples
+├── src/
+│   ├── benchmarks/        # Circuits, topologies, and MQT-Bench helpers
+│   ├── compiler/          # Env, policy, AIRouter, V15 research code
+│   ├── server/            # Optional local FastAPI playground backend
+│   └── cli.py             # qcompiler command line interface
+├── scripts/               # Evaluation and plotting scripts
+├── models/v14_tokyo20/    # Public report JSON/Markdown; weights are ignored
+├── tests/                 # Pytest smoke and regression tests
+└── pyproject.toml
+```
 
-MIT — 见 [`LICENSE`](LICENSE)。
+## Development checks
 
----
+```bash
+pytest -q
+python -m py_compile src/cli.py src/server/app.py scripts/eval_mqt_bench.py
+git diff --check
+```
 
-**GitHub**: https://github.com/qqyyqq812/ZJU-Quantum-Compiler
+## References
+
+- Li, G. et al. "Tackling the Qubit Mapping Problem for NISQ-Era Quantum
+  Devices." ASPLOS 2019.
+- Hayes, J. et al. "LightSABRE: A Lightweight and Enhanced SABRE Algorithm."
+  2024.
+- Sinha, A. et al. "Qubit routing using graph neural network aided Monte Carlo
+  tree search." AAAI 2022.
+- Park, S. et al. "AlphaRouter: Quantum Circuit Routing with Reinforcement
+  Learning and MCTS." 2024.
+
+## License
+
+MIT. See [`LICENSE`](LICENSE).

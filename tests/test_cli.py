@@ -1,4 +1,4 @@
-"""CLI smoke tests for teacher-facing entry points."""
+"""CLI smoke tests for public entry points."""
 from __future__ import annotations
 
 from qiskit import QuantumCircuit, qasm2
@@ -41,3 +41,19 @@ def test_qcompiler_compile_sabre_writes_output(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "Compiled:" in out
     assert out_path.exists()
+
+
+def test_public_qasm_examples_compile_with_sabre(tmp_path):
+    for name in ["qft5", "ghz5", "qaoa5"]:
+        out_path = tmp_path / f"{name}_compiled.qasm"
+        assert main([
+            "compile",
+            f"examples/{name}.qasm",
+            "--topology",
+            "tokyo",
+            "--backend",
+            "sabre",
+            "--output",
+            str(out_path),
+        ]) == 0
+        assert out_path.exists()

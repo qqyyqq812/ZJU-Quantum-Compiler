@@ -1,37 +1,59 @@
 """
-V7.2 量子电路 AI 路由器 — 后端 API
-===================================
-FastAPI 服务器，提供 AI 路由编译接口。
+Public local API for the ZJU Quantum Compiler playground.
 
-启动:
-    uvicorn src.server.app:app --reload --port 8000
+Run locally:
+    uvicorn src.server.app:app --reload --port 8765
 
-API 端点:
-    POST /compile    — 编译量子电路
-    GET  /status     — 模型状态
-    GET  /benchmarks — 基准测试结果
+The GitHub Pages site works without this server. When the server is running on
+localhost, the page can call these endpoints for live SABRE and AI routing.
 """
 
 from __future__ import annotations
 
+import time
+from functools import lru_cache
 from pathlib import Path
-from typing import Optional
+from typing import Literal
 
-import torch
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from qiskit import QuantumCircuit, qasm2, transpile
 
-from src.benchmarks.topologies import get_topology
-from src.compiler.env import QuantumRoutingEnv
-from src.compiler.policy import PolicyNetwork
-from src.compiler.inference_v8 import compile_multi_trial
-from src.benchmarks.circuits import generate_random, generate_qft, generate_qaoa, generate_grover
+from src.benchmarks.topologies import get_topology, get_topology_info
+from src.cli import _DEFAULT_MODEL, _TOPOLOGY_ALIAS
+from src.compiler.pass_manager import AIRouter
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+REPORT_JSON = PROJECT_ROOT / "models" / "v14_tokyo20" / "eval_report_mqt.json"
+DEFAULT_MODEL = _DEFAULT_MODEL
+BASIS_GATES = ["cx", "id", "rz", "sx", "x", "swap"]
+
+EXAMPLES: dict[str, dict[str, str]] = {
+    "qft5": {
+        "name": "QFT 5",
+        "path": "examples/qft5.qasm",
+        "description": "A compact quantum Fourier transform example.",
+    },
+    "ghz5": {
+        "name": "GHZ 5",
+        "path": "examples/ghz5.qasm",
+        "description": "A small entanglement-chain circuit.",
+    },
+    "qaoa5": {
+        "name": "QAOA 5",
+        "path": "examples/qaoa5.qasm",
+        "description": "One QAOA-style optimization layer.",
+    },
+}
 
 app = FastAPI(
-    title="量子电路 AI 路由器",
-    version="7.2",
-    description="基于 PPO+GNN+课程学习的量子电路编译路由器",
+    title="ZJU Quantum Compiler Playground API",
+    version="0.14.2",
+    description=(
+        "Local API for SABRE compilation, experimental AIRouter checks, "
+        "and static benchmark summaries."
+    ),
 )
 
 app.add_middleware(
@@ -41,135 +63,247 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 全局模型
-_policy: Optional[PolicyNetwork] = None
-_topology_name = "linear_5"
+
+class StatusResponse(BaseModel):
+    version: str
+    status: str
+    default_topology: str
+    available_topologies: list[str]
+    default_model: str
+    model_exists: bool
+    ai_loadable: bool
+    ai_status: str
+    benchmark_report: str
 
 
-def get_policy() -> PolicyNetwork:
-    """延迟加载模型。"""
-    global _policy
-    if _policy is None:
-        cm = get_topology(_topology_name)
-        env = QuantumRoutingEnv(coupling_map=cm)
-        _policy = PolicyNetwork(
-            obs_dim=env.observation_space.shape[0],
-            n_actions=env.action_space.n,
-        )
-        # 尝试加载 best 模型
-        model_paths = [
-            "models/v7_final_v2/v7_linear_5_best.pt",
-            "models/v7_final_v2/v7_linear_5.pt",
-            "models/v7_final/v7_linear_5_best.pt",
-        ]
-        for p in model_paths:
-            if Path(p).exists():
-                _policy.load_state_dict(
-                    torch.load(p, map_location="cpu", weights_only=True)
-                )
-                print(f"✅ 模型加载: {p}")
-                break
-        _policy.eval()
-    return _policy
+class ExampleInfo(BaseModel):
+    id: str
+    name: str
+    path: str
+    description: str
 
 
 class CompileRequest(BaseModel):
-    circuit_type: str = "random"  # random / qft / qaoa / grover
-    n_qubits: int = 5
-    depth: int = 3
-    seed: int = 42
+    example: str | None = Field(default=None, description="Example id, such as qft5.")
+    qasm: str | None = Field(default=None, description="Inline OpenQASM 2 source.")
+    backend: Literal["sabre", "ai"] = "sabre"
+    topology: str = "tokyo"
+    max_steps: int = 2000
 
 
-class CompileResult(BaseModel):
-    circuit_type: str
-    n_qubits: int
-    cx_count: int
-    ai_swaps: int
-    completed: bool
-    steps: int
-
-
-class StatusResponse(BaseModel):
-    model_loaded: bool
+class CompileResponse(BaseModel):
+    status: Literal["OK", "INCOMPLETE", "N/A"]
+    backend: Literal["sabre", "ai"]
     topology: str
-    model_path: str
+    circuit_name: str
+    input_qubits: int
+    input_cx: int
+    swaps: int | None
+    depth: int | None
+    elapsed_ms: float
+    model_path: str | None = None
+    message: str | None = None
 
 
-@app.get("/status", response_model=StatusResponse)
-async def get_status():
-    """获取服务器状态。"""
-    policy = get_policy()
+def _resolve_topology(name: str):
+    canon = _TOPOLOGY_ALIAS.get(name, name)
+    return canon, get_topology(canon)
+
+
+def _load_example(example_id: str) -> QuantumCircuit:
+    spec = EXAMPLES.get(example_id)
+    if not spec:
+        known = ", ".join(sorted(EXAMPLES))
+        raise HTTPException(status_code=404, detail=f"Unknown example: {example_id}. Known: {known}")
+    path = PROJECT_ROOT / spec["path"]
+    if not path.exists():
+        raise HTTPException(status_code=500, detail=f"Example file missing: {spec['path']}")
+    return QuantumCircuit.from_qasm_file(str(path))
+
+
+def _load_request_circuit(req: CompileRequest) -> QuantumCircuit:
+    if req.qasm and req.example:
+        raise HTTPException(status_code=400, detail="Provide either qasm or example, not both.")
+    if req.qasm:
+        try:
+            qc = qasm2.loads(req.qasm)
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(status_code=400, detail=f"Invalid OpenQASM 2 input: {exc}") from exc
+        qc.name = qc.name or "inline_qasm"
+        return qc
+    return _load_example(req.example or "qft5")
+
+
+def _compile_sabre(circuit: QuantumCircuit, coupling_map):
+    return transpile(
+        circuit,
+        coupling_map=coupling_map,
+        basis_gates=BASIS_GATES,
+        optimization_level=0,
+        layout_method="trivial",
+        routing_method="sabre",
+        seed_transpiler=42,
+    )
+
+
+@lru_cache(maxsize=4)
+def _router_for(topology: str, model_path: str) -> AIRouter:
+    _, coupling_map = _resolve_topology(topology)
+    return AIRouter(coupling_map, model_path=model_path)
+
+
+def _ai_load_status(topology: str = "tokyo") -> tuple[bool, str]:
+    if not DEFAULT_MODEL.exists():
+        return False, "V14 checkpoint file is not present locally."
+    router = _router_for(topology, str(DEFAULT_MODEL))
+    if router._has_model:
+        return True, "V14 checkpoint can be loaded. Routes are still experimental."
+    return False, router.model_load_error or "V14 checkpoint could not be loaded."
+
+
+@app.get("/api/status", response_model=StatusResponse)
+async def api_status() -> StatusResponse:
+    """Return public project and model status without running a benchmark."""
+    ai_loadable, ai_message = _ai_load_status()
     return StatusResponse(
-        model_loaded=policy is not None,
-        topology=_topology_name,
-        model_path="v7_final_v2",
+        version="0.14.2",
+        status="V14/V15 checkpoints have not beaten SABRE on the P1 benchmark.",
+        default_topology="tokyo",
+        available_topologies=sorted(_TOPOLOGY_ALIAS),
+        default_model=str(DEFAULT_MODEL.relative_to(PROJECT_ROOT)),
+        model_exists=DEFAULT_MODEL.exists(),
+        ai_loadable=ai_loadable,
+        ai_status=ai_message,
+        benchmark_report=str(REPORT_JSON.relative_to(PROJECT_ROOT)),
     )
 
 
-@app.post("/compile", response_model=CompileResult)
-async def compile_circuit(req: CompileRequest):
-    """编译量子电路，返回路由结果。"""
-    if req.n_qubits > 5:
-        raise HTTPException(400, "当前拓扑最大支持 5 qubits")
-
-    # 生成电路
-    generators = {
-        "random": lambda: generate_random(req.n_qubits, depth=req.depth, seed=req.seed),
-        "qft": lambda: generate_qft(req.n_qubits),
-        "qaoa": lambda: generate_qaoa(req.n_qubits, p=req.depth),
-        "grover": lambda: generate_grover(req.n_qubits),
-    }
-    gen = generators.get(req.circuit_type)
-    if not gen:
-        raise HTTPException(400, f"不支持的电路类型: {req.circuit_type}")
-
-    qc = gen()
-    cx_count = dict(qc.count_ops()).get("cx", 0)
-
-    # AI 路由 (V8 高并发 MTx100)
-    policy = get_policy()
-    cm = get_topology(_topology_name)
-    
-    with torch.no_grad():
-        result = compile_multi_trial(qc, policy, cm, n_trials=100)
-
-    return CompileResult(
-        circuit_type=req.circuit_type,
-        n_qubits=req.n_qubits,
-        cx_count=cx_count,
-        ai_swaps=result.swaps,
-        completed=result.completed,
-        steps=result.steps,
-    )
-
-
-@app.get("/benchmarks")
-async def run_benchmarks():
-    """运行快速基准测试。"""
-    policy = get_policy()
-    cm = get_topology(_topology_name)
-
-    circuits = [
-        ("random_5_d2", generate_random(5, depth=2, seed=42)),
-        ("random_5_d3", generate_random(5, depth=3, seed=42)),
-        ("random_5_d4", generate_random(5, depth=4, seed=42)),
-        ("qft_5", generate_qft(5)),
-        ("qaoa_5", generate_qaoa(5, p=1)),
-        ("grover_5", generate_grover(5)),
+@app.get("/api/examples", response_model=list[ExampleInfo])
+async def api_examples() -> list[ExampleInfo]:
+    """Return the checked-in QASM examples used by the public page."""
+    return [
+        ExampleInfo(id=key, **value)
+        for key, value in sorted(EXAMPLES.items())
     ]
 
-    results = []
-    for name, qc in circuits:
-        cx = dict(qc.count_ops()).get("cx", 0)
-        with torch.no_grad():
-            res = compile_multi_trial(qc, policy, cm, n_trials=100)
 
-        results.append({
-            "name": name,
-            "cx": cx,
-            "ai_swaps": res.swaps,
-            "completed": res.completed,
-            "steps": res.steps,
-        })
+@app.get("/api/benchmarks")
+async def api_benchmarks() -> dict:
+    """Return the latest checked-in V14 P1 benchmark summary."""
+    if not REPORT_JSON.exists():
+        raise HTTPException(status_code=404, detail="Benchmark report JSON is missing.")
+    import json
 
-    return {"topology": _topology_name, "results": results}
+    data = json.loads(REPORT_JSON.read_text(encoding="utf-8"))
+    main_results = [row for row in data["results"] if not row.get("outlier")]
+    ai_completed = sum(1 for row in main_results if row.get("ai") and row["ai"].get("completed"))
+    sabre_completed = sum(1 for row in main_results if row["sabre"].get("completed"))
+    comparable = [
+        row for row in main_results
+        if row.get("ai")
+        and row["ai"].get("completed")
+        and row["sabre"].get("completed")
+        and row["sabre"].get("swaps", 0) > 0
+    ]
+    ratios = [row["ai"]["swaps"] / row["sabre"]["swaps"] for row in comparable]
+    return {
+        "metadata": data["metadata"],
+        "summary": {
+            "sabre_completed": sabre_completed,
+            "sabre_total": len(main_results),
+            "ai_completed": ai_completed,
+            "ai_total": len(main_results),
+            "ai_beats_sabre": sum(1 for row in comparable if row["ai"]["swaps"] < row["sabre"]["swaps"]),
+            "comparable_rows": len(comparable),
+            "mean_ai_sabre_ratio": sum(ratios) / len(ratios) if ratios else None,
+        },
+        "results": data["results"],
+    }
+
+
+@app.post("/api/compile", response_model=CompileResponse)
+async def api_compile(req: CompileRequest) -> CompileResponse:
+    """Compile a QASM example with SABRE or the experimental AIRouter."""
+    topo_name, coupling_map = _resolve_topology(req.topology)
+    circuit = _load_request_circuit(req)
+    if circuit.num_qubits > coupling_map.size():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Circuit has {circuit.num_qubits} qubits, topology has {coupling_map.size()}.",
+        )
+
+    input_cx = dict(circuit.count_ops()).get("cx", 0)
+    started = time.perf_counter()
+
+    if req.backend == "sabre":
+        compiled = _compile_sabre(circuit, coupling_map)
+        ops = dict(compiled.count_ops())
+        return CompileResponse(
+            status="OK",
+            backend="sabre",
+            topology=topo_name,
+            circuit_name=circuit.name or req.example or "inline_qasm",
+            input_qubits=circuit.num_qubits,
+            input_cx=input_cx,
+            swaps=ops.get("swap", 0),
+            depth=compiled.depth(),
+            elapsed_ms=(time.perf_counter() - started) * 1000,
+            message="SABRE completed. This is the stable baseline.",
+        )
+
+    if not DEFAULT_MODEL.exists():
+        return CompileResponse(
+            status="N/A",
+            backend="ai",
+            topology=topo_name,
+            circuit_name=circuit.name or req.example or "inline_qasm",
+            input_qubits=circuit.num_qubits,
+            input_cx=input_cx,
+            swaps=None,
+            depth=None,
+            elapsed_ms=(time.perf_counter() - started) * 1000,
+            model_path=str(DEFAULT_MODEL.relative_to(PROJECT_ROOT)),
+            message="AI checkpoint file is missing; SABRE remains available.",
+        )
+
+    router = _router_for(req.topology, str(DEFAULT_MODEL))
+    if not router._has_model:
+        return CompileResponse(
+            status="N/A",
+            backend="ai",
+            topology=topo_name,
+            circuit_name=circuit.name or req.example or "inline_qasm",
+            input_qubits=circuit.num_qubits,
+            input_cx=input_cx,
+            swaps=None,
+            depth=None,
+            elapsed_ms=(time.perf_counter() - started) * 1000,
+            model_path=str(DEFAULT_MODEL.relative_to(PROJECT_ROOT)),
+            message=router.model_load_error or "AI checkpoint could not be loaded.",
+        )
+
+    result = router.route_count_only(circuit, max_steps=req.max_steps)
+    return CompileResponse(
+        status="OK" if result["done"] else "INCOMPLETE",
+        backend="ai",
+        topology=topo_name,
+        circuit_name=circuit.name or req.example or "inline_qasm",
+        input_qubits=circuit.num_qubits,
+        input_cx=input_cx,
+        swaps=result["ai_swaps"],
+        depth=None,
+        elapsed_ms=(time.perf_counter() - started) * 1000,
+        model_path=str(DEFAULT_MODEL.relative_to(PROJECT_ROOT)),
+        message="AIRouter route_count_only ran; incomplete routes are reported honestly.",
+    )
+
+
+@app.get("/api/topology/{name}")
+async def api_topology(name: str) -> dict:
+    """Return topology metadata for small UI checks."""
+    topo_name, coupling_map = _resolve_topology(name)
+    return {
+        "name": topo_name,
+        "info": get_topology_info(coupling_map),
+        "edges": coupling_map.get_edges(),
+    }

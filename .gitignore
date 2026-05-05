@@ -37,7 +37,7 @@ docs/handover/
 sandbox/
 nohup.out
 scripts/remote_exec.py
-results/teacher_demo/
+results/*_demo/
 
 # Jupyter checkpoints
 .ipynb_checkpoints/
