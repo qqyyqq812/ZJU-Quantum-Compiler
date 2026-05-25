@@ -11,6 +11,10 @@ def test_qcompiler_info_reports_current_status(capsys):
     out = capsys.readouterr().out
     assert "Current status" in out
     assert "checkpoint_ep25333.pt" in out
+    assert "checkpoint_ep25333.pt" in next(
+        line for line in out.splitlines() if "v14_tokyo20" in line
+    )
+    assert "[default]" in out
 
 
 def test_qcompiler_eval_supports_ghz_without_ai(capsys):

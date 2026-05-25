@@ -1,173 +1,125 @@
-# AI 协同文档
+# AI 协同日志
 
-本项目使用 Claude Code 进行 AI 辅助开发，记录 AI 协同的主要任务与方法。
+本文件对应老师评分表中的“AI 工具高级调用与协同声明”一项。项目使用
+Claude Code、Codex 和并行 subagent 作为协同研究员，主要承担资料检索、
+代码审查、实验脚本修复、训练异常诊断和文档证据整理。项目方向、取舍和
+最终口径由学生人工确认。
 
-## 协同任务清单
+核心原则是：AI 可以加速工程执行，但不能替代真实评测；当模型没有超过
+SABRE 时，文档必须如实记录失败和原因。
 
-### 项目整改（2026-04-16）
+## 1. 协同方式概览
 
-执行完整的项目规范化整改：
+| 协同方式 | 项目中的用途 | 人工决策点 |
+| --- | --- | --- |
+| 连续追问 | 追问训练为什么发散、评测为什么全是 N/A、网页口径是否偏离原题 | 选择回到老师原始评分主线 |
+| 逻辑重构 | 将项目从 V7/V9 展示叙事重排为“物理机制-算法-评测-诊断” | 保留 public playground，但降级为社区展示 |
+| Bug 定位 | AIRouter checkpoint 加载、pass manager 假集成、V15 self-play 串行 | 确认先修 P1 评测闭环，再谈 V15 长训 |
+| 文献和路线调研 | 对比 SABRE、LightSABRE、MCTS+GNN、AlphaRouter 路线 | 从 PPO 长训转向 bounded MCTS/GNN POC |
+| 证据整理 | README、项目报告、评测报告、老师验收脚本 | 拒绝“AI 已打败 SABRE”的无证据包装 |
 
-1. **清理旧架构残留** - 删除 `.agent_memory/` 知识图谱目录和 `v12_backup.tar.gz`（~42MB）
-2. **Jupyter 笔记本规范化** - 清除全部 4 个笔记本的嵌入输出，按 `0N_description.ipynb` 格式重命名并移入 `notebooks/`
-3. **硬编码路径修复** - 将 `monitor_dashboard.py` 中的 `/root/projects/量子电路/` 替换为 `os.path.abspath(__file__)` 相对路径；`cleanup_and_setup.sh` 中 `/root/quantum` 参数化为 `$PROJECT_ROOT`
-4. **SSH 敏感信息脱敏** - 移除 `run_train_v13.sh` 中的 AutoDL 服务器 IP 和端口
-5. **配置管理规范化** - 创建 `configs/` 目录，将 V9/V10/V13 超参数提取为独立 yaml 文件
-6. **文档重写** - 重写 `README.md`（含评分对标表）、更新 `CLAUDE.md`、新建本文件
+## 2. 早期工程规范化
 
-## Prompt 工程实践
+2026-04-16 前后，AI 协助完成了仓库规范化：
 
-### 训练参数管理
+1. 清理旧架构残留和大体积备份文件。
+2. 整理 notebook 命名和目录结构。
+3. 修复硬编码路径，改为项目相对路径。
+4. 将训练超参数迁移到 `configs/*.yaml`。
+5. 编写 README、CLAUDE 文档和初版协同记录。
 
-通过 `configs/*.yaml` 参数化所有超参数，避免硬编码：
+这部分主要服务开源工程规范，解决“外部用户能否读懂、安装和运行”的问题。
+人工侧确认了不把临时交接文件和敏感凭据纳入仓库。
 
-```bash
-# 使用配置文件启动训练
-python -m src.compiler.train --config configs/v13_gpu.yaml
-```
+## 3. V13 到 V14：训练失败诊断
 
-### 实验版本追踪
+V13 GPU 训练出现 reward 发散和 SWAP 上升。AI 协同分析 history、训练日志
+和环境代码后，定位出三个主要问题：
 
-| 配置文件 | 对应 Notebook | 关键参数 |
-|----------|--------------|---------|
-| `configs/v9_baseline.yaml` | `01_train_v9_ppo_baseline.ipynb` | rollout_steps=256 |
-| `configs/v9_fallback.yaml` | `02_train_v9_ppo_fallback.ipynb` | rollout_steps=2048, soft_mask=true |
-| `configs/v13_gpu.yaml` | `run_train_v13.sh` | rollout_steps=32768, GPU |
+- SABRE baseline 在每次 reset 重新计算，吞吐显著下降。
+- soft mask 在简单阶段放入过多合法但无益的 SWAP 动作。
+- 奖励过度依赖 SABRE 相对值，早期策略容易被大负值压垮。
 
-### 代码审查
+人工确认后，V14 做了四项修复：
 
-使用 Claude Code 进行以下代码审查：
-- 验证 RL 训练循环的正确性（环境 reset、rollout 收集、GAE 计算）
-- 检查 GNN 编码器的图批处理逻辑
-- 审查奖励函数的 SABRE 相对设计合理性
+- `sabre_cache.py` 缓存 baseline。
+- `env.py` 增加阶段化 action mask。
+- 终端奖励按 curriculum stage 分层。
+- `pass_manager.py` 改为真正使用 AI trace 构建路由电路。
 
-## AI 协同效果评估
+这一阶段体现了 AI 作为调试助手的作用：先提出可验证假设，再由代码改动和
+smoke tests 验证，而不是直接换算法。
 
-| 任务 | 效率提升 | 说明 |
-|------|---------|------|
-| 项目结构整改 | 大幅提升 | 批量文件重命名、路径修复、配置提取 |
-| 文档生成 | 显著 | README、CLAUDE.md 从零生成 |
-| 代码审查 | 显著 | 静态分析识别硬编码和安全问题 |
-| 调试 | 一般 | RL 训练 bug 仍需人工介入 |
+## 4. V14 到 V15：算法路线重评估
 
----
+V14.2 在 GPU 上继续训练后没有稳定收敛，eval avg_swap 仍显著高于 SABRE。
+AI 协助并行调研量子路由领域的新路线，重点比较：
 
-## V13 → V14 协同记录（2026-04-23 ~ 04-24）
+- Qiskit SABRE 与 LightSABRE 启发式基线。
+- PPO/RL 路由器在复杂拓扑上的训练困难。
+- GNN 辅助 MCTS 和 AlphaZero-style 路由方法。
 
-### 关键决策与 AI 角色
+人工确认后，项目没有继续盲目调 PPO 超参数，而是将 V15 定位为
+MCTS+GNN 研究型 POC。AI 协助搭建 `src/compiler/v15/` 的网络、树搜索、
+self-play、replay buffer 和训练入口，并补充 smoke tests。
 
-V13 在 GPU 上训练 41k episodes 后发散（Stage 1 SWAP 从 475 涨到 852）。AI 协同诊断流程：
+后来 P1 真实评测又推翻了“V14 checkpoint 可 warmstart V15”的假设。这一
+纠偏被记录到 `docs/technical/decisions.md`，避免继续消耗 GPU 长训。
 
-1. **根因定位** — 提交 history.json 给 Claude，让它分析 SWAP 时序与 stage 切换的关联，三个根因被命中：
-   - SABRE baseline 在每次 reset 重新计算（吞吐 1.0 eps/s vs 预期 20 eps/s）
-   - Soft Mask 在 stage 0/1 简单电路上引入了大量看似合法但无益的 SWAP 候选
-   - 奖励过度依赖 SABRE 相对值，policy 早期得到 -100+ 信号后放弃探索
+## 5. P1 评测闭环：拒绝虚假包装
 
-2. **方案设计** — V14 四大改动（V14-1 SABRE 缓存、V14-2 阶段化 Mask、V14-3 奖励分层、V14-4 pass_manager 真集成），由 Claude 起草 → 人工评审 → 落地。每条改动入 `docs/technical/decisions.md` 并单独 commit。
+2026-05-04 复查时发现旧 MQT 报告 AI 列为 N/A，无法证明 AI 路由器真的
+参与评测。AI 协助完成以下修复：
 
-3. **实装与验证** — 9/9 V14 smoke test 通过（包括 SABRE 缓存命中率、阶段切换 mask 一致性、pass_manager 输出可重现性）。
+1. `AIRouter` 支持 CPU 加载 CUDA checkpoint。
+2. checkpoint 可从 `model_state` 字段读取 V14 权重。
+3. `scripts/eval_mqt_bench.py` 输出 AI 状态、完成率和 outlier 处理。
+4. `qcompiler eval` 和 demo 脚本统一显示 `OK`、`INCOMPLETE`、`N/A`。
 
-### V14.1 三级修复（4 月 25 日 GPU 场景）
+修复后，P1 主集合结果为：
 
-GPU 训练后发现 V14 在 Stage 3 入口遇到 reward 悬崖（stage<=2 给 +5 floor，stage 3 直接切到 -481）。再次 AI 协同诊断 → 三个补丁：
-- truncation 必须惩罚（否则 agent 学"刷 SWAP 到超时"退化）
-- Stage 3 桥接 reward = floor + 0.3·SABRE（避免悬崖）
-- resume 后必须 propagate stage 到所有 worker
+- SABRE 完成 12/12。
+- AI 完成 4/12。
+- AI 超越 SABRE 0/4。
+- 完成且 SABRE SWAP > 0 的可比行上，AI/SABRE 平均比例为 2.500。
 
-详见 `decisions.md §V14.1`。
+这个结果不支持“AI 已经超过 SABRE”的叙事。AI 协同的关键价值反而是帮助
+把项目从过度宣传纠正为真实评测和失败诊断。
 
----
+## 6. 老师评分主线纠偏
 
-## V14 → V15 协同记录（2026-04-25）
+2026-05-05 再次核对原始材料后，确认课题四要求的主线是：
 
-### 触发事件
+- 开源 Python 编译器插件。
+- Qiskit 或 PennyLane 兼容。
+- RL/GNN 学习物理拓扑约束。
+- 动态初始映射和 SWAP 插入。
+- 最小化电路深度和 CNOT/SWAP 数。
+- 与 Qiskit SABRE 做性能对比。
 
-V14.2 在 5090 GPU 上跑 ~2200 episodes 后，训练 SWAP 从 589 上涨到 722，eval avg_swap 在 45-62 间震荡，**reward 趋势恶化** —— 这不是收敛慢，是真的卡住了。
+AI 协助把 README、项目报告和验收脚本重新对齐到评分表：
 
-### AI 主导的 SOTA 调研
+- 20% 项目周期管理。
+- 25% 开源工程规范。
+- 30% 物理机制和算法架构。
+- 15% 社区展示。
+- 10% AI 协同。
 
-启动 3 路并行调研 subagent（参考 `.claude/rules/workflow-agents.md` 场景 4）：
-- WebSearch + WebFetch 拉 Qiskit / IBM Quantum 2024-2026 路由 ML 进展
-- arXiv + Google Scholar 拉 RL routing 论文
-- GitHub 拉公开实现
+这一轮的人工决策是：不回滚 GitHub Pages，但不让网页喧宾夺主。公开网页
+作为社区展示证据，老师验收仍以算法、插件、SABRE 对比和报告为核心。
 
-**关键发现**：
-- 我们当前 V14 的算法路线 (PPO + GNN + SABRE 相对奖励) 最接近 Zhou 2024 (arXiv:2407.00736)，**未开源、未复现**
-- 已验证 20Q SOTA 全部是 **MCTS + 神经网络**：QRoute (AAAI 2022, 公开)、AlphaRouter (Amazon 2024, 公开)
-- LightSABRE (IBM, Sep 2024) 把启发式基线抬高了 18.9%，让 2024 之前很多"打败 SABRE"的 RL 论文成绩失效
+## 7. AI 协同边界
 
-### 决策：V14 → V15 算法切换
+本项目避免把 AI 用成“代写工具”：
 
-**保留 70% V14 工程**（env / GNN / SABRE 缓存 / curriculum / pass_manager）+ **替换学习算法**（PPO → AlphaZero 风格 MCTS+GNN）。
+- 关键实验数值必须来自 JSON、Markdown 报告、训练日志或命令输出。
+- 文档中的性能结论必须和 `models/v14_tokyo20/eval_report_mqt.*` 一致。
+- 凭据、token、SSH 信息只作为“需要轮换或废弃”的事实处理，不记录值。
+- 对外展示不写“AI 已经打败 SABRE”，除非后续评测数据真的支持。
 
-V15 不是从头来过，是站在 V14 的肩膀上：
-- 当时假设 V14 ep25333 权重可作为 V15 backbone warmstart；该假设已在 2026-05-04 P1 评测中被推翻
-- V14 LightweightEnv O(1) clone → MCTS 必备的快速仿真
-- V14 9D GraphSAGE → V15 PolicyValueNet 共享 backbone
+## 8. 总结
 
-详见 `decisions.md §V15`。
-
-### V15 实装协同
-
-并发 subagent 任务（每个限定 3-5 文件读取范围、限定 200-500 字输出）：
-- A1: pip 包化（pyproject.toml + src/cli.py + 验收）
-- A2: 训练曲线图（4 张 PNG，从 history.json 直出）
-- A4: MQT-Bench 评测管线
-- 主线程：V15 代码骨架（5 模块 + 测试 + yaml 配置）
-
-V15 设计是 AI 与人工协同的产物：
-- AI 调研出 SOTA 路径 → 人工确认"接受技术路线切换"
-- AI 写代码骨架（network/tree/selfplay/replay/train）→ 人工评审 + smoke test
-- 每个模块 ≤ 250 行（参考 `.claude/rules/code-and-config.md` 高内聚原则）
-
-### AI 协同方法论沉淀
-
-| 协同模式 | 适用场景 | 反例 |
-|---------|---------|------|
-| **诊断驱动** | 训练异常、reward 不收敛 | 直接让 AI 写新算法（缺乏诊断） |
-| **SOTA 调研** | 路线选择前 | 闭门造车 |
-| **并行 subagent** | 独立工程任务（pip / 图 / 评测） | 串行依赖任务硬塞并行 |
-| **决策记录** | 算法改动入 `decisions.md` | 写 handoff_*.md（项目硬规则禁止） |
-
-### 协同效果评估（V14→V15）
-
-| 任务 | 效率提升 | 说明 |
-|------|---------|------|
-| SOTA 调研 | 大幅提升 | 3 个 subagent 并行 ~15 分钟拿出有引用的报告，对比人工调研 1-2 天 |
-| 算法路线选择 | 大幅提升 | AI 把"PPO vs MCTS"的证据链摆出来，人工只需做 yes/no 决策 |
-| 代码骨架 | 大幅提升 | V15 的 5 模块 ~1200 行从设计到实装 ~2 小时（含审查） |
-| Reward 设计 | 显著 | tanh value head + clip [-1,1] 是 AI 提出的，避免重蹈 V14 -500 量级覆辙 |
-| 训练调参 | 一般 | 仍需 GPU 实际跑数据 |
-
----
-
-## P1 评测闭环与展示冲刺（2026-05-04）
-
-### 触发事件
-
-接手复查时发现旧 MQT 报告的 AI 列为 N/A，且 V15 云端训练停在 iter326。
-项目如果继续宣称“V14 backbone 稳定、V15 warmstart 可行”，证据不足。
-
-### AI 协同处理
-
-1. **评测入口修复**：`AIRouter` 支持 CPU 加载 CUDA checkpoint，并能从
-   `checkpoint_ep25333.pt` 的 `model_state` 读取权重；不兼容 checkpoint
-   会降级为未加载，而不是中断评测。
-2. **P1 MQT-Bench 评测**：补齐 `models/v14_tokyo20/eval_report_mqt.md`
-   的 AI 列，主集合为 qft/qaoa/ghz/vqe × 5/10/20，`grover_20`
-   作为 outlier 不进主均值。
-3. **真实结论固化**：AI 完成 4/12，超越 SABRE 0/4，AI/SABRE 平均比例
-   2.500；`qft_5` 与 `qaoa_5` 均未完成，V14 warmstart 假设被推翻。
-4. **V15 架构诊断**：确认 `selfplay.num_workers` 未真正接入训练循环，
-   self-play 基本串行；后续训练必须先修并行 self-play 和 batch inference。
-5. **展示入口收口**：将项目口径切换为“可复现评测 + 失败诊断 + 下一步路线”，
-   并通过 `qcompiler` 与 `run_teacher_eval.sh` 生成老师展示证据包。
-
-### 展示口径
-
-当前项目不包装成“AI 已经超过 SABRE”。更准确的展示方式是：
-
-- 已完成量子路由 MDP、GNN/RL 编译器、Qiskit 集成、MQT-Bench 评测链路。
-- 已发现并修复 pass_manager 假集成、checkpoint 加载和评测报告 N/A 问题。
-- 已用真实 P1 数据证明当前 checkpoint 未达标，并定位 V15 训练瓶颈。
-- 下一步是受控短训验证并行 self-play，而不是继续盲目长跑。
+AI 在本项目中的高级调用体现在连续诊断和逻辑重构，而不是一次性生成代码。
+它帮助项目完成了从 PPO/GNN 路由器、Qiskit 集成、MQT-Bench 评测，到
+V15 MCTS/GNN 路线和失败复盘的完整工程闭环。最终结果并不完美，但它是
+可复现、可解释、可继续推进的真实结果。

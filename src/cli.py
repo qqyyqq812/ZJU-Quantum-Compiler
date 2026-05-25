@@ -88,6 +88,40 @@ def _count_swap_overhead(original_cx: int, compiled_cx: int) -> int:
     return max(0, (compiled_cx - original_cx)) // 3
 
 
+def _checkpoint_sort_key(path: Path) -> tuple[int, int, str]:
+    stem = path.stem
+    for marker in ("checkpoint_ep", "checkpoint_v15_iter"):
+        if marker in stem:
+            suffix = stem.split(marker, 1)[1]
+            digits = ""
+            for char in suffix:
+                if not char.isdigit():
+                    break
+                digits += char
+            if digits:
+                return (0, -int(digits), path.name)
+    return (1, 0, path.name)
+
+
+def _preferred_model_file(model_dir: Path) -> Path | None:
+    pt_files = sorted(model_dir.glob("*.pt"))
+    if not pt_files:
+        return None
+
+    if _DEFAULT_MODEL.parent == model_dir and _DEFAULT_MODEL.exists():
+        return _DEFAULT_MODEL
+
+    checkpoints = sorted(
+        (p for p in pt_files if p.name.startswith("checkpoint")),
+        key=_checkpoint_sort_key,
+    )
+    if checkpoints:
+        return checkpoints[0]
+
+    best = next((p for p in pt_files if "best" in p.name), None)
+    return best or pt_files[0]
+
+
 def _cmd_info(_: argparse.Namespace) -> int:
     print("ZJU Quantum Compiler — qcompiler 0.14.2")
     print(f"Project root: {_PROJECT_ROOT}")
@@ -104,11 +138,11 @@ def _cmd_info(_: argparse.Namespace) -> int:
     if models_dir.exists():
         for sub in sorted(models_dir.iterdir()):
             if sub.is_dir() and not sub.name.startswith("."):
-                pt_files = sorted(sub.glob("*.pt"))
-                if pt_files:
-                    best = next((p for p in pt_files if "best" in p.name), pt_files[0])
-                    size_mb = best.stat().st_size / 1024 / 1024
-                    print(f"  {sub.name:24s} {best.name} ({size_mb:.1f} MB)")
+                model_file = _preferred_model_file(sub)
+                if model_file is not None:
+                    size_mb = model_file.stat().st_size / 1024 / 1024
+                    marker = " [default]" if model_file == _DEFAULT_MODEL else ""
+                    print(f"  {sub.name:24s} {model_file.name} ({size_mb:.1f} MB){marker}")
     else:
         print("  (models/ not found)")
     print()
