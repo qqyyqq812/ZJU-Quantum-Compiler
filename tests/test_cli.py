@@ -24,6 +24,14 @@ def test_qcompiler_eval_supports_ghz_without_ai(capsys):
     assert "SABRE" in out
 
 
+def test_qcompiler_eval_keeps_legacy_basic_sabre_baseline(capsys):
+    assert main(["eval", "--circuits", "qft_5", "--topology", "tokyo", "--no-ai"]) == 0
+    out = capsys.readouterr().out
+
+    assert "qft_5" in out
+    assert "     8" in out
+
+
 def test_qcompiler_compile_sabre_writes_output(tmp_path, capsys):
     qc = QuantumCircuit(3)
     qc.h(0)
@@ -47,8 +55,25 @@ def test_qcompiler_compile_sabre_writes_output(tmp_path, capsys):
     assert out_path.exists()
 
 
+def test_qcompiler_compile_accepts_sabre_heuristic(capsys):
+    assert main([
+        "compile",
+        "examples/qft10.qasm",
+        "--topology",
+        "tokyo",
+        "--backend",
+        "sabre",
+        "--heuristic",
+        "lookahead",
+    ]) == 0
+
+    out = capsys.readouterr().out
+    assert "Heuristic:  lookahead (seed=42, trials=1)" in out
+    assert "extra_swap=29" in out
+
+
 def test_public_qasm_examples_compile_with_sabre(tmp_path):
-    for name in ["qft5", "ghz5", "qaoa5"]:
+    for name in ["qft5", "ghz5", "qaoa5", "qft10", "ghz10", "qaoa10", "vqe10"]:
         out_path = tmp_path / f"{name}_compiled.qasm"
         assert main([
             "compile",

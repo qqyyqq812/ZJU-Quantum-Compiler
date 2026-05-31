@@ -3,7 +3,7 @@ qcompiler — ZJU Quantum Compiler CLI
 ====================================
 
 Three subcommands:
-  qcompiler compile <qasm_path> [--topology ...] [--backend ai|sabre] [--output ...]
+  qcompiler compile <qasm_path> [--topology ...] [--backend ai|sabre] [--heuristic ...] [--output ...]
   qcompiler eval [--model path.pt] [--circuits qft_5,qaoa_5,ghz_5]
   qcompiler info
 """
@@ -152,17 +152,32 @@ def _cmd_info(_: argparse.Namespace) -> int:
     return 0
 
 
-def _compile_sabre(circuit, coupling_map):
+def _compile_sabre(circuit, coupling_map, heuristic: str = "lookahead"):
     from qiskit import transpile
+    from qiskit.transpiler import PassManager
+    from qiskit.transpiler.passes import (
+        ApplyLayout,
+        EnlargeWithAncilla,
+        FullAncillaAllocation,
+        SabreSwap,
+        TrivialLayout,
+    )
 
     basis_gates = ["cx", "id", "rz", "sx", "x", "swap"]
+    layout_and_route = PassManager(
+        [
+            TrivialLayout(coupling_map),
+            FullAncillaAllocation(coupling_map),
+            EnlargeWithAncilla(),
+            ApplyLayout(),
+            SabreSwap(coupling_map, heuristic=heuristic, seed=42, trials=1),
+        ]
+    )
+    routed = layout_and_route.run(circuit)
     return transpile(
-        circuit,
-        coupling_map=coupling_map,
+        routed,
         basis_gates=basis_gates,
         optimization_level=0,
-        layout_method="trivial",
-        routing_method="sabre",
         seed_transpiler=42,
     )
 
@@ -211,11 +226,13 @@ def _cmd_compile(args: argparse.Namespace) -> int:
           f"depth={original_depth}, cx={original_cx})")
     print(f"Topology:   {topo_name}  ({coupling_map.size()} qubits)")
     print(f"Backend:    {args.backend}")
+    if args.backend == "sabre":
+        print(f"Heuristic:  {args.heuristic} (seed=42, trials=1)")
 
     t0 = time.perf_counter()
     route_info = None
     if args.backend == "sabre":
-        compiled = _compile_sabre(circuit, coupling_map)
+        compiled = _compile_sabre(circuit, coupling_map, args.heuristic)
     elif args.backend == "ai":
         model_path = Path(args.model).expanduser().resolve() if args.model else _DEFAULT_MODEL
         ai_result = _compile_ai(circuit, coupling_map, model_path, args.max_steps)
@@ -277,7 +294,7 @@ def _cmd_eval(args: argparse.Namespace) -> int:
             continue
         in_cx = dict(qc.count_ops()).get("cx", 0)
         t0 = time.perf_counter()
-        out = _compile_sabre(qc, coupling_map)
+        out = _compile_sabre(qc, coupling_map, heuristic="basic")
         sabre_ms = (time.perf_counter() - t0) * 1000
         sabre_swap = dict(out.count_ops()).get("swap", 0)
 
@@ -321,6 +338,8 @@ def main(argv: list[str] | None = None) -> int:
                            help="Topology alias: tokyo|linear5|grid3x3 (default tokyo)")
     p_compile.add_argument("--backend", default="sabre", choices=["ai", "sabre"],
                            help="Compilation backend (default sabre)")
+    p_compile.add_argument("--heuristic", default="lookahead", choices=["basic", "lookahead", "decay"],
+                           help="SABRE heuristic for --backend sabre (default lookahead)")
     p_compile.add_argument("--model", default=None,
                            help="AI model .pt path (default: models/v14_tokyo20/checkpoint_ep25333.pt)")
     p_compile.add_argument("--max-steps", type=int, default=2000,

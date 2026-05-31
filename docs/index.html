@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZJU Quantum Compiler Playground</title>
+    <title>ZJU Quantum Routing Heuristic Lab</title>
     <style>
         :root {
             --paper: #f7f5ee;
@@ -96,14 +96,14 @@
         }
 
         main {
-            max-width: 1200px;
+            max-width: 1320px;
             margin: 0 auto;
             padding: 34px clamp(18px, 4vw, 56px) 64px;
         }
 
         .workspace {
             display: grid;
-            grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+            grid-template-columns: minmax(340px, 0.75fr) minmax(680px, 1.25fr);
             gap: 22px;
             align-items: stretch;
             min-height: calc(100vh - 105px);
@@ -236,6 +236,7 @@
         }
 
         .sample-button,
+        .heuristic-button,
         .copy-button,
         .run-button {
             font: inherit;
@@ -271,15 +272,38 @@
             font-size: 12px;
         }
 
+        .heuristic-picker {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--line);
+            background: #fbf8ef;
+        }
+
+        .heuristic-button {
+            min-height: 42px;
+            border: 1px solid var(--line);
+            background: var(--panel);
+            color: var(--ink);
+        }
+
+        .heuristic-button:hover,
+        .heuristic-button.active {
+            border-color: var(--teal);
+            background: #e8f3ef;
+            transform: translateY(-1px);
+        }
+
         .viewer {
             display: grid;
-            grid-template-rows: auto auto 1fr;
+            grid-template-rows: auto auto auto 1fr;
             min-width: 0;
         }
 
         .result-strip {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.4fr);
             gap: 1px;
             background: var(--line);
             border-bottom: 1px solid var(--line);
@@ -287,7 +311,8 @@
 
         .metric {
             min-height: 92px;
-            padding: 16px;
+            min-width: 0;
+            padding: 14px;
             background: var(--panel);
         }
 
@@ -302,8 +327,14 @@
         .metric strong {
             display: block;
             margin-top: 8px;
-            font-size: 28px;
+            overflow-wrap: anywhere;
+            font-size: clamp(22px, 2vw, 28px);
             font-variant-numeric: tabular-nums;
+        }
+
+        #metric-best {
+            font-size: clamp(20px, 1.6vw, 24px);
+            line-height: 1.2;
         }
 
         .metric .ok {
@@ -376,6 +407,94 @@
 
         .qasm-box {
             border-right: 1px solid var(--line);
+        }
+
+        .custom-qasm {
+            margin-top: 14px;
+        }
+
+        .custom-qasm label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .custom-qasm textarea {
+            width: 100%;
+            min-height: 150px;
+            resize: vertical;
+            padding: 12px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #fbf8ef;
+            color: var(--ink);
+            font-family: var(--mono);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .input-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .input-note {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .live-result-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .live-result-card {
+            min-height: 72px;
+            min-width: 0;
+            padding: 12px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #fbf8ef;
+        }
+
+        .live-result-card span {
+            display: block;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .live-result-card strong {
+            display: block;
+            margin-top: 6px;
+            overflow-wrap: anywhere;
+            font-size: 20px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .metric-help {
+            margin: 0 0 12px;
+            padding: 12px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #f7f1e3;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .metric-help strong {
+            color: var(--ink);
         }
 
         .console {
@@ -522,7 +641,7 @@
             font-size: 14px;
         }
 
-        @media (max-width: 980px) {
+        @media (max-width: 1120px) {
             header {
                 align-items: flex-start;
                 flex-direction: column;
@@ -585,10 +704,10 @@
             <span>ZJU Quantum Compiler</span>
         </div>
         <nav aria-label="Primary navigation">
-            <a href="#playground">Playground</a>
-            <a href="#benchmarks">Benchmarks</a>
+            <a href="#playground">Heuristic Lab</a>
+            <a href="#benchmarks">Comparison</a>
             <a href="#local-api">Local API</a>
-            <a href="#roadmap">Roadmap</a>
+            <a href="#figures">Evidence</a>
             <a href="https://github.com/qqyyqq812/ZJU-Quantum-Compiler">GitHub</a>
         </nav>
     </header>
@@ -597,34 +716,35 @@
         <div class="workspace" id="playground">
             <section class="intro" aria-labelledby="page-title">
                 <div>
-                    <p class="eyebrow">Course topic 4 · Community presentation</p>
-                    <h1 id="page-title">Compiler playground for SWAP-aware routing.</h1>
+                    <p class="eyebrow">Course topic 4 · Practical routing tool</p>
+                    <h1 id="page-title">Quantum routing heuristic lab.</h1>
                     <p class="lead">
                         This project maps logical quantum circuits onto constrained hardware
-                        topologies such as IBM Tokyo 20Q. You can run SABRE as the reliable
-                        baseline, inspect an experimental AI router, and reproduce the latest
-                        V14 evaluation without a GPU.
+                        topologies such as IBM Tokyo 20Q. The current practical path compares
+                        Qiskit SabreSwap heuristics, whose installed implementation includes
+                        LightSABRE modifications, and uses lookahead as the default static
+                        recommendation.
                     </p>
                     <p class="lead">
-                        For course grading, this page is the open-source presentation surface.
-                        The main acceptance trail is the Qiskit-compatible package, teacher
-                        demo script, technical report, SABRE comparison, and AI collaboration
-                        log linked from the README.
+                        Use it as a small tool first: choose a checked-in circuit or paste
+                        inline OpenQASM, select a heuristic, run the local API, and compare
+                        SWAP/depth results without claiming the experimental AI router is
+                        production-ready.
                     </p>
                 </div>
 
                 <div class="status-grid" aria-label="Current project status">
                     <div class="status-item">
-                        <strong>SABRE ready</strong>
-                        <span>Qiskit SABRE completes the 12/12 P1 benchmark circuits.</span>
+                        <strong>Lookahead default</strong>
+                        <span>Best SWAP count on 8/8 local heuristic samples.</span>
                     </div>
                     <div class="status-item">
-                        <strong>AI experimental</strong>
-                        <span>V14 checkpoint loads, but completes only 4/12 P1 circuits.</span>
+                        <strong>Heuristic lab</strong>
+                        <span>Compare basic, lookahead, and decay with seed=42 and trials=1.</span>
                     </div>
                     <div class="status-item">
-                        <strong>Reproducible</strong>
-                        <span>CLI, report JSON, examples, and local API use the same data.</span>
+                        <strong>Live checks</strong>
+                        <span>Run checked-in or custom OpenQASM through the local API.</span>
                     </div>
                 </div>
             </section>
@@ -632,8 +752,8 @@
             <section class="tool-panel" aria-label="Interactive compiler playground">
                 <div class="tool-head">
                     <div>
-                        <p class="eyebrow">Try a sample</p>
-                        <h2>Run the same workflow locally</h2>
+                        <p class="eyebrow">Try a routing case</p>
+                        <h2>Compare SabreSwap heuristics</h2>
                     </div>
                     <span class="mode" id="api-mode">Static GitHub Pages mode</span>
                 </div>
@@ -646,13 +766,29 @@
                                 QFT 5
                                 <small>Dense two-qubit interactions</small>
                             </button>
+                            <button class="sample-button" data-sample="qaoa5">
+                                QAOA 5
+                                <small>Parameterized optimization layer</small>
+                            </button>
                             <button class="sample-button" data-sample="ghz5">
                                 GHZ 5
                                 <small>Small entanglement chain</small>
                             </button>
-                            <button class="sample-button" data-sample="qaoa5">
-                                QAOA 5
-                                <small>Parameterized optimization layer</small>
+                            <button class="sample-button" data-sample="qft10">
+                                QFT 10
+                                <small>Larger dense routing pressure</small>
+                            </button>
+                            <button class="sample-button" data-sample="qaoa10">
+                                QAOA 10
+                                <small>10Q optimization workload</small>
+                            </button>
+                            <button class="sample-button" data-sample="ghz10">
+                                GHZ 10
+                                <small>10Q low-pressure sanity check</small>
+                            </button>
+                            <button class="sample-button" data-sample="vqe10">
+                                VQE-like 10
+                                <small>Structured variational circuit</small>
                             </button>
                         </div>
                     </aside>
@@ -660,38 +796,78 @@
                     <div class="viewer">
                         <div class="result-strip" aria-label="Selected benchmark metrics">
                             <div class="metric">
-                                <span>Input CX</span>
-                                <strong id="metric-cx">20</strong>
+                                <span>Basic swaps</span>
+                                <strong id="metric-basic">8</strong>
                             </div>
                             <div class="metric">
-                                <span>SABRE SWAP</span>
-                                <strong id="metric-sabre">8</strong>
+                                <span>Lookahead swaps</span>
+                                <strong id="metric-lookahead">7</strong>
                             </div>
                             <div class="metric">
-                                <span>AI status</span>
-                                <strong id="metric-status" class="warn">INCOMPLETE</strong>
+                                <span>Decay swaps</span>
+                                <strong id="metric-decay">7</strong>
                             </div>
                             <div class="metric">
-                                <span>AI SWAP</span>
-                                <strong id="metric-ai">3</strong>
+                                <span>Best heuristic</span>
+                                <strong id="metric-best" class="ok">lookahead</strong>
                             </div>
                         </div>
 
+                        <div class="heuristic-picker" aria-label="Select SABRE heuristic">
+                            <button class="heuristic-button" data-heuristic="basic" type="button">basic</button>
+                            <button class="heuristic-button active" data-heuristic="lookahead" type="button">lookahead</button>
+                            <button class="heuristic-button" data-heuristic="decay" type="button">decay</button>
+                        </div>
+
                         <div class="command-area">
-                            <pre id="command-text"><code>qcompiler compile examples/qft5.qasm --topology tokyo --backend sabre</code></pre>
+                            <pre id="command-text"><code>SabreSwap(coupling_map=ibm_tokyo, heuristic="lookahead", seed=42, trials=1)</code></pre>
                             <button class="copy-button" id="copy-command" type="button">Copy command</button>
                         </div>
 
                         <div class="playground-detail">
                             <div class="qasm-box">
-                                <h3>QASM preview</h3>
+                                <h3>Circuit preview</h3>
                                 <pre id="qasm-preview"><code></code></pre>
+                                <div class="custom-qasm">
+                                    <label for="custom-qasm">Optional inline OpenQASM 2</label>
+                                    <textarea id="custom-qasm" maxlength="8000" spellcheck="false" placeholder="Paste a small OpenQASM 2 circuit here. Leave empty to run the selected example."></textarea>
+                                    <div class="input-actions">
+                                        <button class="copy-button secondary" id="fill-ghz-qasm" type="button">Fill GHZ mini</button>
+                                        <button class="copy-button secondary" id="use-custom-qasm" type="button">Use custom QASM</button>
+                                        <button class="copy-button secondary" id="clear-custom-qasm" type="button">Clear</button>
+                                        <span class="input-note">Limit: 8,000 chars and 20 qubits on IBM Tokyo.</span>
+                                    </div>
+                                </div>
                             </div>
                             <div class="console-box">
-                                <h3>Result explanation</h3>
+                                <h3>Heuristic explanation</h3>
+                                <div class="live-result-grid" aria-label="Live API result summary">
+                                    <div class="live-result-card">
+                                        <span>Status</span>
+                                        <strong id="live-status">Not run</strong>
+                                    </div>
+                                    <div class="live-result-card">
+                                        <span>SWAP</span>
+                                        <strong id="live-swaps">—</strong>
+                                    </div>
+                                    <div class="live-result-card">
+                                        <span>Depth</span>
+                                        <strong id="live-depth">—</strong>
+                                    </div>
+                                    <div class="live-result-card">
+                                        <span>Match</span>
+                                        <strong id="live-match">—</strong>
+                                    </div>
+                                </div>
+                                <p class="metric-help">
+                                    <strong>SWAP</strong> counts inserted routing swaps;
+                                    lower is usually better. <strong>Depth</strong> is the routed
+                                    circuit depth. <strong>Match</strong> says whether the live API
+                                    equals the checked-in static table for this sample.
+                                </p>
                                 <div class="console" id="result-console"></div>
                                 <button class="run-button" id="run-local" type="button">
-                                    Run with local API
+                                    Check local API
                                 </button>
                             </div>
                         </div>
@@ -723,11 +899,13 @@
 
         <section id="benchmarks" aria-labelledby="benchmarks-title">
             <div class="section-head">
-                <h2 id="benchmarks-title">V14 P1 benchmark</h2>
+                <h2 id="benchmarks-title">Heuristic comparison v1</h2>
                 <p>
-                    These rows come from <code>models/v14_tokyo20/eval_report_mqt.json</code>.
-                    The main average excludes outliers and only treats completed AI routes as
-                    comparable.
+                    Static rows generated from checked-in QASM examples through the same
+                    local API path with <code>seed=42</code> and <code>trials=1</code>.
+                    Qiskit 2.3.1 implements SabreSwap with LightSABRE modifications; this
+                    page uses the reproducible single-trial rows to pick
+                    <code>lookahead</code> as the default practical heuristic.
                 </p>
             </div>
 
@@ -737,10 +915,10 @@
                         <tr>
                             <th>Circuit</th>
                             <th>Qubits</th>
-                            <th>SABRE SWAP</th>
-                            <th>AI status</th>
-                            <th>AI SWAP</th>
-                            <th>Ratio</th>
+                            <th>Basic SWAP</th>
+                            <th>Lookahead SWAP</th>
+                            <th>Decay SWAP</th>
+                            <th>Best</th>
                         </tr>
                     </thead>
                     <tbody id="benchmark-body"></tbody>
@@ -752,8 +930,12 @@
             <div class="section-head">
                 <h2 id="api-title">Local API and CLI</h2>
                 <p>
-                    GitHub Pages runs in static mode. Start the optional FastAPI server
-                    locally when you want the page to call the compiler backend.
+                    GitHub Pages runs the heuristic lab in static mode. The current local API
+                    now accepts a <code>heuristic</code> parameter for the stable SABRE backend,
+                    so you can compare <code>basic</code>, <code>lookahead</code>, and
+                    <code>decay</code> against the checked-in static table. The live path is
+                    intentionally fixed to <code>trials=1</code> for stable static/live
+                    reproducibility.
                 </p>
             </div>
 
@@ -764,9 +946,9 @@
                     <pre><code>pip install -e .[dev]</code></pre>
                 </div>
                 <div class="step">
-                    <h3>2. Run SABRE</h3>
-                    <p>Compile a checked-in example without requiring the AI checkpoint.</p>
-                    <pre><code>qcompiler compile examples/qft5.qasm --topology tokyo --backend sabre</code></pre>
+                    <h3>2. Reproduce default route</h3>
+                    <p>Use the stable SABRE backend locally with the practical default heuristic.</p>
+                    <pre><code>qcompiler compile examples/qft5.qasm --topology tokyo --backend sabre --heuristic lookahead</code></pre>
                 </div>
                 <div class="step">
                     <h3>3. Start API</h3>
@@ -778,11 +960,11 @@
 
         <section id="figures" aria-labelledby="figures-title">
             <div class="section-head">
-                <h2 id="figures-title">Training evidence</h2>
+                <h2 id="figures-title">Background evidence</h2>
                 <p>
-                    The model history is useful as engineering evidence, but the public
-                    result is still benchmark-driven: the current AI checkpoint does not
-                    beat SABRE.
+                    AI-router history is kept as workload and failure-analysis evidence only.
+                    The practical website path stays centered on reproducible SABRE heuristic
+                    routing.
                 </p>
             </div>
             <div class="asset-grid">
@@ -801,16 +983,18 @@
             <div class="section-head">
                 <h2 id="roadmap-title">Roadmap</h2>
                 <p>
-                    The project is mature enough to run and inspect, while the research
-                    line remains explicit about what still needs work.
+                    The next steps keep the tool useful first, then add richer algorithms only
+                    when they improve reproducible routing.
                 </p>
             </div>
             <div class="panel">
                 <ul>
-                    <li>Keep SABRE as the stable public baseline and reproducibility anchor.</li>
-                    <li>Use V14 results as a transparent failed checkpoint, not a product claim.</li>
-                    <li>Continue V15 as bounded MCTS + GNN research with parallel self-play and batch inference.</li>
-                    <li>Promote a new AI checkpoint only after it completes the benchmark and beats SABRE on comparable rows.</li>
+                    <li>Keep live heuristic comparison as the main website workflow.</li>
+                    <li>Add a documented multi-trial mode only after adding matching expected rows.</li>
+                    <li>Improve custom OpenQASM input and result readability.</li>
+                    <li>Keep bounded search as failure-analysis evidence, not a website algorithm.</li>
+                    <li>Use V14/V15 AI history as background evidence, not a product claim.</li>
+                    <li>Add MCTS or learning-based routes only after small experiments justify them.</li>
                 </ul>
             </div>
         </section>
@@ -825,100 +1009,245 @@
     </main>
 
     <script>
-        const benchmarkRows = [
-            { name: "qft_5", qubits: 5, cx: 20, sabre: 8, aiStatus: "INCOMPLETE", ai: 3, ratio: "0.375" },
-            { name: "qft_10", qubits: 10, cx: 90, sabre: 30, aiStatus: "INCOMPLETE", ai: 25, ratio: "0.833" },
-            { name: "qft_20", qubits: 20, cx: 380, sabre: 163, aiStatus: "INCOMPLETE", ai: 4, ratio: "0.025" },
-            { name: "qaoa_5", qubits: 5, cx: 24, sabre: 9, aiStatus: "INCOMPLETE", ai: 8, ratio: "0.889" },
-            { name: "qaoa_10", qubits: 10, cx: 104, sabre: 34, aiStatus: "INCOMPLETE", ai: 11, ratio: "0.324" },
-            { name: "qaoa_20", qubits: 20, cx: 368, sabre: 174, aiStatus: "INCOMPLETE", ai: 313, ratio: "1.799" },
-            { name: "ghz_5", qubits: 5, cx: 4, sabre: 0, aiStatus: "OK", ai: 0, ratio: "1.000" },
-            { name: "ghz_10", qubits: 10, cx: 9, sabre: 3, aiStatus: "OK", ai: 6, ratio: "2.000" },
-            { name: "ghz_20", qubits: 20, cx: 19, sabre: 10, aiStatus: "INCOMPLETE", ai: 3, ratio: "0.300" },
-            { name: "vqe_5", qubits: 5, cx: 56, sabre: 0, aiStatus: "OK", ai: 0, ratio: "1.000" },
-            { name: "vqe_10", qubits: 10, cx: 112, sabre: 4, aiStatus: "OK", ai: 12, ratio: "3.000" },
-            { name: "vqe_20", qubits: 20, cx: 208, sabre: 24, aiStatus: "INCOMPLETE", ai: 49, ratio: "2.042" }
+        const heuristicRows = [
+            { name: "qft_5", qubits: 5, basic: 8, lookahead: 7, decay: 7, depth: "55", best: "lookahead" },
+            { name: "qaoa_5", qubits: 5, basic: 3, lookahead: 3, decay: 3, depth: "25", best: "tie" },
+            { name: "ghz_5", qubits: 5, basic: 0, lookahead: 0, decay: 0, depth: "7", best: "tie" },
+            { name: "qft_10", qubits: 10, basic: 42, lookahead: 29, decay: 30, depth: "156", best: "lookahead" },
+            { name: "qaoa_10", qubits: 10, basic: 7, lookahead: 7, decay: 7, depth: "42", best: "tie" },
+            { name: "ghz_10", qubits: 10, basic: 4, lookahead: 4, decay: 4, depth: "14", best: "tie" },
+            { name: "vqe_like_10", qubits: 10, basic: 4, lookahead: 4, decay: 4, depth: "21", best: "tie" }
         ];
 
         const samples = {
             qft5: {
                 label: "QFT 5",
-                row: benchmarkRows[0],
-                command: "qcompiler compile examples/qft5.qasm --topology tokyo --backend sabre",
+                apiExample: "qft5",
+                row: heuristicRows[0],
+                command: "SabreSwap(coupling_map=ibm_tokyo, heuristic=\"lookahead\", seed=42, trials=1)",
                 qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[5];\nrz(pi/2) q[4];\nsx q[4];\nrz(pi/2) q[4];\nrz(pi/4) q[4];\ncx q[4],q[3];\nrz(-pi/4) q[3];\ncx q[4],q[3];\n...\ncx q[4],q[0];\ncx q[0],q[4];`
-            },
-            ghz5: {
-                label: "GHZ 5",
-                row: benchmarkRows[6],
-                command: "qcompiler compile examples/ghz5.qasm --topology tokyo --backend sabre",
-                qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[5];\nh q[0];\ncx q[0],q[1];\ncx q[1],q[2];\ncx q[2],q[3];\ncx q[3],q[4];`
             },
             qaoa5: {
                 label: "QAOA 5",
-                row: benchmarkRows[3],
-                command: "qcompiler eval --circuits qaoa_5 --topology tokyo",
+                apiExample: "qaoa5",
+                row: heuristicRows[1],
+                command: "SabreSwap(coupling_map=ibm_tokyo, heuristic=\"lookahead\", seed=42, trials=1)",
                 qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[5];\nrz(pi/2) q[0];\nsx q[0];\nrz(pi/2) q[0];\ncx q[0],q[1];\nrz(2.353304971691044) q[1];\ncx q[0],q[1];\n...\nrz(5*pi/2) q[4];`
+            },
+            ghz5: {
+                label: "GHZ 5",
+                apiExample: "ghz5",
+                row: heuristicRows[2],
+                command: "SabreSwap(coupling_map=ibm_tokyo, heuristic=\"lookahead\", seed=42, trials=1)",
+                qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[5];\nh q[0];\ncx q[0],q[1];\ncx q[1],q[2];\ncx q[2],q[3];\ncx q[3],q[4];`
+            },
+            qft10: {
+                label: "QFT 10",
+                apiExample: "qft10",
+                row: heuristicRows[3],
+                command: "SabreSwap(coupling_map=ibm_tokyo, heuristic=\"lookahead\", seed=42, trials=1)",
+                qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[10];\n// QFT-10 has dense long-range controlled rotations.\n// Routing pressure exposes the difference between basic and lookahead heuristics.\n...`
+            },
+            qaoa10: {
+                label: "QAOA 10",
+                apiExample: "qaoa10",
+                row: heuristicRows[4],
+                command: "SabreSwap(coupling_map=ibm_tokyo, heuristic=\"lookahead\", seed=42, trials=1)",
+                qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[10];\n// 10-qubit QAOA-style circuit with nearest-neighbor and skip entanglers.\n// This case checks whether heuristic differences matter on structured workloads.\n...`
+            },
+            ghz10: {
+                label: "GHZ 10",
+                apiExample: "ghz10",
+                row: heuristicRows[5],
+                command: "SabreSwap(coupling_map=ibm_tokyo, heuristic=\"lookahead\", seed=42, trials=1)",
+                qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[10];\nh q[0];\n// GHZ-10 uses a simple entanglement chain.\n// It is a sanity-check case for low routing pressure.\n...`
+            },
+            vqe10: {
+                label: "VQE-like 10",
+                apiExample: "vqe10",
+                row: heuristicRows[6],
+                command: "SabreSwap(coupling_map=ibm_tokyo, heuristic=\"lookahead\", seed=42, trials=1)",
+                qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[10];\n// Structured variational circuit with local and skip entanglers.\nry(0.1) q[0];\nrz(0.2) q[0];\n...\ncx q[0],q[2];`
             }
         };
 
         const apiBase = "http://localhost:8765";
+        const maxInlineQasmChars = 8000;
+        const miniGhzQasm = `OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[3];
+h q[0];
+cx q[0],q[1];
+cx q[1],q[2];
+`;
         let apiReady = false;
         let selectedSample = "qft5";
+        let selectedHeuristic = "lookahead";
+        let useCustomQasm = false;
 
-        function statusClass(status) {
-            if (status === "OK") return "ok";
-            if (status === "N/A") return "na";
-            return "warn";
+        function bestClass(best) {
+            return best === "lookahead" ? "ok" : "na";
+        }
+
+        function heuristicCommand(heuristic) {
+            return `SabreSwap(coupling_map=ibm_tokyo, heuristic="${heuristic}", seed=42, trials=1)`;
+        }
+
+        function expectedSwaps(sample, heuristic) {
+            return sample.row[heuristic];
+        }
+
+        function formatLiveCheck(data, sample, heuristic) {
+            const expected = expectedSwaps(sample, heuristic);
+            const matches = data.swaps === expected;
+            return [
+                `expected_swaps: ${expected}`,
+                `live_swaps: ${data.swaps}`,
+                `static_live_match: ${matches ? "yes" : "no"}`,
+                matches
+                    ? "Check: live API matches the static table for this sample and heuristic."
+                    : "Check: live API differs from the static table; treat this as a reproducibility warning."
+            ];
+        }
+
+        function customQasmText() {
+            return document.getElementById("custom-qasm").value.trim();
+        }
+
+        function setLiveSummary(status, swaps = "—", depth = "—", match = "—") {
+            document.getElementById("live-status").textContent = status;
+            document.getElementById("live-swaps").textContent = swaps;
+            document.getElementById("live-depth").textContent = depth;
+            document.getElementById("live-match").textContent = match;
         }
 
         function renderBenchmarks() {
             const body = document.getElementById("benchmark-body");
-            body.innerHTML = benchmarkRows.map((row) => `
+            body.innerHTML = heuristicRows.map((row) => `
                 <tr>
                     <td>${row.name}</td>
                     <td>${row.qubits}</td>
-                    <td>${row.sabre}</td>
-                    <td><span class="pill ${statusClass(row.aiStatus)}">${row.aiStatus}</span></td>
-                    <td>${row.ai}</td>
-                    <td>${row.ratio}</td>
+                    <td>${row.basic}</td>
+                    <td>${row.lookahead}</td>
+                    <td>${row.decay}</td>
+                    <td><span class="pill ${bestClass(row.best)}">${row.best}</span></td>
                 </tr>
             `).join("");
         }
 
         function explain(sample) {
             const row = sample.row;
-            const comparable = row.aiStatus === "OK"
-                ? "This AI row completed and can be compared with SABRE."
-                : "This AI row is incomplete, so the SWAP count is diagnostic only.";
+            if (useCustomQasm) {
+                return [
+                    heuristicCommand(selectedHeuristic),
+                    "",
+                    "Input mode: custom inline OpenQASM 2",
+                    "Topology: IBM Tokyo 20Q",
+                    `Selected heuristic: ${selectedHeuristic}`,
+                    "",
+                    "Static/live consistency is disabled for custom input because there is no checked-in expected row.",
+                    "Use the local API to compile this QASM and inspect SWAP/depth."
+                ].join("\n");
+            }
+            const bestLine = row.best === "lookahead"
+                ? "Lookahead wins on SWAP count for this case."
+                : "All three heuristics tie on SWAP count for this case.";
+            const selectedSwaps = row[selectedHeuristic];
+            const selectedLine = selectedHeuristic === row.best || row.best === "tie"
+                ? `Selected heuristic ${selectedHeuristic} is currently tied for best on this sample.`
+                : `Selected heuristic ${selectedHeuristic} is useful for comparison, but ${row.best} has fewer SWAPs here.`;
             return [
-                `$ ${sample.command}`,
+                heuristicCommand(selectedHeuristic),
                 "",
                 `Circuit: ${sample.label}`,
-                `Input CX: ${row.cx}`,
-                `SABRE SWAP: ${row.sabre}`,
-                `AI status: ${row.aiStatus}`,
-                `AI SWAP: ${row.ai}`,
+                `Topology: IBM Tokyo 20Q`,
+                `Basic SWAP: ${row.basic}`,
+                `Lookahead SWAP: ${row.lookahead}`,
+                `Decay SWAP: ${row.decay}`,
+                `Best heuristic: ${row.best}`,
+                `Selected heuristic: ${selectedHeuristic}`,
+                `Selected SWAP: ${selectedSwaps}`,
+                `Routed depth with default: ${row.depth}`,
                 "",
-                comparable
+                bestLine,
+                selectedLine,
+                "Static table: generated from checked-in QASM examples with Qiskit 2.3.1, seed=42, and trials=1.",
+                "Implementation note: Qiskit SabreSwap includes LightSABRE modifications in this environment.",
+                "Multi-trial mode can be stronger on some cases, but is not enabled here to keep static/live checks stable.",
+                "Live local API accepts this heuristic for checked-in QASM examples."
             ].join("\n");
         }
 
         function selectSample(name) {
             selectedSample = name;
+            useCustomQasm = false;
             const sample = samples[name];
             const row = sample.row;
             document.querySelectorAll(".sample-button").forEach((button) => {
                 button.classList.toggle("active", button.dataset.sample === name);
             });
-            document.getElementById("metric-cx").textContent = row.cx;
-            document.getElementById("metric-sabre").textContent = row.sabre;
-            const status = document.getElementById("metric-status");
-            status.textContent = row.aiStatus;
-            status.className = statusClass(row.aiStatus);
-            document.getElementById("metric-ai").textContent = row.ai;
-            document.getElementById("command-text").textContent = sample.command;
+            document.getElementById("metric-basic").textContent = row.basic;
+            document.getElementById("metric-lookahead").textContent = row.lookahead;
+            document.getElementById("metric-decay").textContent = row.decay;
+            const best = document.getElementById("metric-best");
+            best.textContent = row.best;
+            best.className = bestClass(row.best);
+            document.getElementById("command-text").textContent = heuristicCommand(selectedHeuristic);
             document.getElementById("qasm-preview").textContent = sample.qasm;
             document.getElementById("result-console").textContent = explain(sample);
+            setLiveSummary("Not run");
+        }
+
+        function selectHeuristic(name) {
+            selectedHeuristic = name;
+            document.querySelectorAll(".heuristic-button").forEach((button) => {
+                button.classList.toggle("active", button.dataset.heuristic === name);
+            });
+            if (useCustomQasm) {
+                document.getElementById("command-text").textContent = heuristicCommand(selectedHeuristic);
+                document.getElementById("result-console").textContent = explain(samples[selectedSample]);
+                setLiveSummary("Custom ready");
+                return;
+            }
+            selectSample(selectedSample);
+        }
+
+        function useCustomInput() {
+            const qasm = customQasmText();
+            const consoleEl = document.getElementById("result-console");
+            if (!qasm) {
+                consoleEl.textContent = "Custom QASM is empty. Paste OpenQASM 2 text or use a checked-in example.";
+                return;
+            }
+            if (qasm.length > maxInlineQasmChars) {
+                consoleEl.textContent = `Custom QASM is too large: ${qasm.length}/${maxInlineQasmChars} characters.`;
+                return;
+            }
+            useCustomQasm = true;
+            document.querySelectorAll(".sample-button").forEach((button) => {
+                button.classList.remove("active");
+            });
+            document.getElementById("command-text").textContent = heuristicCommand(selectedHeuristic);
+            document.getElementById("qasm-preview").textContent = qasm;
+            document.getElementById("metric-basic").textContent = "—";
+            document.getElementById("metric-lookahead").textContent = "—";
+            document.getElementById("metric-decay").textContent = "—";
+            const best = document.getElementById("metric-best");
+            best.textContent = "custom";
+            best.className = "warn";
+            consoleEl.textContent = explain(samples[selectedSample]);
+            setLiveSummary("Custom ready");
+        }
+
+        function fillMiniGhzInput() {
+            document.getElementById("custom-qasm").value = miniGhzQasm;
+            useCustomInput();
+        }
+
+        function clearCustomInput() {
+            document.getElementById("custom-qasm").value = "";
+            useCustomQasm = false;
+            selectSample(selectedSample);
         }
 
         async function detectApi() {
@@ -939,34 +1268,80 @@
         async function runLocalApi() {
             const sample = samples[selectedSample];
             const consoleEl = document.getElementById("result-console");
-            if (!apiReady) {
-                consoleEl.textContent = `${explain(sample)}\n\nLocal API is not running. Start it with:\nuvicorn src.server.app:app --reload --port 8765`;
+            const qasm = customQasmText();
+            if (useCustomQasm && !qasm) {
+                consoleEl.textContent = "Custom QASM mode is active, but the input is empty.";
+                setLiveSummary("Input error");
                 return;
             }
-            consoleEl.textContent = "Calling local compiler API...";
+            if (useCustomQasm && qasm.length > maxInlineQasmChars) {
+                consoleEl.textContent = `Custom QASM is too large: ${qasm.length}/${maxInlineQasmChars} characters.`;
+                setLiveSummary("Input error");
+                return;
+            }
+            if (!apiReady) {
+                consoleEl.textContent = `${explain(sample)}\n\nLocal API is not running. Start it with:\nuvicorn src.server.app:app --reload --port 8765`;
+                setLiveSummary("API offline");
+                return;
+            }
+            consoleEl.textContent = `Calling local compiler API with heuristic=${selectedHeuristic}.`;
+            setLiveSummary("Running");
             try {
+                const payload = {
+                    backend: "sabre",
+                    topology: "tokyo",
+                    heuristic: selectedHeuristic
+                };
+                if (useCustomQasm) {
+                    payload.qasm = qasm;
+                } else {
+                    payload.example = sample.apiExample;
+                }
                 const response = await fetch(`${apiBase}/api/compile`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        example: selectedSample,
-                        backend: "sabre",
-                        topology: "tokyo"
-                    })
+                    body: JSON.stringify(payload)
                 });
                 const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || `HTTP ${response.status}`);
+                }
+                const liveCheck = useCustomQasm
+                    ? [
+                        "expected_swaps: n/a",
+                        `live_swaps: ${data.swaps}`,
+                        "static_live_match: n/a",
+                        "Check: custom input has no static expected row."
+                    ]
+                    : formatLiveCheck(data, sample, selectedHeuristic);
+                const match = useCustomQasm
+                    ? "n/a"
+                    : (data.swaps === expectedSwaps(sample, selectedHeuristic) ? "yes" : "no");
+                setLiveSummary(
+                    data.status,
+                    data.swaps ?? "—",
+                    data.depth ?? "—",
+                    match
+                );
                 consoleEl.textContent = [
                     "Local API response",
                     `status: ${data.status}`,
                     `backend: ${data.backend}`,
+                    `heuristic: ${data.heuristic}`,
                     `topology: ${data.topology}`,
                     `input_cx: ${data.input_cx}`,
                     `swaps: ${data.swaps}`,
                     `depth: ${data.depth}`,
-                    data.message ? `message: ${data.message}` : ""
+                    data.message ? `message: ${data.message}` : "",
+                    "",
+                    "Static/live consistency",
+                    ...liveCheck,
+                    "",
+                    "Live API note: this response runs the selected SABRE heuristic."
                 ].filter(Boolean).join("\n");
             } catch (error) {
                 consoleEl.textContent = `Local API request failed: ${error.message}`;
+                setLiveSummary("Request failed");
             }
         }
 
@@ -974,8 +1349,16 @@
             button.addEventListener("click", () => selectSample(button.dataset.sample));
         });
 
+        document.querySelectorAll(".heuristic-button").forEach((button) => {
+            button.addEventListener("click", () => selectHeuristic(button.dataset.heuristic));
+        });
+
+        document.getElementById("fill-ghz-qasm").addEventListener("click", fillMiniGhzInput);
+        document.getElementById("use-custom-qasm").addEventListener("click", useCustomInput);
+        document.getElementById("clear-custom-qasm").addEventListener("click", clearCustomInput);
+
         document.getElementById("copy-command").addEventListener("click", async () => {
-            const command = samples[selectedSample].command;
+            const command = heuristicCommand(selectedHeuristic);
             try {
                 await navigator.clipboard.writeText(command);
             } catch (_) {

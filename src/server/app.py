@@ -19,6 +19,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from qiskit import QuantumCircuit, qasm2, transpile
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import (
+    ApplyLayout,
+    EnlargeWithAncilla,
+    FullAncillaAllocation,
+    SabreSwap,
+    TrivialLayout,
+)
 
 from src.benchmarks.topologies import get_topology, get_topology_info
 from src.cli import _DEFAULT_MODEL, _TOPOLOGY_ALIAS
@@ -28,6 +36,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 REPORT_JSON = PROJECT_ROOT / "models" / "v14_tokyo20" / "eval_report_mqt.json"
 DEFAULT_MODEL = _DEFAULT_MODEL
 BASIS_GATES = ["cx", "id", "rz", "sx", "x", "swap"]
+MAX_INLINE_QASM_CHARS = 8000
 
 EXAMPLES: dict[str, dict[str, str]] = {
     "qft5": {
@@ -44,6 +53,26 @@ EXAMPLES: dict[str, dict[str, str]] = {
         "name": "QAOA 5",
         "path": "examples/qaoa5.qasm",
         "description": "One QAOA-style optimization layer.",
+    },
+    "qft10": {
+        "name": "QFT 10",
+        "path": "examples/qft10.qasm",
+        "description": "A larger dense-routing quantum Fourier transform example.",
+    },
+    "qaoa10": {
+        "name": "QAOA 10",
+        "path": "examples/qaoa10.qasm",
+        "description": "A 10-qubit QAOA-style optimization layer.",
+    },
+    "ghz10": {
+        "name": "GHZ 10",
+        "path": "examples/ghz10.qasm",
+        "description": "A 10-qubit entanglement-chain circuit.",
+    },
+    "vqe10": {
+        "name": "VQE-like 10",
+        "path": "examples/vqe10.qasm",
+        "description": "A 10-qubit RealAmplitudes-style variational ansatz.",
     },
 }
 
@@ -87,6 +116,7 @@ class CompileRequest(BaseModel):
     example: str | None = Field(default=None, description="Example id, such as qft5.")
     qasm: str | None = Field(default=None, description="Inline OpenQASM 2 source.")
     backend: Literal["sabre", "ai"] = "sabre"
+    heuristic: Literal["basic", "lookahead", "decay"] = "lookahead"
     topology: str = "tokyo"
     max_steps: int = 2000
 
@@ -94,6 +124,7 @@ class CompileRequest(BaseModel):
 class CompileResponse(BaseModel):
     status: Literal["OK", "INCOMPLETE", "N/A"]
     backend: Literal["sabre", "ai"]
+    heuristic: Literal["basic", "lookahead", "decay"] | None = None
     topology: str
     circuit_name: str
     input_qubits: int
@@ -125,6 +156,11 @@ def _load_request_circuit(req: CompileRequest) -> QuantumCircuit:
     if req.qasm and req.example:
         raise HTTPException(status_code=400, detail="Provide either qasm or example, not both.")
     if req.qasm:
+        if len(req.qasm) > MAX_INLINE_QASM_CHARS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Inline OpenQASM 2 input is limited to {MAX_INLINE_QASM_CHARS} characters.",
+            )
         try:
             qc = qasm2.loads(req.qasm)
         except Exception as exc:  # noqa: BLE001
@@ -134,14 +170,25 @@ def _load_request_circuit(req: CompileRequest) -> QuantumCircuit:
     return _load_example(req.example or "qft5")
 
 
-def _compile_sabre(circuit: QuantumCircuit, coupling_map):
+def _compile_sabre(
+    circuit: QuantumCircuit,
+    coupling_map,
+    heuristic: Literal["basic", "lookahead", "decay"],
+) -> QuantumCircuit:
+    layout_and_route = PassManager(
+        [
+            TrivialLayout(coupling_map),
+            FullAncillaAllocation(coupling_map),
+            EnlargeWithAncilla(),
+            ApplyLayout(),
+            SabreSwap(coupling_map, heuristic=heuristic, seed=42, trials=1),
+        ]
+    )
+    routed = layout_and_route.run(circuit)
     return transpile(
-        circuit,
-        coupling_map=coupling_map,
+        routed,
         basis_gates=BASIS_GATES,
         optimization_level=0,
-        layout_method="trivial",
-        routing_method="sabre",
         seed_transpiler=42,
     )
 
@@ -236,11 +283,12 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
     started = time.perf_counter()
 
     if req.backend == "sabre":
-        compiled = _compile_sabre(circuit, coupling_map)
+        compiled = _compile_sabre(circuit, coupling_map, req.heuristic)
         ops = dict(compiled.count_ops())
         return CompileResponse(
             status="OK",
             backend="sabre",
+            heuristic=req.heuristic,
             topology=topo_name,
             circuit_name=circuit.name or req.example or "inline_qasm",
             input_qubits=circuit.num_qubits,
@@ -248,13 +296,14 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
             swaps=ops.get("swap", 0),
             depth=compiled.depth(),
             elapsed_ms=(time.perf_counter() - started) * 1000,
-            message="SABRE completed. This is the stable baseline.",
+            message=f"SABRE completed with the {req.heuristic} heuristic.",
         )
 
     if not DEFAULT_MODEL.exists():
         return CompileResponse(
             status="N/A",
             backend="ai",
+            heuristic=None,
             topology=topo_name,
             circuit_name=circuit.name or req.example or "inline_qasm",
             input_qubits=circuit.num_qubits,
@@ -271,6 +320,7 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
         return CompileResponse(
             status="N/A",
             backend="ai",
+            heuristic=None,
             topology=topo_name,
             circuit_name=circuit.name or req.example or "inline_qasm",
             input_qubits=circuit.num_qubits,
@@ -286,6 +336,7 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
     return CompileResponse(
         status="OK" if result["done"] else "INCOMPLETE",
         backend="ai",
+        heuristic=None,
         topology=topo_name,
         circuit_name=circuit.name or req.example or "inline_qasm",
         input_qubits=circuit.num_qubits,

@@ -28,7 +28,7 @@ rubric to concrete evidence in this repository.
 | Project timeline and early commits | 20% | `git log --oneline --graph`, V7-V15 commit history |
 | Open-source engineering and docs | 25% | README, `requirements.txt`, `pyproject.toml`, pytest, CLI, API |
 | Physical mechanism and algorithm design | 30% | `docs/technical/项目报告.md`, `docs/technical/decisions.md`, `src/compiler/` |
-| Community presentation and feedback | 15% | `docs/index.html`, examples, notebook, GitHub Pages |
+| Community presentation and feedback | 15% | `docs/index.html`, examples, notebook, GitHub Pages heuristic lab |
 | Advanced AI collaboration | 10% | `AI-Collaboration.md` |
 
 Generated files:
@@ -39,10 +39,15 @@ Generated files:
 - `04_mqt_5q_demo.md`: MQT-Bench 5Q table.
 - `04_mqt_5q_demo.json`: Machine-readable benchmark data.
 - `05_ibm_tokyo_topology.png`: IBM Tokyo 20Q topology image.
+- `06_sabre_heuristic_lab.md`: basic / lookahead / decay heuristic comparison.
+- `07_bounded_search_negative_sample.md`: bounded search failure-analysis sample.
 
 Current project position:
 
-- SABRE is the stable baseline.
+- SABRE / LightSABRE is the stable practical baseline.
+- The public website is now a heuristic lab, not a static showcase page.
+- The practical default is `lookahead + seed=42 + trials=1`.
+- Bounded search v1 is a negative sample and does not enter the website default.
 - V14/V15 AI checkpoints are experimental and have not beaten SABRE.
 - The project demonstrates a complete modeling, engineering, evaluation, and
   diagnosis loop rather than claiming a false win.
