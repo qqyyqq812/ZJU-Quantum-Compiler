@@ -28,10 +28,14 @@
 
         html {
             scroll-behavior: smooth;
+            max-width: 100%;
+            overflow-x: clip;
         }
 
         body {
             margin: 0;
+            max-width: 100%;
+            overflow-x: clip;
             background:
                 linear-gradient(rgba(23, 33, 31, 0.04) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(23, 33, 31, 0.04) 1px, transparent 1px),
@@ -95,6 +99,12 @@
             font-size: 14px;
         }
 
+        nav a {
+            display: inline-flex;
+            align-items: center;
+            min-height: 34px;
+        }
+
         main {
             max-width: 1320px;
             margin: 0 auto;
@@ -112,6 +122,7 @@
         .intro,
         .panel,
         .tool-panel {
+            min-width: 0;
             background: rgba(255, 253, 247, 0.92);
             border: 1px solid var(--line);
             border-radius: 8px;
@@ -199,6 +210,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            flex-wrap: wrap;
             gap: 12px;
             padding: 18px 20px;
             border-bottom: 1px solid var(--line);
@@ -351,12 +363,21 @@
 
         .command-area {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-columns: minmax(0, 1fr);
             gap: 10px;
             align-items: start;
             padding: 18px;
             border-bottom: 1px solid var(--line);
             background: #fbf8ef;
+        }
+
+        .command-area .copy-button {
+            justify-self: end;
+        }
+
+        #command-text {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
         }
 
         pre {
@@ -448,6 +469,11 @@
         .input-note {
             color: var(--muted);
             font-size: 12px;
+        }
+
+        .input-note.warn {
+            color: var(--warn);
+            font-weight: 700;
         }
 
         .live-result-grid {
@@ -623,6 +649,7 @@
         }
 
         .step {
+            min-width: 0;
             padding: 18px;
             border: 1px solid var(--line);
             border-radius: 8px;
@@ -820,7 +847,7 @@
                         </div>
 
                         <div class="command-area">
-                            <pre id="command-text"><code>SabreSwap(coupling_map=ibm_tokyo, heuristic="lookahead", seed=42, trials=1)</code></pre>
+                            <pre id="command-text"><code>qcompiler compile examples/qft5.qasm --topology tokyo --backend sabre --heuristic lookahead</code></pre>
                             <button class="copy-button" id="copy-command" type="button">Copy command</button>
                         </div>
 
@@ -836,6 +863,7 @@
                                         <button class="copy-button secondary" id="use-custom-qasm" type="button">Use custom QASM</button>
                                         <button class="copy-button secondary" id="clear-custom-qasm" type="button">Clear</button>
                                         <span class="input-note">Limit: 8,000 chars and 20 qubits on IBM Tokyo.</span>
+                                        <span class="input-note" id="qasm-char-count">0 / 8000 chars</span>
                                     </div>
                                 </div>
                             </div>
@@ -866,9 +894,17 @@
                                     equals the checked-in static table for this sample.
                                 </p>
                                 <div class="console" id="result-console"></div>
-                                <button class="run-button" id="run-local" type="button">
-                                    Check local API
-                                </button>
+                                <div class="input-actions">
+                                    <button class="run-button" id="run-local" type="button">
+                                        Check local API
+                                    </button>
+                                    <button class="copy-button secondary" id="copy-result" type="button">
+                                        Copy result
+                                    </button>
+                                    <a class="copy-button secondary" id="download-result-json" download="quantum-routing-result.json" href="#" role="button">
+                                        Download JSON
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -894,6 +930,11 @@
                     <img src="assets/ibm-tokyo-route-demo.gif" alt="Animated quantum circuit route demo on IBM Tokyo topology">
                     <figcaption>Route trace demo generated from the project visualization tools.</figcaption>
                 </figure>
+            </div>
+            <div class="metric-help topology-facts" aria-label="IBM Tokyo topology facts">
+                <strong>Topology facts:</strong>
+                20 physical qubits · 43 undirected couplings · diameter 4 · average shortest path 2.25 ·
+                max degree 6. These constraints are why dense circuits such as QFT-10 need SWAP routing.
             </div>
         </section>
 
@@ -953,7 +994,10 @@
                 <div class="step">
                     <h3>3. Start API</h3>
                     <p>Enable live mode for this page on your machine.</p>
-                    <pre><code>uvicorn src.server.app:app --reload --port 8765</code></pre>
+                    <pre id="api-start-command"><code>uvicorn src.server.app:app --reload --port 8765</code></pre>
+                    <button class="copy-button secondary" id="copy-api-start" type="button">
+                        Copy API start command
+                    </button>
                 </div>
             </div>
         </section>
@@ -1024,49 +1068,42 @@
                 label: "QFT 5",
                 apiExample: "qft5",
                 row: heuristicRows[0],
-                command: "SabreSwap(coupling_map=ibm_tokyo, heuristic=\"lookahead\", seed=42, trials=1)",
                 qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[5];\nrz(pi/2) q[4];\nsx q[4];\nrz(pi/2) q[4];\nrz(pi/4) q[4];\ncx q[4],q[3];\nrz(-pi/4) q[3];\ncx q[4],q[3];\n...\ncx q[4],q[0];\ncx q[0],q[4];`
             },
             qaoa5: {
                 label: "QAOA 5",
                 apiExample: "qaoa5",
                 row: heuristicRows[1],
-                command: "SabreSwap(coupling_map=ibm_tokyo, heuristic=\"lookahead\", seed=42, trials=1)",
                 qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[5];\nrz(pi/2) q[0];\nsx q[0];\nrz(pi/2) q[0];\ncx q[0],q[1];\nrz(2.353304971691044) q[1];\ncx q[0],q[1];\n...\nrz(5*pi/2) q[4];`
             },
             ghz5: {
                 label: "GHZ 5",
                 apiExample: "ghz5",
                 row: heuristicRows[2],
-                command: "SabreSwap(coupling_map=ibm_tokyo, heuristic=\"lookahead\", seed=42, trials=1)",
                 qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[5];\nh q[0];\ncx q[0],q[1];\ncx q[1],q[2];\ncx q[2],q[3];\ncx q[3],q[4];`
             },
             qft10: {
                 label: "QFT 10",
                 apiExample: "qft10",
                 row: heuristicRows[3],
-                command: "SabreSwap(coupling_map=ibm_tokyo, heuristic=\"lookahead\", seed=42, trials=1)",
                 qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[10];\n// QFT-10 has dense long-range controlled rotations.\n// Routing pressure exposes the difference between basic and lookahead heuristics.\n...`
             },
             qaoa10: {
                 label: "QAOA 10",
                 apiExample: "qaoa10",
                 row: heuristicRows[4],
-                command: "SabreSwap(coupling_map=ibm_tokyo, heuristic=\"lookahead\", seed=42, trials=1)",
                 qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[10];\n// 10-qubit QAOA-style circuit with nearest-neighbor and skip entanglers.\n// This case checks whether heuristic differences matter on structured workloads.\n...`
             },
             ghz10: {
                 label: "GHZ 10",
                 apiExample: "ghz10",
                 row: heuristicRows[5],
-                command: "SabreSwap(coupling_map=ibm_tokyo, heuristic=\"lookahead\", seed=42, trials=1)",
                 qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[10];\nh q[0];\n// GHZ-10 uses a simple entanglement chain.\n// It is a sanity-check case for low routing pressure.\n...`
             },
             vqe10: {
                 label: "VQE-like 10",
                 apiExample: "vqe10",
                 row: heuristicRows[6],
-                command: "SabreSwap(coupling_map=ibm_tokyo, heuristic=\"lookahead\", seed=42, trials=1)",
                 qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[10];\n// Structured variational circuit with local and skip entanglers.\nry(0.1) q[0];\nrz(0.2) q[0];\n...\ncx q[0],q[2];`
             }
         };
@@ -1084,13 +1121,21 @@ cx q[1],q[2];
         let selectedSample = "qft5";
         let selectedHeuristic = "lookahead";
         let useCustomQasm = false;
+        let lastResult = null;
 
         function bestClass(best) {
             return best === "lookahead" ? "ok" : "na";
         }
 
-        function heuristicCommand(heuristic) {
-            return `SabreSwap(coupling_map=ibm_tokyo, heuristic="${heuristic}", seed=42, trials=1)`;
+        function runnableCommand(sample, heuristic) {
+            if (useCustomQasm) {
+                return `API template: POST ${apiBase}/api/compile with backend=sabre, topology=tokyo, heuristic=${heuristic}, and qasm=<inline OpenQASM 2>`;
+            }
+            return `qcompiler compile examples/${sample.apiExample}.qasm --topology tokyo --backend sabre --heuristic ${heuristic}`;
+        }
+
+        function sabreImplementationNote(heuristic) {
+            return `Implementation: SabreSwap(coupling_map=ibm_tokyo, heuristic="${heuristic}", seed=42, trials=1)`;
         }
 
         function expectedSwaps(sample, heuristic) {
@@ -1114,11 +1159,83 @@ cx q[1],q[2];
             return document.getElementById("custom-qasm").value.trim();
         }
 
+        function updateQasmCharCount() {
+            const countEl = document.getElementById("qasm-char-count");
+            const length = document.getElementById("custom-qasm").value.length;
+            countEl.textContent = `${length} / ${maxInlineQasmChars} chars`;
+            countEl.classList.toggle("warn", length > maxInlineQasmChars * 0.9);
+        }
+
         function setLiveSummary(status, swaps = "—", depth = "—", match = "—") {
             document.getElementById("live-status").textContent = status;
             document.getElementById("live-swaps").textContent = swaps;
             document.getElementById("live-depth").textContent = depth;
             document.getElementById("live-match").textContent = match;
+        }
+
+        function buildResultExportPayload() {
+            const sample = samples[selectedSample];
+            const command = document.getElementById("command-text").textContent.trim();
+            const resultText = document.getElementById("result-console").textContent.trim();
+            const qasmPreview = document.getElementById("qasm-preview").textContent.trim();
+            return {
+                exported_at: new Date().toISOString(),
+                input_mode: useCustomQasm ? "custom_inline_qasm" : "checked_in_example",
+                selected_sample: selectedSample,
+                sample_label: useCustomQasm ? "Custom inline OpenQASM 2" : sample.label,
+                api_example: useCustomQasm ? null : sample.apiExample,
+                backend: "sabre",
+                topology: "ibm_tokyo",
+                heuristic: selectedHeuristic,
+                api_base: apiBase,
+                api_ready: apiReady,
+                command,
+                live_summary: {
+                    status: document.getElementById("live-status").textContent,
+                    swaps: document.getElementById("live-swaps").textContent,
+                    depth: document.getElementById("live-depth").textContent,
+                    match: document.getElementById("live-match").textContent
+                },
+                static_expected: useCustomQasm ? null : {
+                    basic_swaps: sample.row.basic,
+                    lookahead_swaps: sample.row.lookahead,
+                    decay_swaps: sample.row.decay,
+                    best_heuristic: sample.row.best,
+                    selected_swaps: sample.row[selectedHeuristic],
+                    depth: sample.row.depth
+                },
+                qasm_preview: qasmPreview,
+                result_text: resultText,
+                live_response: lastResult
+            };
+        }
+
+        function downloadResultJson(event) {
+            event.preventDefault();
+            const payload = buildResultExportPayload();
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+            const objectUrl = URL.createObjectURL(blob);
+            const scratch = document.createElement("a");
+            scratch.href = objectUrl;
+            scratch.download = "quantum-routing-result.json";
+            document.body.appendChild(scratch);
+            scratch.click();
+            scratch.remove();
+            window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        }
+
+        function formatApiError(error) {
+            const message = error.message || String(error);
+            const tips = [
+                `error: ${message}`,
+                "",
+                "Next checks:",
+                "1. Confirm the local API is running on port 8765.",
+                "2. If this is custom QASM, keep it as OpenQASM 2 with qelib1.inc.",
+                "3. Keep inline QASM under 8000 characters and at most 20 qubits.",
+                "4. Retry with Fill GHZ mini to separate API issues from QASM syntax issues."
+            ];
+            return tips.join("\n");
         }
 
         function renderBenchmarks() {
@@ -1139,7 +1256,8 @@ cx q[1],q[2];
             const row = sample.row;
             if (useCustomQasm) {
                 return [
-                    heuristicCommand(selectedHeuristic),
+                    runnableCommand(sample, selectedHeuristic),
+                    sabreImplementationNote(selectedHeuristic),
                     "",
                     "Input mode: custom inline OpenQASM 2",
                     "Topology: IBM Tokyo 20Q",
@@ -1157,7 +1275,8 @@ cx q[1],q[2];
                 ? `Selected heuristic ${selectedHeuristic} is currently tied for best on this sample.`
                 : `Selected heuristic ${selectedHeuristic} is useful for comparison, but ${row.best} has fewer SWAPs here.`;
             return [
-                heuristicCommand(selectedHeuristic),
+                runnableCommand(sample, selectedHeuristic),
+                sabreImplementationNote(selectedHeuristic),
                 "",
                 `Circuit: ${sample.label}`,
                 `Topology: IBM Tokyo 20Q`,
@@ -1181,6 +1300,7 @@ cx q[1],q[2];
         function selectSample(name) {
             selectedSample = name;
             useCustomQasm = false;
+            lastResult = null;
             const sample = samples[name];
             const row = sample.row;
             document.querySelectorAll(".sample-button").forEach((button) => {
@@ -1192,7 +1312,7 @@ cx q[1],q[2];
             const best = document.getElementById("metric-best");
             best.textContent = row.best;
             best.className = bestClass(row.best);
-            document.getElementById("command-text").textContent = heuristicCommand(selectedHeuristic);
+            document.getElementById("command-text").textContent = runnableCommand(sample, selectedHeuristic);
             document.getElementById("qasm-preview").textContent = sample.qasm;
             document.getElementById("result-console").textContent = explain(sample);
             setLiveSummary("Not run");
@@ -1204,7 +1324,7 @@ cx q[1],q[2];
                 button.classList.toggle("active", button.dataset.heuristic === name);
             });
             if (useCustomQasm) {
-                document.getElementById("command-text").textContent = heuristicCommand(selectedHeuristic);
+                document.getElementById("command-text").textContent = runnableCommand(samples[selectedSample], selectedHeuristic);
                 document.getElementById("result-console").textContent = explain(samples[selectedSample]);
                 setLiveSummary("Custom ready");
                 return;
@@ -1224,10 +1344,11 @@ cx q[1],q[2];
                 return;
             }
             useCustomQasm = true;
+            lastResult = null;
             document.querySelectorAll(".sample-button").forEach((button) => {
                 button.classList.remove("active");
             });
-            document.getElementById("command-text").textContent = heuristicCommand(selectedHeuristic);
+            document.getElementById("command-text").textContent = runnableCommand(samples[selectedSample], selectedHeuristic);
             document.getElementById("qasm-preview").textContent = qasm;
             document.getElementById("metric-basic").textContent = "—";
             document.getElementById("metric-lookahead").textContent = "—";
@@ -1241,12 +1362,15 @@ cx q[1],q[2];
 
         function fillMiniGhzInput() {
             document.getElementById("custom-qasm").value = miniGhzQasm;
+            updateQasmCharCount();
             useCustomInput();
         }
 
         function clearCustomInput() {
             document.getElementById("custom-qasm").value = "";
+            updateQasmCharCount();
             useCustomQasm = false;
+            lastResult = null;
             selectSample(selectedSample);
         }
 
@@ -1269,6 +1393,9 @@ cx q[1],q[2];
             const sample = samples[selectedSample];
             const consoleEl = document.getElementById("result-console");
             const qasm = customQasmText();
+            if (!useCustomQasm && qasm) {
+                useCustomInput();
+            }
             if (useCustomQasm && !qasm) {
                 consoleEl.textContent = "Custom QASM mode is active, but the input is empty.";
                 setLiveSummary("Input error");
@@ -1279,12 +1406,15 @@ cx q[1],q[2];
                 setLiveSummary("Input error");
                 return;
             }
+            await detectApi();
             if (!apiReady) {
                 consoleEl.textContent = `${explain(sample)}\n\nLocal API is not running. Start it with:\nuvicorn src.server.app:app --reload --port 8765`;
                 setLiveSummary("API offline");
                 return;
             }
-            consoleEl.textContent = `Calling local compiler API with heuristic=${selectedHeuristic}.`;
+            consoleEl.textContent = useCustomQasm
+                ? `Calling local compiler API with custom QASM and heuristic=${selectedHeuristic}.`
+                : `Calling local compiler API with example=${sample.apiExample} and heuristic=${selectedHeuristic}.`;
             setLiveSummary("Running");
             try {
                 const payload = {
@@ -1306,6 +1436,7 @@ cx q[1],q[2];
                 if (!response.ok) {
                     throw new Error(data.detail || `HTTP ${response.status}`);
                 }
+                lastResult = data;
                 const liveCheck = useCustomQasm
                     ? [
                         "expected_swaps: n/a",
@@ -1340,7 +1471,8 @@ cx q[1],q[2];
                     "Live API note: this response runs the selected SABRE heuristic."
                 ].filter(Boolean).join("\n");
             } catch (error) {
-                consoleEl.textContent = `Local API request failed: ${error.message}`;
+                lastResult = { error: error.message || String(error) };
+                consoleEl.textContent = `Local API request failed\n\n${formatApiError(error)}`;
                 setLiveSummary("Request failed");
             }
         }
@@ -1356,9 +1488,38 @@ cx q[1],q[2];
         document.getElementById("fill-ghz-qasm").addEventListener("click", fillMiniGhzInput);
         document.getElementById("use-custom-qasm").addEventListener("click", useCustomInput);
         document.getElementById("clear-custom-qasm").addEventListener("click", clearCustomInput);
+        document.getElementById("custom-qasm").addEventListener("input", updateQasmCharCount);
 
         document.getElementById("copy-command").addEventListener("click", async () => {
-            const command = heuristicCommand(selectedHeuristic);
+            const command = document.getElementById("command-text").textContent.trim();
+            await copyText(command);
+            document.getElementById("copy-command").textContent = "Copied";
+            window.setTimeout(() => {
+                document.getElementById("copy-command").textContent = "Copy command";
+            }, 1200);
+        });
+
+        document.getElementById("copy-api-start").addEventListener("click", async () => {
+            const command = document.getElementById("api-start-command").textContent.trim();
+            await copyText(command);
+            document.getElementById("copy-api-start").textContent = "Copied";
+            window.setTimeout(() => {
+                document.getElementById("copy-api-start").textContent = "Copy API start command";
+            }, 1200);
+        });
+
+        document.getElementById("copy-result").addEventListener("click", async () => {
+            const resultText = document.getElementById("result-console").textContent.trim();
+            await copyText(resultText || "No result yet. Run a sample or select a circuit first.");
+            document.getElementById("copy-result").textContent = "Copied";
+            window.setTimeout(() => {
+                document.getElementById("copy-result").textContent = "Copy result";
+            }, 1200);
+        });
+
+        document.getElementById("download-result-json").addEventListener("click", downloadResultJson);
+
+        async function copyText(command) {
             try {
                 await navigator.clipboard.writeText(command);
             } catch (_) {
@@ -1369,16 +1530,13 @@ cx q[1],q[2];
                 document.execCommand("copy");
                 scratch.remove();
             }
-            document.getElementById("copy-command").textContent = "Copied";
-            window.setTimeout(() => {
-                document.getElementById("copy-command").textContent = "Copy command";
-            }, 1200);
-        });
+        }
 
         document.getElementById("run-local").addEventListener("click", runLocalApi);
 
         renderBenchmarks();
         selectSample("qft5");
+        updateQasmCharCount();
         detectApi();
     </script>
 </body>
