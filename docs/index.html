@@ -3,21 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZJU Quantum Routing Heuristic Lab</title>
+    <title>ZJU 量子电路编译器</title>
     <style>
         :root {
-            --paper: #f7f5ee;
-            --ink: #17211f;
-            --muted: #60706b;
-            --line: #d8d3c7;
-            --panel: #fffdf7;
-            --teal: #0f766e;
-            --teal-dark: #115e59;
-            --amber: #b7791f;
-            --blue: #285f9f;
-            --red: #b42318;
-            --ok: #13795b;
-            --shadow: 0 18px 45px rgba(23, 33, 31, 0.10);
+            --page: #f5f7fb;
+            --page-2: #eef2f7;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --surface-3: #eef4f8;
+            --ink: #111827;
+            --ink-2: #1f2937;
+            --muted: #667085;
+            --line: #d6dae2;
+            --line-strong: #aeb7c5;
+            --accent: #0e9384;
+            --accent-2: #2563eb;
+            --accent-soft: #e6f7f4;
+            --ok: #067647;
+            --warn: #b54708;
+            --bad: #b42318;
+            --code: #07130f;
+            --code-text: #d9f8ea;
             --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
             --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
@@ -26,33 +32,43 @@
             box-sizing: border-box;
         }
 
-        html {
-            scroll-behavior: smooth;
+        html,
+        body {
             max-width: 100%;
             overflow-x: clip;
         }
 
         body {
             margin: 0;
-            max-width: 100%;
-            overflow-x: clip;
-            background:
-                linear-gradient(rgba(23, 33, 31, 0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(23, 33, 31, 0.04) 1px, transparent 1px),
-                var(--paper);
-            background-size: 28px 28px;
+            background: linear-gradient(180deg, var(--page) 0%, var(--page-2) 100%);
             color: var(--ink);
             font-family: var(--sans);
-            line-height: 1.55;
+            line-height: 1.5;
         }
 
         a {
-            color: var(--teal-dark);
+            color: inherit;
             text-decoration: none;
         }
 
         a:hover {
-            text-decoration: underline;
+            color: var(--accent);
+        }
+
+        button,
+        input,
+        textarea,
+        select {
+            font: inherit;
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        textarea:focus-visible,
+        select:focus-visible,
+        a:focus-visible {
+            outline: 3px solid rgba(37, 99, 235, 0.28);
+            outline-offset: 2px;
         }
 
         header {
@@ -62,10 +78,11 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 24px;
-            padding: 14px clamp(18px, 4vw, 56px);
-            background: rgba(247, 245, 238, 0.94);
-            border-bottom: 1px solid var(--line);
+            gap: 18px;
+            padding: 11px clamp(18px, 4vw, 48px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(17, 24, 39, 0.96);
+            color: #f8fafc;
             backdrop-filter: blur(14px);
         }
 
@@ -83,19 +100,19 @@
             height: 30px;
             display: grid;
             place-items: center;
-            border: 1px solid var(--ink);
             border-radius: 6px;
-            background: var(--ink);
-            color: var(--paper);
+            background: var(--accent);
+            color: #ffffff;
             font-family: var(--mono);
-            font-size: 14px;
+            font-size: 13px;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
         }
 
         nav {
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             justify-content: flex-end;
-            gap: 14px;
+            gap: 18px;
             font-size: 14px;
         }
 
@@ -103,623 +120,527 @@
             display: inline-flex;
             align-items: center;
             min-height: 34px;
+            color: rgba(248, 250, 252, 0.78);
+            white-space: nowrap;
+        }
+
+        nav a:hover {
+            color: #ffffff;
         }
 
         main {
-            max-width: 1320px;
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 34px clamp(18px, 4vw, 56px) 64px;
-        }
-
-        .workspace {
-            display: grid;
-            grid-template-columns: minmax(340px, 0.75fr) minmax(680px, 1.25fr);
-            gap: 22px;
-            align-items: stretch;
-            min-height: calc(100vh - 105px);
-        }
-
-        .intro,
-        .panel,
-        .tool-panel {
-            min-width: 0;
-            background: rgba(255, 253, 247, 0.92);
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            box-shadow: var(--shadow);
-        }
-
-        .intro {
-            padding: 28px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            gap: 26px;
-        }
-
-        .eyebrow {
-            margin: 0 0 10px;
-            color: var(--teal-dark);
-            font-size: 13px;
-            font-weight: 800;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
+            padding: 24px clamp(18px, 4vw, 48px) 42px;
         }
 
         h1,
         h2,
-        h3 {
+        h3,
+        p {
             margin: 0;
-            line-height: 1.1;
-            letter-spacing: 0;
         }
 
         h1 {
-            font-size: clamp(38px, 7vw, 76px);
             max-width: 760px;
+            font-size: clamp(30px, 3vw, 40px);
+            line-height: 1.12;
+            letter-spacing: 0;
         }
 
         h2 {
-            font-size: clamp(25px, 4vw, 40px);
+            font-size: 20px;
+            line-height: 1.2;
         }
 
         h3 {
-            font-size: 17px;
+            font-size: 15px;
+            line-height: 1.2;
+        }
+
+        .topline {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 18px;
+            align-items: end;
+            margin-bottom: 18px;
+        }
+
+        .kicker {
+            margin-bottom: 8px;
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 850;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
         }
 
         .lead {
-            max-width: 680px;
-            margin: 18px 0 0;
+            max-width: 910px;
+            margin-top: 10px;
             color: var(--muted);
-            font-size: 18px;
+            font-size: 16px;
         }
 
-        .status-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 10px;
-        }
-
-        .status-item {
-            min-height: 94px;
-            padding: 14px;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            background: #fbf8ef;
-        }
-
-        .status-item strong {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 18px;
-        }
-
-        .status-item span {
-            display: block;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .tool-panel {
-            display: grid;
-            grid-template-rows: auto 1fr;
-            overflow: hidden;
-        }
-
-        .tool-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-            padding: 18px 20px;
-            border-bottom: 1px solid var(--line);
+        .lead strong {
+            color: var(--ink-2);
+            font-weight: 780;
         }
 
         .mode {
             display: inline-flex;
             align-items: center;
-            min-height: 30px;
-            padding: 5px 10px;
+            justify-content: center;
+            min-height: 34px;
+            padding: 6px 12px;
             border: 1px solid var(--line);
             border-radius: 999px;
+            background: var(--surface);
             color: var(--muted);
-            background: #fbf8ef;
             font-size: 13px;
+            font-weight: 760;
             white-space: nowrap;
+            box-shadow: 0 10px 28px rgba(17, 24, 39, 0.08);
         }
 
-        .tool-body {
-            display: grid;
-            grid-template-columns: 230px minmax(0, 1fr);
-            min-height: 560px;
+        .mode.ready {
+            border-color: rgba(6, 118, 71, 0.24);
+            background: var(--accent-soft);
+            color: var(--ok);
         }
 
-        .sidebar {
-            padding: 18px;
-            border-right: 1px solid var(--line);
-            background: #f0ede4;
+        .mode.offline {
+            border-color: rgba(180, 35, 24, 0.22);
+            background: #fff1ee;
+            color: var(--bad);
         }
 
-        .selector {
-            display: grid;
-            gap: 10px;
-            margin-top: 14px;
-        }
-
-        .sample-button,
-        .heuristic-button,
-        .copy-button,
-        .run-button {
-            font: inherit;
-            cursor: pointer;
+        .workbench {
+            overflow: hidden;
+            border: 1px solid var(--line);
             border-radius: 8px;
-            transition: border-color 0.16s ease, transform 0.16s ease, background 0.16s ease;
+            background: var(--surface);
+            box-shadow: 0 22px 60px rgba(15, 23, 42, 0.12);
         }
 
-        .sample-button {
-            width: 100%;
-            min-height: 72px;
-            padding: 12px;
-            text-align: left;
-            border: 1px solid var(--line);
-            background: var(--panel);
-            color: var(--ink);
-        }
-
-        .sample-button:hover,
-        .sample-button.active {
-            border-color: var(--teal);
-            transform: translateY(-1px);
-        }
-
-        .sample-button.active {
-            background: #e8f3ef;
-        }
-
-        .sample-button small {
-            display: block;
-            margin-top: 4px;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .heuristic-picker {
+        .bench-toolbar {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 8px;
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--line);
-            background: #fbf8ef;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: center;
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: var(--ink);
+            color: #ffffff;
         }
 
-        .heuristic-button {
-            min-height: 42px;
-            border: 1px solid var(--line);
-            background: var(--panel);
-            color: var(--ink);
+        .tool-title {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 10px;
         }
 
-        .heuristic-button:hover,
-        .heuristic-button.active {
-            border-color: var(--teal);
-            background: #e8f3ef;
-            transform: translateY(-1px);
+        .tool-title strong {
+            font-size: 16px;
         }
 
-        .viewer {
+        .tool-title span {
+            color: rgba(255, 255, 255, 0.68);
+            font-size: 13px;
+        }
+
+        .bench-body {
             display: grid;
-            grid-template-rows: auto auto auto 1fr;
+            grid-template-columns: minmax(320px, 0.92fr) minmax(360px, 1.08fr);
+            min-height: 690px;
+        }
+
+        .input-pane,
+        .result-pane {
             min-width: 0;
+            padding: 18px;
         }
 
-        .result-strip {
+        .input-pane {
+            border-right: 1px solid var(--line);
+            background: var(--surface-3);
+        }
+
+        .result-pane {
+            background: var(--surface);
+        }
+
+        .pane-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .pane-head p {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .upload-row {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.4fr);
-            gap: 1px;
-            background: var(--line);
-            border-bottom: 1px solid var(--line);
+            grid-template-columns: minmax(0, 1fr) 190px;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .file-box,
+        .select-box {
+            min-width: 0;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.86);
+        }
+
+        .file-box {
+            display: grid;
+            gap: 8px;
+            padding: 13px;
+        }
+
+        .file-box input {
+            width: 100%;
+            color: var(--ink-2);
+        }
+
+        .file-box input::file-selector-button {
+            min-height: 34px;
+            margin-right: 10px;
+            padding: 6px 10px;
+            border: 1px solid var(--line-strong);
+            border-radius: 6px;
+            background: #ffffff;
+            color: var(--ink);
+            cursor: pointer;
+        }
+
+        .file-meta {
+            min-height: 20px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .file-meta.warn {
+            color: var(--warn);
+            font-weight: 720;
+        }
+
+        label,
+        .label {
+            display: block;
+            color: var(--ink-2);
+            font-size: 12px;
+            font-weight: 820;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .select-box {
+            display: grid;
+            gap: 8px;
+            padding: 13px;
+        }
+
+        select {
+            min-height: 40px;
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: #ffffff;
+            color: var(--ink);
+        }
+
+        textarea {
+            width: 100%;
+            resize: vertical;
+            padding: 13px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #ffffff;
+            color: var(--ink);
+            font-family: var(--mono);
+            font-size: 13px;
+            line-height: 1.5;
+            box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.03);
+        }
+
+        #qasm-input {
+            min-height: 360px;
+        }
+
+        .compiled-output {
+            min-height: 320px;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .button {
+            min-height: 38px;
+            padding: 8px 13px;
+            border: 1px solid var(--accent);
+            border-radius: 7px;
+            background: var(--accent);
+            color: #ffffff;
+            cursor: pointer;
+            font-weight: 740;
+            white-space: nowrap;
+            transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+        }
+
+        .button:hover {
+            background: #0b7f73;
+            border-color: #0b7f73;
+            box-shadow: 0 12px 26px rgba(14, 147, 132, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .button.secondary {
+            border-color: var(--line-strong);
+            background: #ffffff;
+            color: var(--ink);
+            box-shadow: none;
+        }
+
+        .bench-toolbar .button.secondary {
+            border-color: rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+        }
+
+        .button.secondary:hover {
+            border-color: var(--accent-2);
+            background: #f8fbff;
+            color: var(--accent-2);
+            box-shadow: none;
+        }
+
+        .bench-toolbar .button.secondary:hover {
+            border-color: rgba(255, 255, 255, 0.36);
+            background: rgba(255, 255, 255, 0.14);
+            color: #ffffff;
+        }
+
+        .button.ghost {
+            border-color: transparent;
+            background: transparent;
+            color: var(--accent-2);
+            box-shadow: none;
+        }
+
+        .button.ghost:hover {
+            background: rgba(37, 99, 235, 0.08);
+            border-color: transparent;
+            box-shadow: none;
+        }
+
+        .button:disabled {
+            cursor: not-allowed;
+            opacity: 0.52;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .note {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .note.warn {
+            color: var(--warn);
+            font-weight: 720;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 12px;
         }
 
         .metric {
-            min-height: 92px;
             min-width: 0;
-            padding: 14px;
-            background: var(--panel);
+            min-height: 76px;
+            padding: 11px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #ffffff 0%, var(--surface-2) 100%);
         }
 
         .metric span {
             display: block;
             color: var(--muted);
-            font-size: 12px;
-            text-transform: uppercase;
+            font-size: 11px;
+            font-weight: 820;
             letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
 
         .metric strong {
             display: block;
-            margin-top: 8px;
+            margin-top: 6px;
             overflow-wrap: anywhere;
-            font-size: clamp(22px, 2vw, 28px);
+            color: var(--ink);
+            font-size: 21px;
             font-variant-numeric: tabular-nums;
         }
 
-        #metric-best {
-            font-size: clamp(20px, 1.6vw, 24px);
-            line-height: 1.2;
-        }
-
-        .metric .ok {
-            color: var(--ok);
-        }
-
-        .metric .warn {
-            color: var(--amber);
-        }
-
-        .metric .bad {
-            color: var(--red);
-        }
-
-        .command-area {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr);
-            gap: 10px;
-            align-items: start;
-            padding: 18px;
-            border-bottom: 1px solid var(--line);
-            background: #fbf8ef;
-        }
-
-        .command-area .copy-button {
-            justify-self: end;
-        }
-
-        #command-text {
+        .result-message {
+            min-height: 132px;
+            margin-bottom: 12px;
+            padding: 13px;
+            border: 1px solid rgba(217, 248, 234, 0.12);
+            border-radius: 8px;
+            background: var(--code);
+            color: var(--code-text);
+            font-family: var(--mono);
+            font-size: 13px;
             white-space: pre-wrap;
-            overflow-wrap: anywhere;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .output-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .output-head span {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .support-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 14px;
+            margin-top: 18px;
+        }
+
+        .support-panel {
+            min-width: 0;
+            padding: 16px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.86);
+            box-shadow: 0 12px 34px rgba(15, 23, 42, 0.06);
+        }
+
+        .support-panel p,
+        .support-panel li {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .support-panel ul {
+            margin: 10px 0 0;
+            padding-left: 20px;
         }
 
         pre {
-            margin: 0;
+            margin: 10px 0 0;
             overflow-x: auto;
             white-space: pre;
             font-family: var(--mono);
             font-size: 13px;
-            line-height: 1.6;
+            line-height: 1.55;
         }
 
         code {
             font-family: var(--mono);
         }
 
-        .copy-button,
-        .run-button {
-            min-height: 38px;
-            padding: 8px 12px;
-            border: 1px solid var(--ink);
-            background: var(--ink);
-            color: var(--paper);
-            white-space: nowrap;
-        }
-
-        .copy-button:hover,
-        .run-button:hover {
-            transform: translateY(-1px);
-        }
-
-        .copy-button.secondary {
-            border-color: var(--line);
-            background: var(--panel);
-            color: var(--ink);
-        }
-
-        .playground-detail {
+        .topology-strip {
             display: grid;
-            grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-            min-height: 300px;
-        }
-
-        .qasm-box,
-        .console-box {
-            padding: 18px;
-            overflow: auto;
-        }
-
-        .qasm-box {
-            border-right: 1px solid var(--line);
-        }
-
-        .custom-qasm {
-            margin-top: 14px;
-        }
-
-        .custom-qasm label {
-            display: block;
-            margin-bottom: 8px;
-            color: var(--muted);
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        .custom-qasm textarea {
-            width: 100%;
-            min-height: 150px;
-            resize: vertical;
-            padding: 12px;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            background: #fbf8ef;
-            color: var(--ink);
-            font-family: var(--mono);
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-        .input-actions {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .input-note {
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .input-note.warn {
-            color: var(--warn);
-            font-weight: 700;
-        }
-
-        .live-result-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 8px;
-            margin: 12px 0;
-        }
-
-        .live-result-card {
-            min-height: 72px;
-            min-width: 0;
-            padding: 12px;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            background: #fbf8ef;
-        }
-
-        .live-result-card span {
-            display: block;
-            color: var(--muted);
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        .live-result-card strong {
-            display: block;
-            margin-top: 6px;
-            overflow-wrap: anywhere;
-            font-size: 20px;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .metric-help {
-            margin: 0 0 12px;
-            padding: 12px;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            background: #f7f1e3;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .metric-help strong {
-            color: var(--ink);
-        }
-
-        .console {
-            min-height: 210px;
-            padding: 14px;
-            border: 1px solid #2b332f;
-            border-radius: 8px;
-            background: #121715;
-            color: #bfe8d7;
-            font-family: var(--mono);
-            font-size: 13px;
-            white-space: pre-wrap;
-        }
-
-        section {
-            margin-top: 46px;
-        }
-
-        .section-head {
-            display: flex;
-            align-items: end;
-            justify-content: space-between;
-            gap: 18px;
-            margin-bottom: 16px;
-        }
-
-        .section-head p {
-            max-width: 620px;
-            margin: 0;
-            color: var(--muted);
-        }
-
-        .panel {
-            padding: 22px;
-        }
-
-        .asset-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-            gap: 18px;
-        }
-
-        figure {
-            margin: 0;
-        }
-
-        img {
-            display: block;
-            width: 100%;
-            max-width: 100%;
-            height: auto;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            background: var(--panel);
-        }
-
-        figcaption {
-            margin-top: 8px;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .table-wrap {
-            overflow-x: auto;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            background: var(--panel);
-        }
-
-        table {
-            width: 100%;
-            min-width: 780px;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-
-        th,
-        td {
-            padding: 10px 12px;
-            border-bottom: 1px solid var(--line);
-            text-align: left;
-            white-space: nowrap;
-        }
-
-        th {
-            background: #ece8dd;
-            color: #34413d;
-            font-size: 12px;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-        }
-
-        tr:last-child td {
-            border-bottom: 0;
-        }
-
-        .pill {
-            display: inline-flex;
-            align-items: center;
-            min-height: 25px;
-            padding: 3px 9px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .pill.ok {
-            background: #dff3ea;
-            color: var(--ok);
-        }
-
-        .pill.warn {
-            background: #f6ecd2;
-            color: var(--amber);
-        }
-
-        .pill.na {
-            background: #ece8dd;
-            color: var(--muted);
-        }
-
-        .steps {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: 150px minmax(0, 1fr);
             gap: 14px;
+            align-items: center;
         }
 
-        .step {
-            min-width: 0;
-            padding: 18px;
+        .topology-strip img {
+            width: 150px;
+            max-width: 100%;
             border: 1px solid var(--line);
             border-radius: 8px;
-            background: var(--panel);
-        }
-
-        .step p {
-            color: var(--muted);
+            background: var(--surface);
         }
 
         footer {
-            margin-top: 50px;
-            padding-top: 18px;
+            margin-top: 26px;
+            padding-top: 16px;
             border-top: 1px solid var(--line);
             color: var(--muted);
             font-size: 14px;
         }
 
-        @media (max-width: 1120px) {
-            header {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-
-            nav {
-                justify-content: flex-start;
-            }
-
-            .workspace,
-            .tool-body,
-            .playground-detail,
-            .asset-grid,
-            .steps {
+        @media (max-width: 1180px) {
+            .topline,
+            .bench-toolbar,
+            .bench-body,
+            .support-grid,
+            .topology-strip {
                 grid-template-columns: 1fr;
             }
 
-            .workspace {
-                min-height: 0;
-            }
-
-            .sidebar,
-            .qasm-box {
+            .input-pane {
                 border-right: 0;
                 border-bottom: 1px solid var(--line);
             }
 
-            .status-grid,
-            .result-strip {
-                grid-template-columns: 1fr 1fr;
+            .summary-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
             }
         }
 
-        @media (max-width: 620px) {
+        @media (max-width: 680px) {
+            header {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            nav {
+                justify-content: flex-start;
+                gap: 14px;
+                max-width: 100%;
+                overflow-x: auto;
+            }
+
             main {
-                padding-top: 22px;
+                padding-top: 18px;
             }
 
-            .intro,
-            .panel {
-                padding: 18px;
-            }
-
-            .status-grid,
-            .result-strip,
-            .command-area {
+            .upload-row,
+            .summary-grid {
                 grid-template-columns: 1fr;
             }
 
+            .input-pane,
+            .result-pane {
+                padding: 14px;
+            }
+
             h1 {
-                font-size: 36px;
+                font-size: 30px;
+            }
+
+            .button {
+                width: 100%;
             }
         }
     </style>
@@ -730,384 +651,164 @@
             <span class="mark">QC</span>
             <span>ZJU Quantum Compiler</span>
         </div>
-        <nav aria-label="Primary navigation">
-            <a href="#playground">Heuristic Lab</a>
-            <a href="#benchmarks">Comparison</a>
-            <a href="#local-api">Local API</a>
-            <a href="#figures">Evidence</a>
+        <nav aria-label="主导航">
+            <a href="#compiler">编译器</a>
+            <a href="#local-api">本地 API</a>
+            <a href="#boundary">项目边界</a>
             <a href="https://github.com/qqyyqq812/ZJU-Quantum-Compiler">GitHub</a>
         </nav>
     </header>
 
     <main>
-        <div class="workspace" id="playground">
-            <section class="intro" aria-labelledby="page-title">
-                <div>
-                    <p class="eyebrow">Course topic 4 · Practical routing tool</p>
-                    <h1 id="page-title">Quantum routing heuristic lab.</h1>
-                    <p class="lead">
-                        This project maps logical quantum circuits onto constrained hardware
-                        topologies such as IBM Tokyo 20Q. The current practical path compares
-                        Qiskit SabreSwap heuristics, whose installed implementation includes
-                        LightSABRE modifications, and uses lookahead as the default static
-                        recommendation.
-                    </p>
-                    <p class="lead">
-                        Use it as a small tool first: choose a checked-in circuit or paste
-                        inline OpenQASM, select a heuristic, run the local API, and compare
-                        SWAP/depth results without claiming the experimental AI router is
-                        production-ready.
-                    </p>
+        <section class="topline" aria-labelledby="page-title">
+            <div>
+                <p class="kicker">Course topic 4 · Quantum routing workbench</p>
+                <h1 id="page-title">量子电路编译工作台</h1>
+                <p class="lead">
+                    上传或粘贴 <strong>OpenQASM 2</strong>，调用本机 <strong>API</strong>
+                    用 <strong>Qiskit SABRE</strong> 路由到 <strong>IBM Tokyo</strong>，
+                    直接拿到 <strong>SWAP</strong>、Depth 和编译后的 QASM。
+                </p>
+            </div>
+            <span class="mode offline" id="api-mode">正在检测本地 API</span>
+        </section>
+
+        <section class="workbench" id="compiler" aria-label="量子电路编译器">
+            <div class="bench-toolbar">
+                <div class="tool-title">
+                    <strong>上传编译</strong>
+                    <span>GitHub Pages 负责界面，本机 API 负责真实编译。</span>
+                </div>
+                <button class="button secondary" id="copy-api-start" type="button">复制启动命令</button>
+            </div>
+
+            <div class="bench-body">
+                <div class="input-pane">
+                    <div class="pane-head">
+                        <div>
+                            <h2>输入电路</h2>
+                            <p>选择本地 .qasm 文件，或直接粘贴 OpenQASM 2。</p>
+                        </div>
+                    </div>
+
+                    <div class="upload-row">
+                        <div class="file-box">
+                            <span class="label">文件</span>
+                            <input id="circuit-file" type="file" accept=".qasm,.txt,text/plain">
+                            <span class="file-meta" id="file-meta">尚未选择文件。浏览器只读取文本内容，不上传到 GitHub。</span>
+                        </div>
+                        <div class="select-box">
+                            <label for="heuristic-select">SABRE heuristic</label>
+                            <select id="heuristic-select">
+                                <option value="lookahead" selected>lookahead · 默认</option>
+                                <option value="basic">basic · 对照</option>
+                                <option value="decay">decay · 衰减</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <label for="qasm-input">OpenQASM 2 内容</label>
+                    <textarea id="qasm-input" maxlength="8000" spellcheck="false" placeholder="OPENQASM 2.0;
+include &quot;qelib1.inc&quot;;
+qreg q[3];
+h q[0];
+cx q[0],q[1];"></textarea>
+
+                    <div class="actions">
+                        <button class="button" id="run-compile" type="button">编译上传电路</button>
+                        <button class="button secondary" id="load-ghz-example" type="button">载入 GHZ 示例</button>
+                        <button class="button ghost" id="clear-input" type="button">清空</button>
+                        <span class="note" id="qasm-char-count">0 / 8000 字符</span>
+                    </div>
                 </div>
 
-                <div class="status-grid" aria-label="Current project status">
-                    <div class="status-item">
-                        <strong>Lookahead default</strong>
-                        <span>Best SWAP count on 8/8 local heuristic samples.</span>
+                <div class="result-pane">
+                    <div class="pane-head">
+                        <div>
+                            <h2>结果</h2>
+                            <p>成功后会显示 API 返回的 compiled_qasm。</p>
+                        </div>
                     </div>
-                    <div class="status-item">
-                        <strong>Heuristic lab</strong>
-                        <span>Compare basic, lookahead, and decay with seed=42 and trials=1.</span>
+
+                    <div class="summary-grid" aria-label="编译结果摘要">
+                        <div class="metric">
+                            <span>状态</span>
+                            <strong id="result-status">未运行</strong>
+                        </div>
+                        <div class="metric">
+                            <span>qubits</span>
+                            <strong id="result-qubits">—</strong>
+                        </div>
+                        <div class="metric">
+                            <span>输入 CX</span>
+                            <strong id="result-cx">—</strong>
+                        </div>
+                        <div class="metric">
+                            <span>SWAP</span>
+                            <strong id="result-swaps">—</strong>
+                        </div>
+                        <div class="metric">
+                            <span>Depth</span>
+                            <strong id="result-depth">—</strong>
+                        </div>
+                        <div class="metric">
+                            <span>耗时</span>
+                            <strong id="result-time">—</strong>
+                        </div>
                     </div>
-                    <div class="status-item">
-                        <strong>Live checks</strong>
-                        <span>Run checked-in or custom OpenQASM through the local API.</span>
+
+                    <div class="result-message" id="result-message">等待输入电路。启动本地 API 后，上传 .qasm 文件或粘贴 OpenQASM 2，再点击“编译上传电路”。</div>
+
+                    <div class="output-head">
+                        <label for="compiled-qasm">路由后的 OpenQASM</label>
+                        <span>compiled_qasm</span>
+                    </div>
+                    <textarea class="compiled-output" id="compiled-qasm" readonly placeholder="编译成功后，这里会显示路由后的 QASM。"></textarea>
+
+                    <div class="actions">
+                        <button class="button secondary" id="copy-result" type="button">复制结果</button>
+                        <button class="button secondary" id="download-qasm" type="button" disabled>下载 QASM</button>
+                        <button class="button secondary" id="download-json" type="button" disabled>下载 JSON</button>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <div class="support-grid">
+            <section class="support-panel" id="local-api" aria-labelledby="api-title">
+                <h2 id="api-title">本地 API</h2>
+                <p>
+                    页面请求 <code>http://localhost:8765/api/compile</code>。
+                    GitHub Pages 不能运行 Python，所以必须先启动本地服务。
+                </p>
+                <pre id="api-start-command"><code>uvicorn src.server.app:app --reload --port 8765</code></pre>
             </section>
 
-            <section class="tool-panel" aria-label="Interactive compiler playground">
-                <div class="tool-head">
+            <section class="support-panel" id="boundary" aria-labelledby="boundary-title">
+                <div class="topology-strip">
+                    <img src="assets/ibm-tokyo-topology.png" alt="IBM Tokyo 20Q coupling topology">
                     <div>
-                        <p class="eyebrow">Try a routing case</p>
-                        <h2>Compare SabreSwap heuristics</h2>
-                    </div>
-                    <span class="mode" id="api-mode">Static GitHub Pages mode</span>
-                </div>
-
-                <div class="tool-body">
-                    <aside class="sidebar">
-                        <h3>Example circuits</h3>
-                        <div class="selector" role="list">
-                            <button class="sample-button active" data-sample="qft5">
-                                QFT 5
-                                <small>Dense two-qubit interactions</small>
-                            </button>
-                            <button class="sample-button" data-sample="qaoa5">
-                                QAOA 5
-                                <small>Parameterized optimization layer</small>
-                            </button>
-                            <button class="sample-button" data-sample="ghz5">
-                                GHZ 5
-                                <small>Small entanglement chain</small>
-                            </button>
-                            <button class="sample-button" data-sample="qft10">
-                                QFT 10
-                                <small>Larger dense routing pressure</small>
-                            </button>
-                            <button class="sample-button" data-sample="qaoa10">
-                                QAOA 10
-                                <small>10Q optimization workload</small>
-                            </button>
-                            <button class="sample-button" data-sample="ghz10">
-                                GHZ 10
-                                <small>10Q low-pressure sanity check</small>
-                            </button>
-                            <button class="sample-button" data-sample="vqe10">
-                                VQE-like 10
-                                <small>Structured variational circuit</small>
-                            </button>
-                        </div>
-                    </aside>
-
-                    <div class="viewer">
-                        <div class="result-strip" aria-label="Selected benchmark metrics">
-                            <div class="metric">
-                                <span>Basic swaps</span>
-                                <strong id="metric-basic">8</strong>
-                            </div>
-                            <div class="metric">
-                                <span>Lookahead swaps</span>
-                                <strong id="metric-lookahead">7</strong>
-                            </div>
-                            <div class="metric">
-                                <span>Decay swaps</span>
-                                <strong id="metric-decay">7</strong>
-                            </div>
-                            <div class="metric">
-                                <span>Best heuristic</span>
-                                <strong id="metric-best" class="ok">lookahead</strong>
-                            </div>
-                        </div>
-
-                        <div class="heuristic-picker" aria-label="Select SABRE heuristic">
-                            <button class="heuristic-button" data-heuristic="basic" type="button">basic</button>
-                            <button class="heuristic-button active" data-heuristic="lookahead" type="button">lookahead</button>
-                            <button class="heuristic-button" data-heuristic="decay" type="button">decay</button>
-                        </div>
-
-                        <div class="command-area">
-                            <pre id="command-text"><code>qcompiler compile examples/qft5.qasm --topology tokyo --backend sabre --heuristic lookahead</code></pre>
-                            <button class="copy-button" id="copy-command" type="button">Copy command</button>
-                        </div>
-
-                        <div class="playground-detail">
-                            <div class="qasm-box">
-                                <h3>Circuit preview</h3>
-                                <pre id="qasm-preview"><code></code></pre>
-                                <div class="custom-qasm">
-                                    <label for="custom-qasm">Optional inline OpenQASM 2</label>
-                                    <textarea id="custom-qasm" maxlength="8000" spellcheck="false" placeholder="Paste a small OpenQASM 2 circuit here. Leave empty to run the selected example."></textarea>
-                                    <div class="input-actions">
-                                        <button class="copy-button secondary" id="fill-ghz-qasm" type="button">Fill GHZ mini</button>
-                                        <button class="copy-button secondary" id="use-custom-qasm" type="button">Use custom QASM</button>
-                                        <button class="copy-button secondary" id="clear-custom-qasm" type="button">Clear</button>
-                                        <span class="input-note">Limit: 8,000 chars and 20 qubits on IBM Tokyo.</span>
-                                        <span class="input-note" id="qasm-char-count">0 / 8000 chars</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="console-box">
-                                <h3>Heuristic explanation</h3>
-                                <div class="live-result-grid" aria-label="Live API result summary">
-                                    <div class="live-result-card">
-                                        <span>Status</span>
-                                        <strong id="live-status">Not run</strong>
-                                    </div>
-                                    <div class="live-result-card">
-                                        <span>SWAP</span>
-                                        <strong id="live-swaps">—</strong>
-                                    </div>
-                                    <div class="live-result-card">
-                                        <span>Depth</span>
-                                        <strong id="live-depth">—</strong>
-                                    </div>
-                                    <div class="live-result-card">
-                                        <span>Match</span>
-                                        <strong id="live-match">—</strong>
-                                    </div>
-                                </div>
-                                <p class="metric-help">
-                                    <strong>SWAP</strong> counts inserted routing swaps;
-                                    lower is usually better. <strong>Depth</strong> is the routed
-                                    circuit depth. <strong>Match</strong> says whether the live API
-                                    equals the checked-in static table for this sample.
-                                </p>
-                                <div class="console" id="result-console"></div>
-                                <div class="input-actions">
-                                    <button class="run-button" id="run-local" type="button">
-                                        Check local API
-                                    </button>
-                                    <button class="copy-button secondary" id="copy-result" type="button">
-                                        Copy result
-                                    </button>
-                                    <a class="copy-button secondary" id="download-result-json" download="quantum-routing-result.json" href="#" role="button">
-                                        Download JSON
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
+                        <h2 id="boundary-title">项目边界</h2>
+                        <ul>
+                            <li>默认硬件是 <strong>IBM Tokyo 20Q</strong>，inline 输入限制 8000 字符。</li>
+                            <li><strong>SABRE</strong> 使用 <code>seed=42</code> 和 <code>trials=1</code>。</li>
+                            <li><strong>AI router</strong> 只作为研究证据保留，公开默认路径仍是 SABRE。</li>
+                        </ul>
                     </div>
                 </div>
             </section>
         </div>
 
-        <section id="assets" aria-labelledby="assets-title">
-            <div class="section-head">
-                <h2 id="assets-title">Hardware view</h2>
-                <p>
-                    The current public evaluation targets IBM Tokyo 20Q. The static
-                    page uses checked-in assets, so the project remains inspectable
-                    directly from GitHub Pages.
-                </p>
-            </div>
-            <div class="asset-grid">
-                <figure>
-                    <img src="assets/ibm-tokyo-topology.png" alt="IBM Tokyo 20Q coupling topology">
-                    <figcaption>IBM Tokyo 20-qubit coupling map used for P1 evaluation.</figcaption>
-                </figure>
-                <figure>
-                    <img src="assets/ibm-tokyo-route-demo.gif" alt="Animated quantum circuit route demo on IBM Tokyo topology">
-                    <figcaption>Route trace demo generated from the project visualization tools.</figcaption>
-                </figure>
-            </div>
-            <div class="metric-help topology-facts" aria-label="IBM Tokyo topology facts">
-                <strong>Topology facts:</strong>
-                20 physical qubits · 43 undirected couplings · diameter 4 · average shortest path 2.25 ·
-                max degree 6. These constraints are why dense circuits such as QFT-10 need SWAP routing.
-            </div>
-        </section>
-
-        <section id="benchmarks" aria-labelledby="benchmarks-title">
-            <div class="section-head">
-                <h2 id="benchmarks-title">Heuristic comparison v1</h2>
-                <p>
-                    Static rows generated from checked-in QASM examples through the same
-                    local API path with <code>seed=42</code> and <code>trials=1</code>.
-                    Qiskit 2.3.1 implements SabreSwap with LightSABRE modifications; this
-                    page uses the reproducible single-trial rows to pick
-                    <code>lookahead</code> as the default practical heuristic.
-                </p>
-            </div>
-
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Circuit</th>
-                            <th>Qubits</th>
-                            <th>Basic SWAP</th>
-                            <th>Lookahead SWAP</th>
-                            <th>Decay SWAP</th>
-                            <th>Best</th>
-                        </tr>
-                    </thead>
-                    <tbody id="benchmark-body"></tbody>
-                </table>
-            </div>
-        </section>
-
-        <section id="local-api" aria-labelledby="api-title">
-            <div class="section-head">
-                <h2 id="api-title">Local API and CLI</h2>
-                <p>
-                    GitHub Pages runs the heuristic lab in static mode. The current local API
-                    now accepts a <code>heuristic</code> parameter for the stable SABRE backend,
-                    so you can compare <code>basic</code>, <code>lookahead</code>, and
-                    <code>decay</code> against the checked-in static table. The live path is
-                    intentionally fixed to <code>trials=1</code> for stable static/live
-                    reproducibility.
-                </p>
-            </div>
-
-            <div class="steps">
-                <div class="step">
-                    <h3>1. Install</h3>
-                    <p>Install the package in editable mode with the existing virtual environment.</p>
-                    <pre><code>pip install -e .[dev]</code></pre>
-                </div>
-                <div class="step">
-                    <h3>2. Reproduce default route</h3>
-                    <p>Use the stable SABRE backend locally with the practical default heuristic.</p>
-                    <pre><code>qcompiler compile examples/qft5.qasm --topology tokyo --backend sabre --heuristic lookahead</code></pre>
-                </div>
-                <div class="step">
-                    <h3>3. Start API</h3>
-                    <p>Enable live mode for this page on your machine.</p>
-                    <pre id="api-start-command"><code>uvicorn src.server.app:app --reload --port 8765</code></pre>
-                    <button class="copy-button secondary" id="copy-api-start" type="button">
-                        Copy API start command
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <section id="figures" aria-labelledby="figures-title">
-            <div class="section-head">
-                <h2 id="figures-title">Background evidence</h2>
-                <p>
-                    AI-router history is kept as workload and failure-analysis evidence only.
-                    The practical website path stays centered on reproducible SABRE heuristic
-                    routing.
-                </p>
-            </div>
-            <div class="asset-grid">
-                <figure>
-                    <img src="figures/v14_training_curve.png" alt="V14 training curve on IBM Tokyo topology">
-                    <figcaption>V14 training curve from the current evidence pack.</figcaption>
-                </figure>
-                <figure>
-                    <img src="figures/v14_completion_rate.png" alt="V14 completion rate chart">
-                    <figcaption>Completion-rate evidence used to diagnose the V14 checkpoint.</figcaption>
-                </figure>
-            </div>
-        </section>
-
-        <section id="roadmap" aria-labelledby="roadmap-title">
-            <div class="section-head">
-                <h2 id="roadmap-title">Roadmap</h2>
-                <p>
-                    The next steps keep the tool useful first, then add richer algorithms only
-                    when they improve reproducible routing.
-                </p>
-            </div>
-            <div class="panel">
-                <ul>
-                    <li>Keep live heuristic comparison as the main website workflow.</li>
-                    <li>Add a documented multi-trial mode only after adding matching expected rows.</li>
-                    <li>Improve custom OpenQASM input and result readability.</li>
-                    <li>Keep bounded search as failure-analysis evidence, not a website algorithm.</li>
-                    <li>Use V14/V15 AI history as background evidence, not a product claim.</li>
-                    <li>Add MCTS or learning-based routes only after small experiments justify them.</li>
-                </ul>
-            </div>
-        </section>
-
         <footer>
             <p>
-                ZJU Quantum Compiler is an open research engineering project. See
-                <a href="https://github.com/qqyyqq812/ZJU-Quantum-Compiler#readme">README</a> and
-                <a href="technical/decisions.md">technical decisions</a> for the full trail.
+                源码见
+                <a href="https://github.com/qqyyqq812/ZJU-Quantum-Compiler#readme">GitHub README</a>。
+                本页面保留必要英文专有名词：OpenQASM 2、SABRE、SWAP、Qiskit、API。
             </p>
         </footer>
     </main>
 
     <script>
-        const heuristicRows = [
-            { name: "qft_5", qubits: 5, basic: 8, lookahead: 7, decay: 7, depth: "55", best: "lookahead" },
-            { name: "qaoa_5", qubits: 5, basic: 3, lookahead: 3, decay: 3, depth: "25", best: "tie" },
-            { name: "ghz_5", qubits: 5, basic: 0, lookahead: 0, decay: 0, depth: "7", best: "tie" },
-            { name: "qft_10", qubits: 10, basic: 42, lookahead: 29, decay: 30, depth: "156", best: "lookahead" },
-            { name: "qaoa_10", qubits: 10, basic: 7, lookahead: 7, decay: 7, depth: "42", best: "tie" },
-            { name: "ghz_10", qubits: 10, basic: 4, lookahead: 4, decay: 4, depth: "14", best: "tie" },
-            { name: "vqe_like_10", qubits: 10, basic: 4, lookahead: 4, decay: 4, depth: "21", best: "tie" }
-        ];
-
-        const samples = {
-            qft5: {
-                label: "QFT 5",
-                apiExample: "qft5",
-                row: heuristicRows[0],
-                qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[5];\nrz(pi/2) q[4];\nsx q[4];\nrz(pi/2) q[4];\nrz(pi/4) q[4];\ncx q[4],q[3];\nrz(-pi/4) q[3];\ncx q[4],q[3];\n...\ncx q[4],q[0];\ncx q[0],q[4];`
-            },
-            qaoa5: {
-                label: "QAOA 5",
-                apiExample: "qaoa5",
-                row: heuristicRows[1],
-                qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[5];\nrz(pi/2) q[0];\nsx q[0];\nrz(pi/2) q[0];\ncx q[0],q[1];\nrz(2.353304971691044) q[1];\ncx q[0],q[1];\n...\nrz(5*pi/2) q[4];`
-            },
-            ghz5: {
-                label: "GHZ 5",
-                apiExample: "ghz5",
-                row: heuristicRows[2],
-                qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[5];\nh q[0];\ncx q[0],q[1];\ncx q[1],q[2];\ncx q[2],q[3];\ncx q[3],q[4];`
-            },
-            qft10: {
-                label: "QFT 10",
-                apiExample: "qft10",
-                row: heuristicRows[3],
-                qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[10];\n// QFT-10 has dense long-range controlled rotations.\n// Routing pressure exposes the difference between basic and lookahead heuristics.\n...`
-            },
-            qaoa10: {
-                label: "QAOA 10",
-                apiExample: "qaoa10",
-                row: heuristicRows[4],
-                qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[10];\n// 10-qubit QAOA-style circuit with nearest-neighbor and skip entanglers.\n// This case checks whether heuristic differences matter on structured workloads.\n...`
-            },
-            ghz10: {
-                label: "GHZ 10",
-                apiExample: "ghz10",
-                row: heuristicRows[5],
-                qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[10];\nh q[0];\n// GHZ-10 uses a simple entanglement chain.\n// It is a sanity-check case for low routing pressure.\n...`
-            },
-            vqe10: {
-                label: "VQE-like 10",
-                apiExample: "vqe10",
-                row: heuristicRows[6],
-                qasm: `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[10];\n// Structured variational circuit with local and skip entanglers.\nry(0.1) q[0];\nrz(0.2) q[0];\n...\ncx q[0],q[2];`
-            }
-        };
-
         const apiBase = "http://localhost:8765";
         const maxInlineQasmChars = 8000;
         const miniGhzQasm = `OPENQASM 2.0;
@@ -1117,316 +818,152 @@ h q[0];
 cx q[0],q[1];
 cx q[1],q[2];
 `;
+
         let apiReady = false;
-        let selectedSample = "qft5";
-        let selectedHeuristic = "lookahead";
-        let useCustomQasm = false;
+        let selectedFileName = null;
         let lastResult = null;
 
-        function bestClass(best) {
-            return best === "lookahead" ? "ok" : "na";
+        const els = {
+            apiMode: document.getElementById("api-mode"),
+            fileInput: document.getElementById("circuit-file"),
+            fileMeta: document.getElementById("file-meta"),
+            qasmInput: document.getElementById("qasm-input"),
+            charCount: document.getElementById("qasm-char-count"),
+            heuristic: document.getElementById("heuristic-select"),
+            resultStatus: document.getElementById("result-status"),
+            resultQubits: document.getElementById("result-qubits"),
+            resultCx: document.getElementById("result-cx"),
+            resultSwaps: document.getElementById("result-swaps"),
+            resultDepth: document.getElementById("result-depth"),
+            resultTime: document.getElementById("result-time"),
+            resultMessage: document.getElementById("result-message"),
+            compiledQasm: document.getElementById("compiled-qasm"),
+            downloadQasm: document.getElementById("download-qasm"),
+            downloadJson: document.getElementById("download-json")
+        };
+
+        function currentQasm() {
+            return els.qasmInput.value.trim();
         }
 
-        function runnableCommand(sample, heuristic) {
-            if (useCustomQasm) {
-                return `API template: POST ${apiBase}/api/compile with backend=sabre, topology=tokyo, heuristic=${heuristic}, and qasm=<inline OpenQASM 2>`;
-            }
-            return `qcompiler compile examples/${sample.apiExample}.qasm --topology tokyo --backend sabre --heuristic ${heuristic}`;
-        }
-
-        function sabreImplementationNote(heuristic) {
-            return `Implementation: SabreSwap(coupling_map=ibm_tokyo, heuristic="${heuristic}", seed=42, trials=1)`;
-        }
-
-        function expectedSwaps(sample, heuristic) {
-            return sample.row[heuristic];
-        }
-
-        function formatLiveCheck(data, sample, heuristic) {
-            const expected = expectedSwaps(sample, heuristic);
-            const matches = data.swaps === expected;
-            return [
-                `expected_swaps: ${expected}`,
-                `live_swaps: ${data.swaps}`,
-                `static_live_match: ${matches ? "yes" : "no"}`,
-                matches
-                    ? "Check: live API matches the static table for this sample and heuristic."
-                    : "Check: live API differs from the static table; treat this as a reproducibility warning."
-            ];
-        }
-
-        function customQasmText() {
-            return document.getElementById("custom-qasm").value.trim();
-        }
-
-        function updateQasmCharCount() {
-            const countEl = document.getElementById("qasm-char-count");
-            const length = document.getElementById("custom-qasm").value.length;
-            countEl.textContent = `${length} / ${maxInlineQasmChars} chars`;
-            countEl.classList.toggle("warn", length > maxInlineQasmChars * 0.9);
-        }
-
-        function setLiveSummary(status, swaps = "—", depth = "—", match = "—") {
-            document.getElementById("live-status").textContent = status;
-            document.getElementById("live-swaps").textContent = swaps;
-            document.getElementById("live-depth").textContent = depth;
-            document.getElementById("live-match").textContent = match;
-        }
-
-        function buildResultExportPayload() {
-            const sample = samples[selectedSample];
-            const command = document.getElementById("command-text").textContent.trim();
-            const resultText = document.getElementById("result-console").textContent.trim();
-            const qasmPreview = document.getElementById("qasm-preview").textContent.trim();
-            return {
-                exported_at: new Date().toISOString(),
-                input_mode: useCustomQasm ? "custom_inline_qasm" : "checked_in_example",
-                selected_sample: selectedSample,
-                sample_label: useCustomQasm ? "Custom inline OpenQASM 2" : sample.label,
-                api_example: useCustomQasm ? null : sample.apiExample,
-                backend: "sabre",
-                topology: "ibm_tokyo",
-                heuristic: selectedHeuristic,
-                api_base: apiBase,
-                api_ready: apiReady,
-                command,
-                live_summary: {
-                    status: document.getElementById("live-status").textContent,
-                    swaps: document.getElementById("live-swaps").textContent,
-                    depth: document.getElementById("live-depth").textContent,
-                    match: document.getElementById("live-match").textContent
-                },
-                static_expected: useCustomQasm ? null : {
-                    basic_swaps: sample.row.basic,
-                    lookahead_swaps: sample.row.lookahead,
-                    decay_swaps: sample.row.decay,
-                    best_heuristic: sample.row.best,
-                    selected_swaps: sample.row[selectedHeuristic],
-                    depth: sample.row.depth
-                },
-                qasm_preview: qasmPreview,
-                result_text: resultText,
-                live_response: lastResult
-            };
-        }
-
-        function downloadResultJson(event) {
-            event.preventDefault();
-            const payload = buildResultExportPayload();
-            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-            const objectUrl = URL.createObjectURL(blob);
-            const scratch = document.createElement("a");
-            scratch.href = objectUrl;
-            scratch.download = "quantum-routing-result.json";
-            document.body.appendChild(scratch);
-            scratch.click();
-            scratch.remove();
-            window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-        }
-
-        function formatApiError(error) {
-            const message = error.message || String(error);
-            const tips = [
-                `error: ${message}`,
-                "",
-                "Next checks:",
-                "1. Confirm the local API is running on port 8765.",
-                "2. If this is custom QASM, keep it as OpenQASM 2 with qelib1.inc.",
-                "3. Keep inline QASM under 8000 characters and at most 20 qubits.",
-                "4. Retry with Fill GHZ mini to separate API issues from QASM syntax issues."
-            ];
-            return tips.join("\n");
-        }
-
-        function renderBenchmarks() {
-            const body = document.getElementById("benchmark-body");
-            body.innerHTML = heuristicRows.map((row) => `
-                <tr>
-                    <td>${row.name}</td>
-                    <td>${row.qubits}</td>
-                    <td>${row.basic}</td>
-                    <td>${row.lookahead}</td>
-                    <td>${row.decay}</td>
-                    <td><span class="pill ${bestClass(row.best)}">${row.best}</span></td>
-                </tr>
-            `).join("");
-        }
-
-        function explain(sample) {
-            const row = sample.row;
-            if (useCustomQasm) {
-                return [
-                    runnableCommand(sample, selectedHeuristic),
-                    sabreImplementationNote(selectedHeuristic),
-                    "",
-                    "Input mode: custom inline OpenQASM 2",
-                    "Topology: IBM Tokyo 20Q",
-                    `Selected heuristic: ${selectedHeuristic}`,
-                    "",
-                    "Static/live consistency is disabled for custom input because there is no checked-in expected row.",
-                    "Use the local API to compile this QASM and inspect SWAP/depth."
-                ].join("\n");
-            }
-            const bestLine = row.best === "lookahead"
-                ? "Lookahead wins on SWAP count for this case."
-                : "All three heuristics tie on SWAP count for this case.";
-            const selectedSwaps = row[selectedHeuristic];
-            const selectedLine = selectedHeuristic === row.best || row.best === "tie"
-                ? `Selected heuristic ${selectedHeuristic} is currently tied for best on this sample.`
-                : `Selected heuristic ${selectedHeuristic} is useful for comparison, but ${row.best} has fewer SWAPs here.`;
-            return [
-                runnableCommand(sample, selectedHeuristic),
-                sabreImplementationNote(selectedHeuristic),
-                "",
-                `Circuit: ${sample.label}`,
-                `Topology: IBM Tokyo 20Q`,
-                `Basic SWAP: ${row.basic}`,
-                `Lookahead SWAP: ${row.lookahead}`,
-                `Decay SWAP: ${row.decay}`,
-                `Best heuristic: ${row.best}`,
-                `Selected heuristic: ${selectedHeuristic}`,
-                `Selected SWAP: ${selectedSwaps}`,
-                `Routed depth with default: ${row.depth}`,
-                "",
-                bestLine,
-                selectedLine,
-                "Static table: generated from checked-in QASM examples with Qiskit 2.3.1, seed=42, and trials=1.",
-                "Implementation note: Qiskit SabreSwap includes LightSABRE modifications in this environment.",
-                "Multi-trial mode can be stronger on some cases, but is not enabled here to keep static/live checks stable.",
-                "Live local API accepts this heuristic for checked-in QASM examples."
-            ].join("\n");
-        }
-
-        function selectSample(name) {
-            selectedSample = name;
-            useCustomQasm = false;
-            lastResult = null;
-            const sample = samples[name];
-            const row = sample.row;
-            document.querySelectorAll(".sample-button").forEach((button) => {
-                button.classList.toggle("active", button.dataset.sample === name);
-            });
-            document.getElementById("metric-basic").textContent = row.basic;
-            document.getElementById("metric-lookahead").textContent = row.lookahead;
-            document.getElementById("metric-decay").textContent = row.decay;
-            const best = document.getElementById("metric-best");
-            best.textContent = row.best;
-            best.className = bestClass(row.best);
-            document.getElementById("command-text").textContent = runnableCommand(sample, selectedHeuristic);
-            document.getElementById("qasm-preview").textContent = sample.qasm;
-            document.getElementById("result-console").textContent = explain(sample);
-            setLiveSummary("Not run");
-        }
-
-        function selectHeuristic(name) {
-            selectedHeuristic = name;
-            document.querySelectorAll(".heuristic-button").forEach((button) => {
-                button.classList.toggle("active", button.dataset.heuristic === name);
-            });
-            if (useCustomQasm) {
-                document.getElementById("command-text").textContent = runnableCommand(samples[selectedSample], selectedHeuristic);
-                document.getElementById("result-console").textContent = explain(samples[selectedSample]);
-                setLiveSummary("Custom ready");
-                return;
-            }
-            selectSample(selectedSample);
-        }
-
-        function useCustomInput() {
-            const qasm = customQasmText();
-            const consoleEl = document.getElementById("result-console");
-            if (!qasm) {
-                consoleEl.textContent = "Custom QASM is empty. Paste OpenQASM 2 text or use a checked-in example.";
-                return;
-            }
-            if (qasm.length > maxInlineQasmChars) {
-                consoleEl.textContent = `Custom QASM is too large: ${qasm.length}/${maxInlineQasmChars} characters.`;
-                return;
-            }
-            useCustomQasm = true;
-            lastResult = null;
-            document.querySelectorAll(".sample-button").forEach((button) => {
-                button.classList.remove("active");
-            });
-            document.getElementById("command-text").textContent = runnableCommand(samples[selectedSample], selectedHeuristic);
-            document.getElementById("qasm-preview").textContent = qasm;
-            document.getElementById("metric-basic").textContent = "—";
-            document.getElementById("metric-lookahead").textContent = "—";
-            document.getElementById("metric-decay").textContent = "—";
-            const best = document.getElementById("metric-best");
-            best.textContent = "custom";
-            best.className = "warn";
-            consoleEl.textContent = explain(samples[selectedSample]);
-            setLiveSummary("Custom ready");
-        }
-
-        function fillMiniGhzInput() {
-            document.getElementById("custom-qasm").value = miniGhzQasm;
-            updateQasmCharCount();
-            useCustomInput();
-        }
-
-        function clearCustomInput() {
-            document.getElementById("custom-qasm").value = "";
-            updateQasmCharCount();
-            useCustomQasm = false;
-            lastResult = null;
-            selectSample(selectedSample);
+        function setApiMode(ready) {
+            apiReady = ready;
+            els.apiMode.textContent = ready ? "本地 API 已连接" : "本地 API 未连接";
+            els.apiMode.classList.toggle("ready", ready);
+            els.apiMode.classList.toggle("offline", !ready);
         }
 
         async function detectApi() {
             const controller = new AbortController();
-            const timer = window.setTimeout(() => controller.abort(), 450);
+            const timer = window.setTimeout(() => controller.abort(), 700);
             try {
                 const response = await fetch(`${apiBase}/api/status`, { signal: controller.signal });
-                apiReady = response.ok;
+                setApiMode(response.ok);
             } catch (_) {
-                apiReady = false;
+                setApiMode(false);
             } finally {
                 window.clearTimeout(timer);
             }
-            const mode = document.getElementById("api-mode");
-            mode.textContent = apiReady ? "Live local API mode" : "Static GitHub Pages mode";
         }
 
-        async function runLocalApi() {
-            const sample = samples[selectedSample];
-            const consoleEl = document.getElementById("result-console");
-            const qasm = customQasmText();
-            if (!useCustomQasm && qasm) {
-                useCustomInput();
-            }
-            if (useCustomQasm && !qasm) {
-                consoleEl.textContent = "Custom QASM mode is active, but the input is empty.";
-                setLiveSummary("Input error");
+        function updateCharCount() {
+            const length = els.qasmInput.value.length;
+            els.charCount.textContent = `${length} / ${maxInlineQasmChars} 字符`;
+            els.charCount.classList.toggle("warn", length > maxInlineQasmChars * 0.9);
+        }
+
+        function setSummary(data) {
+            els.resultStatus.textContent = data.status ?? "—";
+            els.resultQubits.textContent = data.input_qubits ?? "—";
+            els.resultCx.textContent = data.input_cx ?? "—";
+            els.resultSwaps.textContent = data.swaps ?? "—";
+            els.resultDepth.textContent = data.depth ?? "—";
+            els.resultTime.textContent = Number.isFinite(data.elapsed_ms)
+                ? `${Math.round(data.elapsed_ms)} ms`
+                : "—";
+        }
+
+        function resetSummary(status = "未运行") {
+            setSummary({
+                status,
+                input_qubits: "—",
+                input_cx: "—",
+                swaps: "—",
+                depth: "—",
+                elapsed_ms: NaN
+            });
+            els.compiledQasm.value = "";
+            els.downloadQasm.disabled = true;
+            els.downloadJson.disabled = true;
+            lastResult = null;
+        }
+
+        function formatError(error) {
+            return [
+                `编译失败：${error.message || String(error)}`,
+                "",
+                "检查项：",
+                "1. 本地 API 是否正在 8765 端口运行。",
+                "2. 输入是否为 OpenQASM 2，并包含 qelib1.inc。",
+                "3. 电路是否不超过 20 个 qubits。",
+                "4. 文件内容是否不超过 8000 字符。"
+            ].join("\n");
+        }
+
+        async function readSelectedFile(file) {
+            selectedFileName = file.name;
+            if (file.size > maxInlineQasmChars * 4) {
+                els.fileMeta.textContent = `${file.name} 太大，建议上传不超过 ${maxInlineQasmChars} 字符的 OpenQASM 2。`;
+                els.fileMeta.classList.add("warn");
                 return;
             }
-            if (useCustomQasm && qasm.length > maxInlineQasmChars) {
-                consoleEl.textContent = `Custom QASM is too large: ${qasm.length}/${maxInlineQasmChars} characters.`;
-                setLiveSummary("Input error");
+            const text = await file.text();
+            els.qasmInput.value = text;
+            els.fileMeta.textContent = `已读取 ${file.name}，${text.length} 字符。`;
+            els.fileMeta.classList.remove("warn");
+            updateCharCount();
+            resetSummary("待编译");
+            els.resultMessage.textContent = "文件已读取到浏览器内存。点击“编译上传电路”后，会把内容发送给本地 API。";
+        }
+
+        async function compileUploadedCircuit() {
+            const qasm = currentQasm();
+            const heuristic = els.heuristic.value;
+            if (!qasm) {
+                resetSummary("输入为空");
+                els.resultMessage.textContent = "请先上传 .qasm 文件，或粘贴 OpenQASM 2 电路。";
                 return;
             }
+            if (qasm.length > maxInlineQasmChars) {
+                resetSummary("输入过长");
+                els.resultMessage.textContent = `当前输入 ${qasm.length} 字符，超过 ${maxInlineQasmChars} 字符限制。`;
+                return;
+            }
+
             await detectApi();
             if (!apiReady) {
-                consoleEl.textContent = `${explain(sample)}\n\nLocal API is not running. Start it with:\nuvicorn src.server.app:app --reload --port 8765`;
-                setLiveSummary("API offline");
+                resetSummary("API 离线");
+                els.resultMessage.textContent = [
+                    "本地 API 未连接，GitHub Pages 不能单独编译电路。",
+                    "",
+                    "请在仓库根目录启动：",
+                    "uvicorn src.server.app:app --reload --port 8765",
+                    "",
+                    "服务启动后再点击“编译上传电路”。"
+                ].join("\n");
                 return;
             }
-            consoleEl.textContent = useCustomQasm
-                ? `Calling local compiler API with custom QASM and heuristic=${selectedHeuristic}.`
-                : `Calling local compiler API with example=${sample.apiExample} and heuristic=${selectedHeuristic}.`;
-            setLiveSummary("Running");
+
+            resetSummary("运行中");
+            els.resultMessage.textContent = `正在调用 ${apiBase}/api/compile，heuristic=${heuristic}。`;
+
             try {
                 const payload = {
+                    qasm,
                     backend: "sabre",
                     topology: "tokyo",
-                    heuristic: selectedHeuristic
+                    heuristic
                 };
-                if (useCustomQasm) {
-                    payload.qasm = qasm;
-                } else {
-                    payload.example = sample.apiExample;
-                }
                 const response = await fetch(`${apiBase}/api/compile`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -1436,95 +973,46 @@ cx q[1],q[2];
                 if (!response.ok) {
                     throw new Error(data.detail || `HTTP ${response.status}`);
                 }
-                lastResult = data;
-                const liveCheck = useCustomQasm
-                    ? [
-                        "expected_swaps: n/a",
-                        `live_swaps: ${data.swaps}`,
-                        "static_live_match: n/a",
-                        "Check: custom input has no static expected row."
-                    ]
-                    : formatLiveCheck(data, sample, selectedHeuristic);
-                const match = useCustomQasm
-                    ? "n/a"
-                    : (data.swaps === expectedSwaps(sample, selectedHeuristic) ? "yes" : "no");
-                setLiveSummary(
-                    data.status,
-                    data.swaps ?? "—",
-                    data.depth ?? "—",
-                    match
-                );
-                consoleEl.textContent = [
-                    "Local API response",
-                    `status: ${data.status}`,
+
+                lastResult = {
+                    source_file: selectedFileName,
+                    request: {
+                        backend: "sabre",
+                        topology: "tokyo",
+                        heuristic,
+                        qasm_chars: qasm.length
+                    },
+                    response: data
+                };
+                setSummary(data);
+                els.compiledQasm.value = data.compiled_qasm || "";
+                els.downloadQasm.disabled = !data.compiled_qasm;
+                els.downloadJson.disabled = false;
+                els.resultMessage.textContent = [
+                    "编译完成。",
                     `backend: ${data.backend}`,
                     `heuristic: ${data.heuristic}`,
                     `topology: ${data.topology}`,
+                    `circuit: ${data.circuit_name}`,
+                    `input_qubits: ${data.input_qubits}`,
                     `input_cx: ${data.input_cx}`,
                     `swaps: ${data.swaps}`,
                     `depth: ${data.depth}`,
-                    data.message ? `message: ${data.message}` : "",
-                    "",
-                    "Static/live consistency",
-                    ...liveCheck,
-                    "",
-                    "Live API note: this response runs the selected SABRE heuristic."
+                    data.message ? `message: ${data.message}` : ""
                 ].filter(Boolean).join("\n");
             } catch (error) {
+                resetSummary("失败");
                 lastResult = { error: error.message || String(error) };
-                consoleEl.textContent = `Local API request failed\n\n${formatApiError(error)}`;
-                setLiveSummary("Request failed");
+                els.resultMessage.textContent = formatError(error);
             }
         }
 
-        document.querySelectorAll(".sample-button").forEach((button) => {
-            button.addEventListener("click", () => selectSample(button.dataset.sample));
-        });
-
-        document.querySelectorAll(".heuristic-button").forEach((button) => {
-            button.addEventListener("click", () => selectHeuristic(button.dataset.heuristic));
-        });
-
-        document.getElementById("fill-ghz-qasm").addEventListener("click", fillMiniGhzInput);
-        document.getElementById("use-custom-qasm").addEventListener("click", useCustomInput);
-        document.getElementById("clear-custom-qasm").addEventListener("click", clearCustomInput);
-        document.getElementById("custom-qasm").addEventListener("input", updateQasmCharCount);
-
-        document.getElementById("copy-command").addEventListener("click", async () => {
-            const command = document.getElementById("command-text").textContent.trim();
-            await copyText(command);
-            document.getElementById("copy-command").textContent = "Copied";
-            window.setTimeout(() => {
-                document.getElementById("copy-command").textContent = "Copy command";
-            }, 1200);
-        });
-
-        document.getElementById("copy-api-start").addEventListener("click", async () => {
-            const command = document.getElementById("api-start-command").textContent.trim();
-            await copyText(command);
-            document.getElementById("copy-api-start").textContent = "Copied";
-            window.setTimeout(() => {
-                document.getElementById("copy-api-start").textContent = "Copy API start command";
-            }, 1200);
-        });
-
-        document.getElementById("copy-result").addEventListener("click", async () => {
-            const resultText = document.getElementById("result-console").textContent.trim();
-            await copyText(resultText || "No result yet. Run a sample or select a circuit first.");
-            document.getElementById("copy-result").textContent = "Copied";
-            window.setTimeout(() => {
-                document.getElementById("copy-result").textContent = "Copy result";
-            }, 1200);
-        });
-
-        document.getElementById("download-result-json").addEventListener("click", downloadResultJson);
-
-        async function copyText(command) {
+        async function copyText(text) {
             try {
-                await navigator.clipboard.writeText(command);
+                await navigator.clipboard.writeText(text);
             } catch (_) {
                 const scratch = document.createElement("textarea");
-                scratch.value = command;
+                scratch.value = text;
                 document.body.appendChild(scratch);
                 scratch.select();
                 document.execCommand("copy");
@@ -1532,11 +1020,88 @@ cx q[1],q[2];
             }
         }
 
-        document.getElementById("run-local").addEventListener("click", runLocalApi);
+        function downloadText(filename, content, type) {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
 
-        renderBenchmarks();
-        selectSample("qft5");
-        updateQasmCharCount();
+        els.fileInput.addEventListener("change", async () => {
+            const file = els.fileInput.files && els.fileInput.files[0];
+            if (file) {
+                await readSelectedFile(file);
+            }
+        });
+
+        document.getElementById("load-ghz-example").addEventListener("click", () => {
+            selectedFileName = "内置 GHZ 示例";
+            els.qasmInput.value = miniGhzQasm;
+            els.fileMeta.textContent = "已载入内置 GHZ 示例，可直接编译。";
+            updateCharCount();
+            resetSummary("待编译");
+        });
+
+        document.getElementById("clear-input").addEventListener("click", () => {
+            selectedFileName = null;
+            els.fileInput.value = "";
+            els.qasmInput.value = "";
+            els.fileMeta.textContent = "尚未选择文件。浏览器只读取文本内容，不上传到 GitHub。";
+            updateCharCount();
+            resetSummary();
+            els.resultMessage.textContent = "等待输入电路。启动本地 API 后，上传 .qasm 文件或粘贴 OpenQASM 2，再点击“编译上传电路”。";
+        });
+
+        document.getElementById("run-compile").addEventListener("click", compileUploadedCircuit);
+        els.qasmInput.addEventListener("input", () => {
+            updateCharCount();
+            if (lastResult) {
+                resetSummary("待编译");
+                els.resultMessage.textContent = "输入已修改，请重新编译。";
+            }
+        });
+
+        document.getElementById("copy-api-start").addEventListener("click", async () => {
+            const command = document.getElementById("api-start-command").textContent.trim();
+            await copyText(command);
+            document.getElementById("copy-api-start").textContent = "已复制";
+            window.setTimeout(() => {
+                document.getElementById("copy-api-start").textContent = "复制启动命令";
+            }, 1200);
+        });
+
+        document.getElementById("copy-result").addEventListener("click", async () => {
+            const text = [
+                els.resultMessage.textContent.trim(),
+                "",
+                els.compiledQasm.value ? "compiled_qasm:" : "",
+                els.compiledQasm.value
+            ].filter(Boolean).join("\n");
+            await copyText(text || "暂无结果。");
+            document.getElementById("copy-result").textContent = "已复制";
+            window.setTimeout(() => {
+                document.getElementById("copy-result").textContent = "复制结果";
+            }, 1200);
+        });
+
+        els.downloadQasm.addEventListener("click", () => {
+            if (lastResult && lastResult.response && lastResult.response.compiled_qasm) {
+                downloadText("compiled-tokyo-sabre.qasm", lastResult.response.compiled_qasm, "text/plain");
+            }
+        });
+
+        els.downloadJson.addEventListener("click", () => {
+            if (lastResult) {
+                downloadText("quantum-compile-result.json", JSON.stringify(lastResult, null, 2), "application/json");
+            }
+        });
+
+        updateCharCount();
         detectApi();
     </script>
 </body>

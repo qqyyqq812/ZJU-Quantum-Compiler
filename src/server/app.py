@@ -31,6 +31,7 @@ from qiskit.transpiler.passes import (
 from src.benchmarks.topologies import get_topology, get_topology_info
 from src.cli import _DEFAULT_MODEL, _TOPOLOGY_ALIAS
 from src.compiler.pass_manager import AIRouter
+from src.evidence import load_npqr_evidence_manifest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 REPORT_JSON = PROJECT_ROOT / "models" / "v14_tokyo20" / "eval_report_mqt.json"
@@ -132,6 +133,7 @@ class CompileResponse(BaseModel):
     swaps: int | None
     depth: int | None
     elapsed_ms: float
+    compiled_qasm: str | None = None
     model_path: str | None = None
     message: str | None = None
 
@@ -165,7 +167,7 @@ def _load_request_circuit(req: CompileRequest) -> QuantumCircuit:
             qc = qasm2.loads(req.qasm)
         except Exception as exc:  # noqa: BLE001
             raise HTTPException(status_code=400, detail=f"Invalid OpenQASM 2 input: {exc}") from exc
-        qc.name = qc.name or "inline_qasm"
+        qc.name = "inline_qasm"
         return qc
     return _load_example(req.example or "qft5")
 
@@ -268,6 +270,12 @@ async def api_benchmarks() -> dict:
     }
 
 
+@app.get("/api/npqr/evidence")
+async def api_npqr_evidence() -> dict:
+    """Return the unified NPQR evidence manifest without rerunning training."""
+    return load_npqr_evidence_manifest()
+
+
 @app.post("/api/compile", response_model=CompileResponse)
 async def api_compile(req: CompileRequest) -> CompileResponse:
     """Compile a QASM example with SABRE or the experimental AIRouter."""
@@ -296,6 +304,7 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
             swaps=ops.get("swap", 0),
             depth=compiled.depth(),
             elapsed_ms=(time.perf_counter() - started) * 1000,
+            compiled_qasm=qasm2.dumps(compiled),
             message=f"SABRE completed with the {req.heuristic} heuristic.",
         )
 
