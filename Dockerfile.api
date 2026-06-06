@@ -1,0 +1,27 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PORT=8080
+
+WORKDIR /app
+
+COPY requirements-api.txt ./
+RUN python -m pip install --upgrade pip \
+    && pip install -r requirements-api.txt
+
+COPY src ./src
+COPY models/npqr_overnight_20260603/wave2_stage2_e120_lr5e5_s51_h02.pt \
+    ./models/npqr_overnight_20260603/wave2_stage2_e120_lr5e5_s51_h02.pt
+COPY models/v14_tokyo20/checkpoint_ep25333.pt \
+    ./models/v14_tokyo20/checkpoint_ep25333.pt
+COPY models/v14_tokyo20/eval_report_mqt.json \
+    ./models/v14_tokyo20/eval_report_mqt.json
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD python -c "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/api/status' % os.getenv('PORT', '8080'), timeout=5)"
+
+CMD ["sh", "-c", "uvicorn src.server.app:app --host 0.0.0.0 --port ${PORT:-8080}"]

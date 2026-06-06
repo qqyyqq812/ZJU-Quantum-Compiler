@@ -70,6 +70,33 @@ def test_deployment_guide_separates_browser_api_from_mcp_helper():
     assert "What still needs a human" in guide
 
 
+def test_huawei_cloud_docker_route_runs_rest_api_and_keeps_mcp_optional():
+    api_dockerfile = Path("Dockerfile.api").read_text(encoding="utf-8")
+    mcp_dockerfile = Path("Dockerfile.mcp").read_text(encoding="utf-8")
+    dockerignore = Path(".dockerignore").read_text(encoding="utf-8")
+    guide = Path("docs/HUAWEI_CLOUD_DEPLOYMENT.md").read_text(encoding="utf-8")
+
+    assert "FROM python:3.12-slim" in api_dockerfile
+    assert "COPY requirements-api.txt" in api_dockerfile
+    assert "uvicorn src.server.app:app --host 0.0.0.0 --port ${PORT:-8080}" in api_dockerfile
+    assert "/api/status" in api_dockerfile
+    assert "src.server.mcp_app:app" not in api_dockerfile
+
+    assert "COPY requirements-mcp.txt" in mcp_dockerfile
+    assert "uvicorn src.server.mcp_app:app --host 0.0.0.0 --port ${PORT:-8081}" in mcp_dockerfile
+    assert "/health" in mcp_dockerfile
+    assert "src.server.app:app" not in mcp_dockerfile
+
+    for ignored_path in [".venv", ".git", "results", "tests"]:
+        assert ignored_path in dockerignore
+
+    assert "!models/npqr_overnight_20260603/wave2_stage2_e120_lr5e5_s51_h02.pt" in dockerignore
+    assert "GitHub Pages / docs/index.html" in guide
+    assert "src.server.app:app" in guide
+    assert "MCP is optional" in guide
+    assert "PUBLIC_API_BASE" in guide
+
+
 def test_rest_app_lazily_loads_ai_and_npqr_router_for_deploys():
     app_source = Path("src/server/app.py").read_text(encoding="utf-8")
 
