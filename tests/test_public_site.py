@@ -1,4 +1,4 @@
-"""Smoke tests for the public GitHub Pages entry point."""
+"""Smoke tests for the TensorFlow Playground-style public site."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -8,98 +8,179 @@ def _html() -> str:
     return Path("docs/index.html").read_text(encoding="utf-8")
 
 
-def test_public_site_is_chinese_upload_first_compiler_tool():
+def test_public_site_uses_tensorflow_playground_style_shell():
     html = _html()
 
     assert "<title>ZJU 量子电路编译器</title>" in html
-    assert "量子电路编译工作台" in html
-    assert "上传编译" in html
-    assert "GitHub Pages 负责界面，本机 API 负责真实编译。" in html
-    assert "编译上传电路" in html
-    assert "尚未选择文件。浏览器只读取文本内容，不上传到 GitHub。" in html
-    assert "Compare SabreSwap heuristics" not in html
-    assert "Quantum routing heuristic lab." not in html
-    assert "NPQR evidence dashboard" not in html
+    assert "Quantum <b>Compiler</b> Playground" in html
+    assert "--tf-header: #183D4E" in html
+    assert "--tf-orange: #f59322" in html
+    assert "--tf-blue: #0877bd" in html
+    assert 'id="top-controls"' in html
+    assert 'id="main-part"' in html
+    assert 'class="column data"' in html
+    assert 'class="column topology"' in html
+    assert 'class="column output"' in html
+    assert "0 24px 58px" not in html
 
 
-def test_public_site_wires_real_file_upload_to_inline_qasm_compile():
+def test_public_site_adds_restrained_qcanvas_atmosphere():
     html = _html()
 
-    assert 'id="circuit-file"' in html
-    assert 'type="file"' in html
-    assert 'accept=".qasm,.txt,text/plain"' in html
-    assert "async function readSelectedFile(file)" in html
-    assert "const text = await file.text();" in html
-    assert "els.qasmInput.value = text;" in html
-    assert "async function compileUploadedCircuit()" in html
-    assert "const qasm = currentQasm();" in html
-    assert "payload = {" in html
-    assert "qasm," in html
-    assert 'backend: "sabre"' in html
+    assert "--qc-void: #060812" in html
+    assert "--qc-cyan: #22d3ee" in html
+    assert "--qc-violet: #7c5cff" in html
+    assert "radial-gradient(circle at 18px 18px" in html
+    assert "linear-gradient(135deg, var(--qc-void)" in html
+    assert "body::before" in html
+    assert "body::after" in html
+    assert "border-image: linear-gradient(90deg, var(--qc-cyan), var(--qc-violet), var(--tf-orange)) 1" in html
+
+
+def test_public_site_keeps_first_screen_action_focused():
+    html = _html()
+
+    assert 'id="run-button"' in html
+    assert 'id="step-button"' in html
+    assert 'id="reset-button"' in html
+    assert 'class="play-button"' in html
+    assert "▶" in html
+    assert "↺" in html
+    assert "▸" in html
+    assert "seed=42" not in html
+    assert "trials=1" not in html
+    assert "43 undirected" not in html
+    assert "编译上传电路" not in html
+    assert "量子电路编译器 MCP 入口" not in html
+
+
+def test_public_site_defaults_to_public_fastapi_rest_backend():
+    html = _html()
+
+    assert 'const PUBLIC_API_BASE = "https://zju-quantum-compiler-api.onrender.com";' in html
+    assert "LOCAL_API_BASE" not in html
+    assert "src.server.app:app" in html
+    assert "fetch(`${base}${path}`" in html
+    assert '"/api/status"' in html
+    assert 'callApi("/api/compile"' in html
+    assert 'callApiAt(candidate, "/api/status"' in html
+    assert 'method: "POST"' in html
+    assert 'backend: "npqr"' in html
     assert 'topology: "tokyo"' in html
-    assert "heuristic" in html
-    assert "fetch(`${apiBase}/api/compile`" in html
+    assert "?api=" in html
+    assert 'id="api-base-input"' in html
+    assert 'id="apply-api-base"' in html
+    assert 'window.location.protocol === "file:"' not in html
+    assert "public users need the deployed rest api" in html.lower()
+    assert "http://localhost:8765/api/compile" not in html
+    assert "http://127.0.0.1:8765/api/compile" not in html
+    assert "GitHub Pages 不能单独编译电路" not in html
 
 
-def test_public_site_exposes_compiled_qasm_and_downloads():
+def test_public_site_exposes_examples_custom_qasm_and_heuristic_controls():
     html = _html()
 
-    assert 'id="compiled-qasm"' in html
-    assert "路由后的 OpenQASM" in html
-    assert "API 返回的 compiled_qasm" in html
-    assert "els.compiledQasm.value = data.compiled_qasm || \"\";" in html
-    assert 'id="download-qasm"' in html
-    assert 'id="download-json"' in html
-    assert "compiled-tokyo-sabre.qasm" in html
-    assert "quantum-compile-result.json" in html
-    assert "lastResult = {" in html
+    for example in ["qft5", "ghz5", "qaoa5", "qft10", "qaoa10", "ghz10", "vqe10", "custom"]:
+        assert f'data-example="{example}"' in html
+        assert f'<option value="{example}"' in html
+
+    for heuristic in ["basic", "lookahead", "decay"]:
+        assert f'data-heuristic="{heuristic}"' in html
+        assert f'<option value="{heuristic}"' in html
+
+    assert 'id="qasm-input"' in html
+    assert "MAX_INLINE_QASM_CHARS = 8000" in html
+    assert "Custom input must start with OPENQASM 2.0;" in html
 
 
-def test_public_site_guides_local_api_recovery_in_chinese():
+def test_public_site_renders_lightweight_svg_tokyo_topology():
     html = _html()
 
-    assert "本地 API 未连接" in html
-    assert "GitHub Pages 不能单独编译电路" in html
-    assert "uvicorn src.server.app:app --reload --port 8765" in html
-    assert "复制启动命令" in html
-    assert "页面请求 <code>http://localhost:8765/api/compile</code>。" in html
-    assert "GitHub Pages 不能运行 Python，所以必须先启动本地服务。" in html
+    assert '<svg class="topology-stage" id="tokyo-topology"' in html
+    assert 'aria-label="SVG IBM Tokyo 20Q topology animation"' in html
+    assert "const topologyNodes = [" in html
+    assert "const topologyEdges = [" in html
+    assert ".topology-edge.active" in html
+    assert ".topology-node.active" in html
+    assert "showTooltip" in html
+    assert "stepOnce" in html
+    assert "@keyframes route-pulse" in html
+    assert "animation: route-pulse 0.85s linear infinite" in html
+    assert "stroke: var(--qc-cyan)" in html
+    assert "filter: drop-shadow" not in html
+
+
+def test_public_site_exposes_required_outputs_and_brief_error_state():
+    html = _html()
+
+    for element_id in [
+        "metric-status",
+        "metric-swaps",
+        "metric-depth",
+        "metric-elapsed",
+        "compiled-qasm-output",
+        "compiled-qasm-code",
+        "copy-qasm",
+        "download-qasm",
+    ]:
+        assert f'id="{element_id}"' in html
+
+    assert "elapsed_ms" in html
+    assert "Backend unavailable." in html
+    assert "Backend unavailable. REST API is offline." in html
+    assert "REST API is offline, not MCP." in html
+    assert "// no compiled_qasm" in html
+    assert "公开页面不会自动探测访问者电脑上的本地服务" in html
+    assert "OpenQASM routing on IBM Tokyo" in html
+
+
+def test_public_site_keeps_mcp_as_folded_advanced_entry():
+    html = _html()
+
+    assert '<details class="page" id="advanced"' in html
+    assert "Advanced" in html
+    assert "MCP `/mcp` 保留给高级客户端和审阅流程" in html
+    assert "qcompiler-mcp-http" in html
+    assert "uvicorn src.server.mcp_app:app --host 0.0.0.0 --port $PORT" in html
+    assert "POST /mcp" in html
+
+    for tool in [
+        "compile_qasm",
+        "compile_npqr",
+        "compile_sabre",
+        "list_examples",
+        "qcompiler_status",
+        "get_benchmarks",
+        "get_npqr_boundary",
+        "get_npqr_stage7_evidence",
+    ]:
+        assert tool in html
 
 
 def test_public_site_keeps_required_domain_terms_and_honest_boundary():
     html = _html()
 
-    for term in ["OpenQASM 2", "SABRE", "SWAP", "Qiskit", "API", "IBM Tokyo 20Q"]:
+    for term in ["MCP", "OpenQASM 2", "SABRE", "SWAP", "Qiskit", "IBM Tokyo", "FastAPI REST"]:
         assert term in html
 
-    assert "AI router</strong> 只作为研究证据保留，公开默认路径仍是 SABRE。" in html
-    assert "seed=42" in html
-    assert "trials=1" in html
+    assert "NPQR evidence boundary; no general SABRE win claim." in html
+    assert "后端默认使用 NPQR，Qiskit SABRE 作为对比基线" in html
+    assert "不宣传全面超过 SABRE" not in html
+    assert "登录" not in html
+    assert "注册" not in html
 
 
 def test_public_site_preserves_accessibility_and_responsive_basics():
     html = _html()
 
     assert 'lang="zh-CN"' in html
-    assert 'aria-label="量子电路编译器"' in html
+    assert 'aria-label="一键量子编译 Playground"' in html
+    assert 'aria-label="运行控制"' in html
     assert 'aria-label="编译结果摘要"' in html
-    assert 'alt="IBM Tokyo 20Q coupling topology"' in html
+    assert 'aria-label="高级 MCP 和部署入口"' in html
     assert "overflow-x: clip;" in html
-    assert "@media (max-width: 1180px)" in html
-    assert "@media (max-width: 680px)" in html
-
-
-def test_public_site_uses_compact_workbench_not_hero_page():
-    html = _html()
-
-    assert 'class="workbench"' in html
-    assert 'class="bench-toolbar"' in html
-    assert 'class="bench-body"' in html
-    assert 'class="input-pane"' in html
-    assert 'class="result-pane"' in html
-    assert "grid-template-columns: minmax(320px, 0.92fr) minmax(360px, 1.08fr);" in html
-    assert 'class="hero"' not in html
-    assert "font-size: clamp(36px, 6vw, 70px)" not in html
+    assert "@media (max-width: 980px)" in html
+    assert "@media (max-width: 520px)" in html
 
 
 def test_public_site_does_not_reintroduce_old_overclaims():

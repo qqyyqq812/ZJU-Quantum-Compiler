@@ -101,3 +101,156 @@ def compute_initial_mapping(
                     break
 
     return mapping
+
+
+def _distance_matrix(coupling_map: CouplingMap) -> np.ndarray:
+    n_physical = coupling_map.size()
+    dist = np.zeros((n_physical, n_physical), dtype=np.float32)
+    for i in range(n_physical):
+        for j in range(n_physical):
+            try:
+                dist[i][j] = coupling_map.distance(i, j)
+            except Exception:
+                dist[i][j] = n_physical
+    return dist
+
+
+def _interaction_pairs(circuit: QuantumCircuit) -> list[tuple[int, int, float]]:
+    dag = CircuitDAG(circuit)
+    pairs: list[tuple[int, int, float]] = []
+    for u, v, data in dag.get_interaction_graph().edges(data=True):
+        if u == v:
+            continue
+        pairs.append((int(u), int(v), float(data.get("weight", 1.0))))
+    pairs.sort(key=lambda item: (-item[2], item[0], item[1]))
+    return pairs
+
+
+def qap_mapping_cost(
+    circuit: QuantumCircuit,
+    coupling_map: CouplingMap,
+    mapping: dict[int, int],
+) -> float:
+    """Score a mapping by interaction weight times physical distance.
+
+    This is a small QAP-style objective for initial mapping selection only. It
+    is not a full QAP solver.
+    """
+    dist = _distance_matrix(coupling_map)
+    cost = 0.0
+    for u, v, weight in _interaction_pairs(circuit):
+        if u not in mapping or v not in mapping:
+            continue
+        pu = mapping[u]
+        pv = mapping[v]
+        if pu >= dist.shape[0] or pv >= dist.shape[1]:
+            continue
+        cost += weight * float(dist[pu][pv])
+    return float(cost)
+
+
+def selector_mapping_score(
+    circuit: QuantumCircuit,
+    coupling_map: CouplingMap,
+    mapping: dict[int, int],
+) -> float:
+    """Score an initial mapping for Stage10 selector ranking.
+
+    Lower is better. This uses only circuit/topology structure, not route
+    completion labels, SWAP counts, or trace replay outcomes.
+    """
+    dist = _distance_matrix(coupling_map)
+    weighted_distance = 0.0
+    max_distance = 0.0
+    far_interactions = 0
+    for u, v, weight in _interaction_pairs(circuit):
+        if u not in mapping or v not in mapping:
+            continue
+        pu = mapping[u]
+        pv = mapping[v]
+        if pu >= dist.shape[0] or pv >= dist.shape[1]:
+            continue
+        distance = float(dist[pu][pv])
+        weighted_distance += weight * distance
+        max_distance = max(max_distance, distance)
+        far_interactions += int(distance > 2)
+    return float(weighted_distance + 10.0 * max_distance + 2.0 * far_interactions)
+
+
+def _is_valid_mapping(mapping: dict[int, int], n_logical: int, n_physical: int) -> bool:
+    if set(mapping) != set(range(n_logical)):
+        return False
+    values = list(mapping.values())
+    if len(values) != len(set(values)):
+        return False
+    return all(0 <= value < n_physical for value in values)
+
+
+def improve_mapping_qap_local_search(
+    circuit: QuantumCircuit,
+    coupling_map: CouplingMap,
+    mapping: dict[int, int],
+    rounds: int = 2,
+) -> dict[int, int]:
+    """Improve a mapping with a small deterministic logical pair-swap search."""
+    n_logical = circuit.num_qubits
+    n_physical = coupling_map.size()
+    best = dict(mapping)
+    if rounds <= 0 or not _is_valid_mapping(best, n_logical, n_physical):
+        return best
+
+    best_cost = qap_mapping_cost(circuit, coupling_map, best)
+    logicals = list(range(n_logical))
+    for _ in range(rounds):
+        improved = False
+        best_round_mapping = best
+        best_round_cost = best_cost
+        for i, q1 in enumerate(logicals):
+            for q2 in logicals[i + 1 :]:
+                candidate = dict(best)
+                candidate[q1], candidate[q2] = candidate[q2], candidate[q1]
+                cost = qap_mapping_cost(circuit, coupling_map, candidate)
+                if cost < best_round_cost:
+                    best_round_cost = cost
+                    best_round_mapping = candidate
+                    improved = True
+        if not improved:
+            break
+        best = dict(best_round_mapping)
+        best_cost = best_round_cost
+    return best
+
+
+def compute_qap_initial_mapping(
+    circuit: QuantumCircuit,
+    coupling_map: CouplingMap,
+    local_search_rounds: int = 2,
+) -> dict[int, int]:
+    """Return the best lightweight QAP-style mapping among simple seeds."""
+    n_logical = circuit.num_qubits
+    n_physical = coupling_map.size()
+    seeds = [
+        {i: i for i in range(n_logical)},
+        compute_initial_mapping(circuit, coupling_map),
+    ]
+    best = seeds[0]
+    best_cost = float("inf")
+    seen: set[tuple[tuple[int, int], ...]] = set()
+    for seed in seeds:
+        if not _is_valid_mapping(seed, n_logical, n_physical):
+            continue
+        candidate = improve_mapping_qap_local_search(
+            circuit,
+            coupling_map,
+            seed,
+            rounds=local_search_rounds,
+        )
+        key = tuple(sorted(candidate.items()))
+        if key in seen:
+            continue
+        seen.add(key)
+        cost = qap_mapping_cost(circuit, coupling_map, candidate)
+        if cost < best_cost:
+            best = candidate
+            best_cost = cost
+    return dict(best)

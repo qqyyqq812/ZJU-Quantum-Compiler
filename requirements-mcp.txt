@@ -1,0 +1,15 @@
+# Optional remote MCP helper dependencies.
+#
+# The public webpage does not call this service. MCP clients can connect to
+# src.server.mcp_app:app for NPQR/SABRE compiler tools and evidence lookups.
+fastapi==0.135.1
+uvicorn==0.42.0
+mcp[cli]==1.27.2
+qiskit==2.3.1
+networkx==3.6.1
+numpy==2.4.3
+scipy==1.17.1
+rustworkx==0.17.1
+torch==2.10.0
+gymnasium==1.2.3
+PyYAML==6.0.3

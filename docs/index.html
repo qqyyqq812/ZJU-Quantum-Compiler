@@ -1,1108 +1,1572 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZJU 量子电路编译器</title>
-    <style>
-        :root {
-            --page: #f5f7fb;
-            --page-2: #eef2f7;
-            --surface: #ffffff;
-            --surface-2: #f8fafc;
-            --surface-3: #eef4f8;
-            --ink: #111827;
-            --ink-2: #1f2937;
-            --muted: #667085;
-            --line: #d6dae2;
-            --line-strong: #aeb7c5;
-            --accent: #0e9384;
-            --accent-2: #2563eb;
-            --accent-soft: #e6f7f4;
-            --ok: #067647;
-            --warn: #b54708;
-            --bad: #b42318;
-            --code: #07130f;
-            --code-text: #d9f8ea;
-            --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-            --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        html,
-        body {
-            max-width: 100%;
-            overflow-x: clip;
-        }
-
-        body {
-            margin: 0;
-            background: linear-gradient(180deg, var(--page) 0%, var(--page-2) 100%);
-            color: var(--ink);
-            font-family: var(--sans);
-            line-height: 1.5;
-        }
-
-        a {
-            color: inherit;
-            text-decoration: none;
-        }
-
-        a:hover {
-            color: var(--accent);
-        }
-
-        button,
-        input,
-        textarea,
-        select {
-            font: inherit;
-        }
-
-        button:focus-visible,
-        input:focus-visible,
-        textarea:focus-visible,
-        select:focus-visible,
-        a:focus-visible {
-            outline: 3px solid rgba(37, 99, 235, 0.28);
-            outline-offset: 2px;
-        }
-
-        header {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 18px;
-            padding: 11px clamp(18px, 4vw, 48px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(17, 24, 39, 0.96);
-            color: #f8fafc;
-            backdrop-filter: blur(14px);
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 220px;
-            font-weight: 800;
-            letter-spacing: 0;
-        }
-
-        .mark {
-            width: 30px;
-            height: 30px;
-            display: grid;
-            place-items: center;
-            border-radius: 6px;
-            background: var(--accent);
-            color: #ffffff;
-            font-family: var(--mono);
-            font-size: 13px;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-        }
-
-        nav {
-            display: flex;
-            flex-wrap: nowrap;
-            justify-content: flex-end;
-            gap: 18px;
-            font-size: 14px;
-        }
-
-        nav a {
-            display: inline-flex;
-            align-items: center;
-            min-height: 34px;
-            color: rgba(248, 250, 252, 0.78);
-            white-space: nowrap;
-        }
-
-        nav a:hover {
-            color: #ffffff;
-        }
-
-        main {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 24px clamp(18px, 4vw, 48px) 42px;
-        }
-
-        h1,
-        h2,
-        h3,
-        p {
-            margin: 0;
-        }
-
-        h1 {
-            max-width: 760px;
-            font-size: clamp(30px, 3vw, 40px);
-            line-height: 1.12;
-            letter-spacing: 0;
-        }
-
-        h2 {
-            font-size: 20px;
-            line-height: 1.2;
-        }
-
-        h3 {
-            font-size: 15px;
-            line-height: 1.2;
-        }
-
-        .topline {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 18px;
-            align-items: end;
-            margin-bottom: 18px;
-        }
-
-        .kicker {
-            margin-bottom: 8px;
-            color: var(--accent);
-            font-size: 12px;
-            font-weight: 850;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-        }
-
-        .lead {
-            max-width: 910px;
-            margin-top: 10px;
-            color: var(--muted);
-            font-size: 16px;
-        }
-
-        .lead strong {
-            color: var(--ink-2);
-            font-weight: 780;
-        }
-
-        .mode {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 34px;
-            padding: 6px 12px;
-            border: 1px solid var(--line);
-            border-radius: 999px;
-            background: var(--surface);
-            color: var(--muted);
-            font-size: 13px;
-            font-weight: 760;
-            white-space: nowrap;
-            box-shadow: 0 10px 28px rgba(17, 24, 39, 0.08);
-        }
-
-        .mode.ready {
-            border-color: rgba(6, 118, 71, 0.24);
-            background: var(--accent-soft);
-            color: var(--ok);
-        }
-
-        .mode.offline {
-            border-color: rgba(180, 35, 24, 0.22);
-            background: #fff1ee;
-            color: var(--bad);
-        }
-
-        .workbench {
-            overflow: hidden;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            background: var(--surface);
-            box-shadow: 0 22px 60px rgba(15, 23, 42, 0.12);
-        }
-
-        .bench-toolbar {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 12px;
-            align-items: center;
-            padding: 14px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            background: var(--ink);
-            color: #ffffff;
-        }
-
-        .tool-title {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: baseline;
-            gap: 10px;
-        }
-
-        .tool-title strong {
-            font-size: 16px;
-        }
-
-        .tool-title span {
-            color: rgba(255, 255, 255, 0.68);
-            font-size: 13px;
-        }
-
-        .bench-body {
-            display: grid;
-            grid-template-columns: minmax(320px, 0.92fr) minmax(360px, 1.08fr);
-            min-height: 690px;
-        }
-
-        .input-pane,
-        .result-pane {
-            min-width: 0;
-            padding: 18px;
-        }
-
-        .input-pane {
-            border-right: 1px solid var(--line);
-            background: var(--surface-3);
-        }
-
-        .result-pane {
-            background: var(--surface);
-        }
-
-        .pane-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 14px;
-        }
-
-        .pane-head p {
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .upload-row {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) 190px;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .file-box,
-        .select-box {
-            min-width: 0;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.86);
-        }
-
-        .file-box {
-            display: grid;
-            gap: 8px;
-            padding: 13px;
-        }
-
-        .file-box input {
-            width: 100%;
-            color: var(--ink-2);
-        }
-
-        .file-box input::file-selector-button {
-            min-height: 34px;
-            margin-right: 10px;
-            padding: 6px 10px;
-            border: 1px solid var(--line-strong);
-            border-radius: 6px;
-            background: #ffffff;
-            color: var(--ink);
-            cursor: pointer;
-        }
-
-        .file-meta {
-            min-height: 20px;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .file-meta.warn {
-            color: var(--warn);
-            font-weight: 720;
-        }
-
-        label,
-        .label {
-            display: block;
-            color: var(--ink-2);
-            font-size: 12px;
-            font-weight: 820;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        .select-box {
-            display: grid;
-            gap: 8px;
-            padding: 13px;
-        }
-
-        select {
-            min-height: 40px;
-            width: 100%;
-            padding: 8px 10px;
-            border: 1px solid var(--line);
-            border-radius: 6px;
-            background: #ffffff;
-            color: var(--ink);
-        }
-
-        textarea {
-            width: 100%;
-            resize: vertical;
-            padding: 13px;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            background: #ffffff;
-            color: var(--ink);
-            font-family: var(--mono);
-            font-size: 13px;
-            line-height: 1.5;
-            box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.03);
-        }
-
-        #qasm-input {
-            min-height: 360px;
-        }
-
-        .compiled-output {
-            min-height: 320px;
-        }
-
-        .actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-            margin-top: 10px;
-        }
-
-        .button {
-            min-height: 38px;
-            padding: 8px 13px;
-            border: 1px solid var(--accent);
-            border-radius: 7px;
-            background: var(--accent);
-            color: #ffffff;
-            cursor: pointer;
-            font-weight: 740;
-            white-space: nowrap;
-            transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
-        }
-
-        .button:hover {
-            background: #0b7f73;
-            border-color: #0b7f73;
-            box-shadow: 0 12px 26px rgba(14, 147, 132, 0.2);
-            transform: translateY(-1px);
-        }
-
-        .button.secondary {
-            border-color: var(--line-strong);
-            background: #ffffff;
-            color: var(--ink);
-            box-shadow: none;
-        }
-
-        .bench-toolbar .button.secondary {
-            border-color: rgba(255, 255, 255, 0.22);
-            background: rgba(255, 255, 255, 0.08);
-            color: #ffffff;
-        }
-
-        .button.secondary:hover {
-            border-color: var(--accent-2);
-            background: #f8fbff;
-            color: var(--accent-2);
-            box-shadow: none;
-        }
-
-        .bench-toolbar .button.secondary:hover {
-            border-color: rgba(255, 255, 255, 0.36);
-            background: rgba(255, 255, 255, 0.14);
-            color: #ffffff;
-        }
-
-        .button.ghost {
-            border-color: transparent;
-            background: transparent;
-            color: var(--accent-2);
-            box-shadow: none;
-        }
-
-        .button.ghost:hover {
-            background: rgba(37, 99, 235, 0.08);
-            border-color: transparent;
-            box-shadow: none;
-        }
-
-        .button:disabled {
-            cursor: not-allowed;
-            opacity: 0.52;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .note {
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .note.warn {
-            color: var(--warn);
-            font-weight: 720;
-        }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(6, minmax(0, 1fr));
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-
-        .metric {
-            min-width: 0;
-            min-height: 76px;
-            padding: 11px;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            background: linear-gradient(180deg, #ffffff 0%, var(--surface-2) 100%);
-        }
-
-        .metric span {
-            display: block;
-            color: var(--muted);
-            font-size: 11px;
-            font-weight: 820;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        .metric strong {
-            display: block;
-            margin-top: 6px;
-            overflow-wrap: anywhere;
-            color: var(--ink);
-            font-size: 21px;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .result-message {
-            min-height: 132px;
-            margin-bottom: 12px;
-            padding: 13px;
-            border: 1px solid rgba(217, 248, 234, 0.12);
-            border-radius: 8px;
-            background: var(--code);
-            color: var(--code-text);
-            font-family: var(--mono);
-            font-size: 13px;
-            white-space: pre-wrap;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-        }
-
-        .output-head {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 8px;
-        }
-
-        .output-head span {
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .support-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            gap: 14px;
-            margin-top: 18px;
-        }
-
-        .support-panel {
-            min-width: 0;
-            padding: 16px;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.86);
-            box-shadow: 0 12px 34px rgba(15, 23, 42, 0.06);
-        }
-
-        .support-panel p,
-        .support-panel li {
-            color: var(--muted);
-            font-size: 14px;
-        }
-
-        .support-panel ul {
-            margin: 10px 0 0;
-            padding-left: 20px;
-        }
-
-        pre {
-            margin: 10px 0 0;
-            overflow-x: auto;
-            white-space: pre;
-            font-family: var(--mono);
-            font-size: 13px;
-            line-height: 1.55;
-        }
-
-        code {
-            font-family: var(--mono);
-        }
-
-        .topology-strip {
-            display: grid;
-            grid-template-columns: 150px minmax(0, 1fr);
-            gap: 14px;
-            align-items: center;
-        }
-
-        .topology-strip img {
-            width: 150px;
-            max-width: 100%;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            background: var(--surface);
-        }
-
-        footer {
-            margin-top: 26px;
-            padding-top: 16px;
-            border-top: 1px solid var(--line);
-            color: var(--muted);
-            font-size: 14px;
-        }
-
-        @media (max-width: 1180px) {
-            .topline,
-            .bench-toolbar,
-            .bench-body,
-            .support-grid,
-            .topology-strip {
-                grid-template-columns: 1fr;
-            }
-
-            .input-pane {
-                border-right: 0;
-                border-bottom: 1px solid var(--line);
-            }
-
-            .summary-grid {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-        }
-
-        @media (max-width: 680px) {
-            header {
-                align-items: flex-start;
-                flex-direction: column;
-                gap: 8px;
-            }
-
-            nav {
-                justify-content: flex-start;
-                gap: 14px;
-                max-width: 100%;
-                overflow-x: auto;
-            }
-
-            main {
-                padding-top: 18px;
-            }
-
-            .upload-row,
-            .summary-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .input-pane,
-            .result-pane {
-                padding: 14px;
-            }
-
-            h1 {
-                font-size: 30px;
-            }
-
-            .button {
-                width: 100%;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZJU 量子电路编译器</title>
+  <style>
+    :root {
+      --tf-header: #183D4E;
+      --tf-orange: #f59322;
+      --tf-blue: #0877bd;
+      --tf-page: #f7f7f7;
+      --tf-panel: #fff;
+      --tf-line: #ddd;
+      --tf-line-dark: #b7b7b7;
+      --tf-text: #333;
+      --tf-muted: #777;
+      --tf-faint: #e9e9e9;
+      --tf-code: #fafafa;
+      --tf-error: #c33;
+      --tf-ok: #2b8a3e;
+      --qc-void: #060812;
+      --qc-space: #0d1230;
+      --qc-cyan: #22d3ee;
+      --qc-violet: #7c5cff;
+      --qc-grid: rgba(34, 211, 238, 0.13);
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --sans: Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      max-width: 100%;
+      overflow-x: clip;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 18px 18px, var(--qc-grid) 1px, transparent 1.5px),
+        linear-gradient(135deg, var(--qc-void) 0%, var(--qc-space) 54%, #09101f 100%);
+      background-size: 30px 30px, auto;
+      color: var(--tf-text);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    button,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    summary:focus-visible,
+    a:focus-visible {
+      outline: 2px solid var(--tf-orange);
+      outline-offset: 2px;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    header {
+      position: relative;
+      background: rgba(6, 8, 18, 0.93);
+      color: #fff;
+      border-bottom: 1px solid rgba(34, 211, 238, 0.18);
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      z-index: -1;
+      width: 150px;
+      height: 150px;
+      opacity: 0.36;
+      pointer-events: none;
+      background-repeat: no-repeat;
+      background-size: contain;
+    }
+
+    body::before {
+      top: 84px;
+      left: 7vw;
+      background-image: url("data:image/svg+xml,%3Csvg width='150' height='150' viewBox='0 0 150 150' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%237c5cff' stroke-width='1.4' opacity='.55'%3E%3Cellipse cx='75' cy='75' rx='52' ry='13' transform='rotate(28 75 75)'/%3E%3Cellipse cx='75' cy='75' rx='52' ry='13' transform='rotate(-28 75 75)'/%3E%3Cellipse cx='75' cy='75' rx='12' ry='52'/%3E%3Ccircle cx='75' cy='75' r='4' fill='%2322d3ee' stroke='none'/%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    body::after {
+      right: 8vw;
+      bottom: 72px;
+      background-image: url("data:image/svg+xml,%3Csvg width='150' height='150' viewBox='0 0 150 150' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%2322d3ee' stroke-width='1.5' opacity='.5'%3E%3Cpath d='M38 75h74M75 38v74M50 50h50v50H50z'/%3E%3Ccircle cx='38' cy='75' r='5'/%3E%3Ccircle cx='112' cy='75' r='5'/%3E%3Ccircle cx='75' cy='38' r='5'/%3E%3Ccircle cx='75' cy='112' r='5'/%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    .page {
+      width: min(100%, 1180px);
+      margin: 0 auto;
+      padding: 0 18px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      min-height: 58px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 300;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .brand h1 b {
+      font-weight: 500;
+      color: #9f8cff;
+    }
+
+    .brand .subtitle {
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .nav {
+      display: flex;
+      gap: 16px;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .nav a:hover {
+      color: var(--qc-cyan);
+    }
+
+    #top-controls {
+      border-bottom: 1px solid rgba(34, 211, 238, 0.22);
+      background: rgba(255, 255, 255, 0.96);
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      min-height: 64px;
+      overflow-x: auto;
+    }
+
+    .timeline-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-right: 6px;
+    }
+
+    .icon-button,
+    .play-button {
+      display: inline-grid;
+      place-items: center;
+      border: 0;
+      background: transparent;
+      color: var(--tf-muted);
+      cursor: pointer;
+    }
+
+    .icon-button {
+      width: 34px;
+      height: 34px;
+      font-size: 23px;
+    }
+
+    .icon-button:hover {
+      color: var(--tf-orange);
+    }
+
+    .play-button {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--tf-orange) 0%, #ff9f32 54%, var(--qc-cyan) 145%);
+      color: #fff;
+      font-size: 25px;
+      line-height: 1;
+      box-shadow: 0 0 0 1px rgba(245, 147, 34, 0.28), 0 0 18px rgba(34, 211, 238, 0.22);
+    }
+
+    .play-button:hover {
+      background: #e58211;
+    }
+
+    .control {
+      display: grid;
+      gap: 4px;
+      min-width: 112px;
+    }
+
+    .control label,
+    .control .label,
+    h4 {
+      color: var(--tf-muted);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .control select {
+      min-width: 116px;
+      height: 30px;
+      border: 1px solid var(--tf-line-dark);
+      border-radius: 0;
+      background: #fff;
+      color: var(--tf-text);
+    }
+
+    .backend {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 132px;
+      color: var(--tf-muted);
+      font-size: 12px;
+    }
+
+    .backend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--tf-muted);
+    }
+
+    .backend.ok .backend-dot {
+      background: var(--tf-ok);
+    }
+
+    .backend.loading .backend-dot {
+      background: var(--tf-blue);
+    }
+
+    .backend.error .backend-dot {
+      background: var(--tf-error);
+    }
+
+    #main-part {
+      position: relative;
+      display: grid;
+      grid-template-columns: 278px minmax(420px, 1fr) 300px;
+      min-height: calc(100vh - 123px);
+      background: #fff;
+      border-left: 1px solid var(--tf-line);
+      border-right: 1px solid var(--tf-line);
+      border-top: 3px solid transparent;
+      border-image: linear-gradient(90deg, var(--qc-cyan), var(--qc-violet), var(--tf-orange)) 1;
+    }
+
+    .column {
+      min-width: 0;
+      padding: 18px 18px 20px;
+      border-left: 1px solid var(--tf-line);
+    }
+
+    .column:first-child {
+      border-left: 0;
+    }
+
+    h4 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+      color: #555;
+    }
+
+    h4::after {
+      content: "";
+      height: 1px;
+      flex: 1;
+      background: var(--tf-line);
+    }
+
+    .section {
+      margin-bottom: 18px;
+    }
+
+    .section > p {
+      margin: 0 0 8px;
+      color: var(--tf-muted);
+      font-size: 12px;
+    }
+
+    .dataset-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .dataset {
+      height: 50px;
+      border: 2px solid transparent;
+      background: #f8f8f8;
+      color: var(--tf-text);
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .dataset:hover,
+    .dataset[aria-pressed="true"] {
+      border-color: var(--tf-orange);
+      background: #fff;
+    }
+
+    .dataset b {
+      display: block;
+      margin: 7px 8px 1px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .dataset span {
+      display: block;
+      margin: 0 8px;
+      color: var(--tf-muted);
+      font-size: 11px;
+    }
+
+    .heuristics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border: 1px solid var(--tf-line-dark);
+    }
+
+    .heuristics button {
+      height: 32px;
+      border: 0;
+      border-left: 1px solid var(--tf-line-dark);
+      background: #fff;
+      color: var(--tf-text);
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .heuristics button:first-child {
+      border-left: 0;
+    }
+
+    .heuristics button[aria-pressed="true"] {
+      background: var(--tf-blue);
+      color: #fff;
+    }
+
+    textarea,
+    pre {
+      width: 100%;
+      margin: 0;
+      border: 1px solid var(--tf-line-dark);
+      border-radius: 0;
+      background: var(--tf-code);
+      color: var(--tf-text);
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre;
+    }
+
+    textarea {
+      min-height: 260px;
+      padding: 10px;
+      resize: vertical;
+    }
+
+    textarea[readonly] {
+      color: #555;
+    }
+
+    .input-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 5px;
+      color: var(--tf-muted);
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .topology-area {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      height: 100%;
+      min-height: 620px;
+    }
+
+    .topology-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .topology-head .route-status {
+      color: var(--tf-muted);
+      font-size: 12px;
+    }
+
+    .topology-stage-wrap {
+      position: relative;
+      min-height: 430px;
+      border: 1px solid var(--tf-line);
+      background:
+        radial-gradient(circle at 12px 12px, rgba(34, 211, 238, 0.08) 1px, transparent 1.5px),
+        #fff;
+      background-size: 24px 24px, auto;
+    }
+
+    .topology-stage {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 430px;
+    }
+
+    .topology-edge {
+      stroke: #c8c8c8;
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+
+    .topology-edge.preview {
+      stroke: var(--qc-cyan);
+      opacity: 0.72;
+      stroke-width: 2.5;
+    }
+
+    .topology-edge.active {
+      stroke: var(--tf-orange);
+      stroke-width: 5;
+      stroke-dasharray: 12 8;
+      animation: route-pulse 0.85s linear infinite;
+    }
+
+    .topology-node {
+      fill: #fff;
+      stroke: var(--tf-blue);
+      stroke-width: 2;
+      transition: fill 0.14s ease, stroke 0.14s ease, stroke-width 0.14s ease;
+    }
+
+    .topology-node.mapped {
+      fill: #eaf6fc;
+      stroke: var(--qc-cyan);
+    }
+
+    .topology-node.active {
+      fill: #fff;
+      stroke: var(--tf-orange);
+      stroke-width: 3;
+    }
+
+    g:hover .topology-node {
+      fill: #f7feff;
+      stroke: var(--qc-violet);
+      stroke-width: 3;
+    }
+
+    @keyframes route-pulse {
+      from {
+        stroke-dashoffset: 20;
+      }
+
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    .node-label {
+      fill: #444;
+      font-family: var(--mono);
+      font-size: 12px;
+      pointer-events: none;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+
+    .topology-tooltip {
+      position: absolute;
+      display: none;
+      max-width: 170px;
+      padding: 5px 7px;
+      background: rgba(0, 0, 0, 0.78);
+      color: #fff;
+      font-size: 11px;
+      pointer-events: none;
+    }
+
+    .route-steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .route-step {
+      min-height: 52px;
+      border: 1px solid var(--tf-line);
+      background: #fafafa;
+      color: #555;
+      cursor: pointer;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    .route-step b {
+      display: block;
+      margin: 7px 8px 1px;
+      color: var(--tf-text);
+      font-weight: 500;
+    }
+
+    .route-step span {
+      display: block;
+      margin: 0 8px 7px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .route-step.active {
+      border-color: var(--tf-orange);
+      background: #fff;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      border-top: 1px solid var(--tf-line);
+      border-left: 1px solid var(--tf-line);
+    }
+
+    .metric {
+      min-height: 66px;
+      padding: 9px;
+      border-right: 1px solid var(--tf-line);
+      border-bottom: 1px solid var(--tf-line);
+      background: #fff;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--tf-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 5px;
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    .message {
+      min-height: 40px;
+      margin: 14px 0;
+      color: #555;
+      font-size: 12px;
+    }
+
+    .message.error {
+      color: var(--tf-error);
+    }
+
+    .compiled-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 12px 0 6px;
+    }
+
+    .compiled-head h4 {
+      margin: 0;
+      flex: 1;
+    }
+
+    .text-button {
+      border: 0;
+      background: transparent;
+      color: var(--tf-blue);
+      cursor: pointer;
+      font-size: 12px;
+      text-decoration: underline;
+    }
+
+    #compiled-qasm-output {
+      min-height: 286px;
+      max-height: 360px;
+      overflow: auto;
+      padding: 10px;
+    }
+
+    details {
+      margin: 18px auto 30px;
+      background: #fff;
+      border: 1px solid var(--tf-line);
+      border-top: 2px solid var(--qc-cyan);
+    }
+
+    summary {
+      padding: 10px 12px;
+      color: #555;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .advanced-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      border-top: 1px solid var(--tf-line);
+    }
+
+    .advanced-body section {
+      padding: 14px;
+      border-left: 1px solid var(--tf-line);
+    }
+
+    .advanced-body section:first-child {
+      border-left: 0;
+    }
+
+    .advanced-body p,
+    .advanced-body li {
+      color: #666;
+      font-size: 12px;
+    }
+
+    .advanced-body pre {
+      padding: 10px;
+      overflow: auto;
+    }
+
+    .endpoint-label {
+      display: block;
+      margin: 10px 0 5px;
+      color: #555;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .endpoint-control {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      margin: 0 0 6px;
+    }
+
+    .endpoint-control input {
+      min-width: 0;
+      height: 30px;
+      border: 1px solid var(--tf-line-dark);
+      border-radius: 0;
+      padding: 4px 7px;
+      color: var(--tf-text);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .endpoint-control button {
+      height: 30px;
+      border: 1px solid var(--tf-blue);
+      border-radius: 0;
+      background: #fff;
+      color: var(--tf-blue);
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .endpoint-note {
+      margin-top: 0;
+      font-family: var(--mono);
+    }
+
+    .tool-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .tool-list div {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 10px;
+      border-top: 1px solid var(--tf-line);
+      padding-top: 8px;
+    }
+
+    .tool-list strong {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    @media (max-width: 980px) {
+      .topbar,
+      .control-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px 0;
+      }
+
+      .brand {
+        display: grid;
+        gap: 2px;
+      }
+
+      .brand h1,
+      .brand .subtitle {
+        white-space: normal;
+      }
+
+      #main-part,
+      .advanced-body {
+        grid-template-columns: 1fr;
+      }
+
+      .column,
+      .advanced-body section {
+        border-left: 0;
+        border-top: 1px solid var(--tf-line);
+      }
+
+      .column:first-child {
+        border-top: 0;
+      }
+
+      .topology-area,
+      .topology-stage,
+      .topology-stage-wrap {
+        min-height: 360px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .page {
+        padding: 0 10px;
+      }
+
+      .timeline-controls {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .control {
+        width: 100%;
+      }
+
+      .control select {
+        width: 100%;
+      }
+
+      .dataset-list,
+      .metrics,
+      .route-steps,
+      .tool-list div {
+        grid-template-columns: 1fr;
+      }
+
+      .dataset-list {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+
+      .dataset {
+        height: 42px;
+      }
+
+      .dataset b {
+        margin-top: 5px;
+      }
+
+      textarea {
+        min-height: 220px;
+      }
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <div class="brand" aria-label="ZJU Quantum Compiler">
-            <span class="mark">QC</span>
-            <span>ZJU Quantum Compiler</span>
+  <header>
+    <div class="page topbar">
+      <div class="brand">
+        <h1>Quantum <b>Compiler</b> Playground</h1>
+        <span class="subtitle">OpenQASM routing on IBM Tokyo</span>
+      </div>
+      <nav class="nav" aria-label="主导航">
+        <a href="#playground">Playground</a>
+        <a href="#advanced">Advanced</a>
+        <a href="https://github.com/qqyyqq812/ZJU-Quantum-Compiler">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <div id="top-controls">
+    <div class="page control-row">
+      <div class="timeline-controls" aria-label="运行控制">
+        <button class="icon-button" id="reset-button" type="button" title="Reset">↺</button>
+        <button class="play-button" id="run-button" type="button" title="Run/Pause">▶</button>
+        <button class="icon-button" id="step-button" type="button" title="Step">▸</button>
+      </div>
+      <div class="control">
+        <label for="example-select">Circuit</label>
+        <select id="example-select">
+          <option value="qft5">QFT 5</option>
+          <option value="ghz5">GHZ 5</option>
+          <option value="qaoa5">QAOA 5</option>
+          <option value="qft10">QFT 10</option>
+          <option value="qaoa10">QAOA 10</option>
+          <option value="ghz10">GHZ 10</option>
+          <option value="vqe10">VQE 10</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="heuristic-select">Heuristic</label>
+        <select id="heuristic-select">
+          <option value="basic">basic</option>
+          <option value="lookahead" selected>lookahead</option>
+          <option value="decay">decay</option>
+        </select>
+      </div>
+      <div class="control">
+        <span class="label">Status</span>
+        <div class="backend loading" id="backend-status">
+          <span class="backend-dot"></span>
+          <span id="backend-copy">checking</span>
         </div>
-        <nav aria-label="主导航">
-            <a href="#compiler">编译器</a>
-            <a href="#local-api">本地 API</a>
-            <a href="#boundary">项目边界</a>
-            <a href="https://github.com/qqyyqq812/ZJU-Quantum-Compiler">GitHub</a>
-        </nav>
-    </header>
+      </div>
+    </div>
+  </div>
 
-    <main>
-        <section class="topline" aria-labelledby="page-title">
-            <div>
-                <p class="kicker">Course topic 4 · Quantum routing workbench</p>
-                <h1 id="page-title">量子电路编译工作台</h1>
-                <p class="lead">
-                    上传或粘贴 <strong>OpenQASM 2</strong>，调用本机 <strong>API</strong>
-                    用 <strong>Qiskit SABRE</strong> 路由到 <strong>IBM Tokyo</strong>，
-                    直接拿到 <strong>SWAP</strong>、Depth 和编译后的 QASM。
-                </p>
-            </div>
-            <span class="mode offline" id="api-mode">正在检测本地 API</span>
-        </section>
-
-        <section class="workbench" id="compiler" aria-label="量子电路编译器">
-            <div class="bench-toolbar">
-                <div class="tool-title">
-                    <strong>上传编译</strong>
-                    <span>GitHub Pages 负责界面，本机 API 负责真实编译。</span>
-                </div>
-                <button class="button secondary" id="copy-api-start" type="button">复制启动命令</button>
-            </div>
-
-            <div class="bench-body">
-                <div class="input-pane">
-                    <div class="pane-head">
-                        <div>
-                            <h2>输入电路</h2>
-                            <p>选择本地 .qasm 文件，或直接粘贴 OpenQASM 2。</p>
-                        </div>
-                    </div>
-
-                    <div class="upload-row">
-                        <div class="file-box">
-                            <span class="label">文件</span>
-                            <input id="circuit-file" type="file" accept=".qasm,.txt,text/plain">
-                            <span class="file-meta" id="file-meta">尚未选择文件。浏览器只读取文本内容，不上传到 GitHub。</span>
-                        </div>
-                        <div class="select-box">
-                            <label for="heuristic-select">SABRE heuristic</label>
-                            <select id="heuristic-select">
-                                <option value="lookahead" selected>lookahead · 默认</option>
-                                <option value="basic">basic · 对照</option>
-                                <option value="decay">decay · 衰减</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <label for="qasm-input">OpenQASM 2 内容</label>
-                    <textarea id="qasm-input" maxlength="8000" spellcheck="false" placeholder="OPENQASM 2.0;
-include &quot;qelib1.inc&quot;;
-qreg q[3];
-h q[0];
-cx q[0],q[1];"></textarea>
-
-                    <div class="actions">
-                        <button class="button" id="run-compile" type="button">编译上传电路</button>
-                        <button class="button secondary" id="load-ghz-example" type="button">载入 GHZ 示例</button>
-                        <button class="button ghost" id="clear-input" type="button">清空</button>
-                        <span class="note" id="qasm-char-count">0 / 8000 字符</span>
-                    </div>
-                </div>
-
-                <div class="result-pane">
-                    <div class="pane-head">
-                        <div>
-                            <h2>结果</h2>
-                            <p>成功后会显示 API 返回的 compiled_qasm。</p>
-                        </div>
-                    </div>
-
-                    <div class="summary-grid" aria-label="编译结果摘要">
-                        <div class="metric">
-                            <span>状态</span>
-                            <strong id="result-status">未运行</strong>
-                        </div>
-                        <div class="metric">
-                            <span>qubits</span>
-                            <strong id="result-qubits">—</strong>
-                        </div>
-                        <div class="metric">
-                            <span>输入 CX</span>
-                            <strong id="result-cx">—</strong>
-                        </div>
-                        <div class="metric">
-                            <span>SWAP</span>
-                            <strong id="result-swaps">—</strong>
-                        </div>
-                        <div class="metric">
-                            <span>Depth</span>
-                            <strong id="result-depth">—</strong>
-                        </div>
-                        <div class="metric">
-                            <span>耗时</span>
-                            <strong id="result-time">—</strong>
-                        </div>
-                    </div>
-
-                    <div class="result-message" id="result-message">等待输入电路。启动本地 API 后，上传 .qasm 文件或粘贴 OpenQASM 2，再点击“编译上传电路”。</div>
-
-                    <div class="output-head">
-                        <label for="compiled-qasm">路由后的 OpenQASM</label>
-                        <span>compiled_qasm</span>
-                    </div>
-                    <textarea class="compiled-output" id="compiled-qasm" readonly placeholder="编译成功后，这里会显示路由后的 QASM。"></textarea>
-
-                    <div class="actions">
-                        <button class="button secondary" id="copy-result" type="button">复制结果</button>
-                        <button class="button secondary" id="download-qasm" type="button" disabled>下载 QASM</button>
-                        <button class="button secondary" id="download-json" type="button" disabled>下载 JSON</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <div class="support-grid">
-            <section class="support-panel" id="local-api" aria-labelledby="api-title">
-                <h2 id="api-title">本地 API</h2>
-                <p>
-                    页面请求 <code>http://localhost:8765/api/compile</code>。
-                    GitHub Pages 不能运行 Python，所以必须先启动本地服务。
-                </p>
-                <pre id="api-start-command"><code>uvicorn src.server.app:app --reload --port 8765</code></pre>
-            </section>
-
-            <section class="support-panel" id="boundary" aria-labelledby="boundary-title">
-                <div class="topology-strip">
-                    <img src="assets/ibm-tokyo-topology.png" alt="IBM Tokyo 20Q coupling topology">
-                    <div>
-                        <h2 id="boundary-title">项目边界</h2>
-                        <ul>
-                            <li>默认硬件是 <strong>IBM Tokyo 20Q</strong>，inline 输入限制 8000 字符。</li>
-                            <li><strong>SABRE</strong> 使用 <code>seed=42</code> 和 <code>trials=1</code>。</li>
-                            <li><strong>AI router</strong> 只作为研究证据保留，公开默认路径仍是 SABRE。</li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
+  <main class="page" id="playground">
+    <div id="main-part" aria-label="一键量子编译 Playground">
+      <section class="column data">
+        <h4><span>Input</span></h4>
+        <div class="section">
+          <p>Choose a circuit.</p>
+          <div class="dataset-list" aria-label="OpenQASM 示例">
+            <button class="dataset" type="button" data-example="qft5" aria-pressed="true"><b>QFT 5</b><span>dense</span></button>
+            <button class="dataset" type="button" data-example="ghz5" aria-pressed="false"><b>GHZ 5</b><span>chain</span></button>
+            <button class="dataset" type="button" data-example="qaoa5" aria-pressed="false"><b>QAOA 5</b><span>layer</span></button>
+            <button class="dataset" type="button" data-example="qft10" aria-pressed="false"><b>QFT 10</b><span>dense</span></button>
+            <button class="dataset" type="button" data-example="qaoa10" aria-pressed="false"><b>QAOA 10</b><span>layer</span></button>
+            <button class="dataset" type="button" data-example="ghz10" aria-pressed="false"><b>GHZ 10</b><span>chain</span></button>
+            <button class="dataset" type="button" data-example="vqe10" aria-pressed="false"><b>VQE 10</b><span>ansatz</span></button>
+            <button class="dataset" type="button" data-example="custom" aria-pressed="false"><b>Custom</b><span>textarea</span></button>
+          </div>
         </div>
 
-        <footer>
-            <p>
-                源码见
-                <a href="https://github.com/qqyyqq812/ZJU-Quantum-Compiler#readme">GitHub README</a>。
-                本页面保留必要英文专有名词：OpenQASM 2、SABRE、SWAP、Qiskit、API。
-            </p>
-        </footer>
-    </main>
+        <div class="section">
+          <p>Routing heuristic.</p>
+          <div class="heuristics" aria-label="heuristic 控制">
+            <button type="button" data-heuristic="basic" aria-pressed="false">basic</button>
+            <button type="button" data-heuristic="lookahead" aria-pressed="true">lookahead</button>
+            <button type="button" data-heuristic="decay" aria-pressed="false">decay</button>
+          </div>
+        </div>
 
-    <script>
-        const apiBase = "http://localhost:8765";
-        const maxInlineQasmChars = 8000;
-        const miniGhzQasm = `OPENQASM 2.0;
+        <div class="section">
+          <div class="input-meta">
+            <span id="qasm-label">examples/qft5.qasm</span>
+            <span id="qasm-count">example</span>
+          </div>
+          <textarea id="qasm-input" aria-labelledby="qasm-label" spellcheck="false" readonly></textarea>
+        </div>
+      </section>
+
+      <section class="column topology">
+        <h4><span>Topology</span></h4>
+        <div class="topology-area">
+          <div class="topology-head">
+            <div>IBM Tokyo physical graph</div>
+            <div class="route-status" id="route-status">ready</div>
+          </div>
+          <div class="topology-stage-wrap">
+            <svg class="topology-stage" id="tokyo-topology" viewBox="0 0 640 480" preserveAspectRatio="xMidYMin meet" role="img" aria-label="SVG IBM Tokyo 20Q topology animation"></svg>
+            <div class="topology-tooltip" id="topology-tooltip" role="status"></div>
+          </div>
+          <div class="route-steps" aria-label="SABRE routing steps">
+            <button class="route-step active" type="button" data-step="0"><b>Parse</b><span>read QASM</span></button>
+            <button class="route-step" type="button" data-step="1"><b>Map</b><span>place qubits</span></button>
+            <button class="route-step" type="button" data-step="2"><b>Route</b><span>insert SWAP</span></button>
+            <button class="route-step" type="button" data-step="3"><b>Emit</b><span>compiled QASM</span></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="column output">
+        <h4><span>Output</span></h4>
+        <div class="metrics" aria-label="编译结果摘要">
+          <div class="metric"><span>Status</span><strong id="metric-status">Ready</strong></div>
+          <div class="metric"><span>SWAP</span><strong id="metric-swaps">--</strong></div>
+          <div class="metric"><span>Depth</span><strong id="metric-depth">--</strong></div>
+          <div class="metric"><span>elapsed_ms</span><strong id="metric-elapsed">--</strong></div>
+        </div>
+        <div class="message" id="result-message">Run NPQR to compile the selected circuit.</div>
+        <div class="compiled-head">
+          <h4><span>compiled_qasm</span></h4>
+          <button class="text-button" id="copy-qasm" type="button">copy</button>
+          <button class="text-button" id="download-qasm" type="button">download</button>
+        </div>
+        <pre id="compiled-qasm-output" tabindex="0"><code id="compiled-qasm-code">// compiled_qasm appears here after Run.</code></pre>
+      </section>
+    </div>
+  </main>
+
+  <details class="page" id="advanced" aria-label="高级 MCP 和部署入口">
+    <summary>Advanced</summary>
+    <div class="advanced-body">
+      <section>
+        <h4><span>Maintainer backend</span></h4>
+        <p>普通用户不需要部署。页面默认调用项目方部署的 FastAPI REST 后端；维护者可用 URL 参数覆盖。后端默认使用 NPQR，Qiskit SABRE 作为对比基线。</p>
+        <label class="endpoint-label" for="api-base-input">REST API</label>
+        <div class="endpoint-control">
+          <input id="api-base-input" type="url" spellcheck="false" aria-describedby="api-base-note">
+          <button id="apply-api-base" type="button">apply</button>
+        </div>
+        <p class="endpoint-note" id="api-base-note">active endpoint</p>
+        <pre><code>uvicorn src.server.app:app --host 0.0.0.0 --port $PORT
+?api=https://your-api.example
+uvicorn src.server.app:app --reload --port 8765
+?api=http://127.0.0.1:8765</code></pre>
+        <p>API 不可用时，页面只显示简短错误；公开页面不会自动探测访问者电脑上的本地服务。</p>
+      </section>
+      <section>
+        <h4><span>MCP tools</span></h4>
+        <p>MCP `/mcp` 保留给高级客户端和审阅流程，不是第一屏主入口。</p>
+        <pre><code>qcompiler-mcp-http
+uvicorn src.server.mcp_app:app --host 0.0.0.0 --port $PORT
+POST /mcp</code></pre>
+        <div class="tool-list">
+          <div><strong>compile_qasm</strong><p>OpenQASM 2 input, NPQR routed QASM output.</p></div>
+          <div><strong>compile_npqr</strong><p>Run checked-in examples with NPQR.</p></div>
+          <div><strong>compile_sabre</strong><p>Run checked-in examples with SABRE.</p></div>
+          <div><strong>list_examples</strong><p>Show available QASM examples.</p></div>
+          <div><strong>qcompiler_status</strong><p>Project status and honest AI boundary.</p></div>
+          <div><strong>get_benchmarks</strong><p>Read checked-in benchmark summaries.</p></div>
+          <div><strong>get_npqr_boundary</strong><p>NPQR evidence boundary; no general SABRE win claim.</p></div>
+          <div><strong>get_npqr_stage7_evidence</strong><p>Read-only evidence chain.</p></div>
+        </div>
+      </section>
+    </div>
+  </details>
+
+  <script>
+    const PUBLIC_API_BASE = "https://zju-quantum-compiler-api.onrender.com";
+    const API_TIMEOUT_MS = 30000;
+    const API_STATUS_TIMEOUT_MS = 8000;
+    const MAX_INLINE_QASM_CHARS = 8000;
+
+    const params = new URLSearchParams(window.location.search);
+    let apiBase = normalizeApiBase(params.get("api") || PUBLIC_API_BASE);
+
+    const examples = {
+      qft5: {
+        name: "QFT 5",
+        qubits: 5,
+        qasm: `OPENQASM 2.0;
 include "qelib1.inc";
-qreg q[3];
+qreg q[5];
+rz(pi/2) q[4];
+sx q[4];
+cx q[4],q[3];
+cx q[4],q[2];
+cx q[3],q[2];
+cx q[2],q[1];
+cx q[1],q[0];
+// full example is loaded by the backend`,
+        path: [[4, 3], [3, 8], [8, 13], [13, 18], [18, 19], [14, 19]]
+      },
+      ghz5: {
+        name: "GHZ 5",
+        qubits: 5,
+        qasm: `OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[5];
 h q[0];
 cx q[0],q[1];
 cx q[1],q[2];
-`;
+cx q[2],q[3];
+cx q[3],q[4];`,
+        path: [[0, 1], [1, 2], [2, 3], [3, 4]]
+      },
+      qaoa5: {
+        name: "QAOA 5",
+        qubits: 5,
+        qasm: `OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[5];
+sx q[0];
+sx q[1];
+cx q[0],q[1];
+rz(2.353304971691044) q[1];
+cx q[3],q[4];
+cx q[4],q[0];`,
+        path: [[4, 9], [9, 14], [14, 19], [18, 19], [13, 18]]
+      },
+      qft10: {
+        name: "QFT 10",
+        qubits: 10,
+        qasm: `OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[10];
+rz(pi/2) q[9];
+sx q[9];
+cx q[9],q[8];
+cx q[9],q[7];
+cx q[8],q[7];
+cx q[7],q[6];
+cx q[6],q[5];
+// full example is loaded by the backend`,
+        path: [[9, 14], [14, 19], [18, 19], [17, 18], [16, 17], [11, 16], [6, 11], [1, 6]]
+      },
+      qaoa10: {
+        name: "QAOA 10",
+        qubits: 10,
+        qasm: `OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[10];
+sx q[0];
+sx q[1];
+cx q[0],q[1];
+cx q[1],q[2];
+cx q[5],q[6];
+cx q[8],q[9];`,
+        path: [[0, 5], [5, 10], [10, 11], [11, 12], [12, 13], [13, 14], [14, 19]]
+      },
+      ghz10: {
+        name: "GHZ 10",
+        qubits: 10,
+        qasm: `OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[10];
+rz(pi/2) q[0];
+sx q[0];
+cx q[0],q[1];
+cx q[1],q[2];
+cx q[2],q[3];
+cx q[8],q[9];`,
+        path: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 9], [9, 14], [14, 19]]
+      },
+      vqe10: {
+        name: "VQE 10",
+        qubits: 10,
+        qasm: `OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[10];
+rz(0) q[0];
+sx q[0];
+cx q[0],q[1];
+cx q[1],q[2];
+cx q[6],q[7];
+cx q[8],q[9];`,
+        path: [[5, 6], [6, 7], [7, 8], [8, 13], [13, 18], [17, 18], [16, 17]]
+      },
+      custom: {
+        name: "Custom",
+        qubits: 2,
+        qasm: `OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[2];
+h q[0];
+cx q[0],q[1];`,
+        path: [[0, 1], [1, 6], [6, 7]]
+      }
+    };
 
-        let apiReady = false;
-        let selectedFileName = null;
-        let lastResult = null;
+    const topologyNodes = [
+      [0, 70, 58], [1, 195, 58], [2, 320, 58], [3, 445, 58], [4, 570, 58],
+      [5, 70, 178], [6, 195, 178], [7, 320, 178], [8, 445, 178], [9, 570, 178],
+      [10, 70, 300], [11, 195, 300], [12, 320, 300], [13, 445, 300], [14, 570, 300],
+      [15, 70, 420], [16, 195, 420], [17, 320, 420], [18, 445, 420], [19, 570, 420]
+    ];
 
-        const els = {
-            apiMode: document.getElementById("api-mode"),
-            fileInput: document.getElementById("circuit-file"),
-            fileMeta: document.getElementById("file-meta"),
-            qasmInput: document.getElementById("qasm-input"),
-            charCount: document.getElementById("qasm-char-count"),
-            heuristic: document.getElementById("heuristic-select"),
-            resultStatus: document.getElementById("result-status"),
-            resultQubits: document.getElementById("result-qubits"),
-            resultCx: document.getElementById("result-cx"),
-            resultSwaps: document.getElementById("result-swaps"),
-            resultDepth: document.getElementById("result-depth"),
-            resultTime: document.getElementById("result-time"),
-            resultMessage: document.getElementById("result-message"),
-            compiledQasm: document.getElementById("compiled-qasm"),
-            downloadQasm: document.getElementById("download-qasm"),
-            downloadJson: document.getElementById("download-json")
-        };
+    const topologyEdges = [
+      [0, 1], [0, 5], [1, 2], [1, 6], [1, 7], [2, 3], [2, 6], [2, 7],
+      [3, 4], [3, 8], [3, 9], [4, 8], [4, 9], [5, 6], [5, 10], [5, 11],
+      [6, 7], [6, 10], [6, 11], [7, 8], [7, 12], [7, 13], [8, 9], [8, 12],
+      [8, 13], [9, 14], [10, 11], [10, 15], [11, 12], [11, 16], [11, 17],
+      [12, 13], [12, 16], [12, 17], [13, 14], [13, 18], [13, 19], [14, 18],
+      [14, 19], [15, 16], [16, 17], [17, 18], [18, 19]
+    ];
 
-        function currentQasm() {
-            return els.qasmInput.value.trim();
+    const state = {
+      example: "qft5",
+      heuristic: "lookahead",
+      step: 0,
+      edge: 0,
+      running: false,
+      paused: false,
+      timer: null
+    };
+
+    const el = {
+      run: document.getElementById("run-button"),
+      step: document.getElementById("step-button"),
+      reset: document.getElementById("reset-button"),
+      exampleSelect: document.getElementById("example-select"),
+      heuristicSelect: document.getElementById("heuristic-select"),
+      backend: document.getElementById("backend-status"),
+      backendCopy: document.getElementById("backend-copy"),
+      qasm: document.getElementById("qasm-input"),
+      qasmLabel: document.getElementById("qasm-label"),
+      qasmCount: document.getElementById("qasm-count"),
+      svg: document.getElementById("tokyo-topology"),
+      tooltip: document.getElementById("topology-tooltip"),
+      routeStatus: document.getElementById("route-status"),
+      status: document.getElementById("metric-status"),
+      swaps: document.getElementById("metric-swaps"),
+      depth: document.getElementById("metric-depth"),
+      elapsed: document.getElementById("metric-elapsed"),
+      message: document.getElementById("result-message"),
+      compiled: document.getElementById("compiled-qasm-code"),
+      copy: document.getElementById("copy-qasm"),
+      download: document.getElementById("download-qasm"),
+      apiBaseInput: document.getElementById("api-base-input"),
+      applyApiBase: document.getElementById("apply-api-base"),
+      apiBaseNote: document.getElementById("api-base-note")
+    };
+
+    function normalizeApiBase(value) {
+      return String(value || "").trim().replace(/\/+$/, "");
+    }
+
+    function edgeKey(edge) {
+      return [...edge].sort((a, b) => a - b).join("-");
+    }
+
+    function selectedExample() {
+      return examples[state.example];
+    }
+
+    function setBackend(tone, text) {
+      el.backend.className = `backend ${tone}`;
+      el.backendCopy.textContent = text;
+    }
+
+    function syncApiControls(note) {
+      if (!el.apiBaseInput) {
+        return;
+      }
+      el.apiBaseInput.value = apiBase;
+      el.apiBaseNote.textContent = note || `active: ${apiBase}`;
+      el.backend.title = apiBase;
+    }
+
+    function apiCandidates() {
+      return [apiBase].map(normalizeApiBase);
+    }
+
+    function setPressed(selector, key, value) {
+      document.querySelectorAll(selector).forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset[key] === value));
+      });
+    }
+
+    function renderInput() {
+      const sample = selectedExample();
+      el.qasm.readOnly = state.example !== "custom";
+      if (state.example !== "custom" || !el.qasm.value.trim()) {
+        el.qasm.value = sample.qasm;
+      }
+      el.qasmLabel.textContent = state.example === "custom" ? "custom OpenQASM 2" : `examples/${state.example}.qasm`;
+      el.qasmCount.textContent = state.example === "custom"
+        ? `${el.qasm.value.length} / ${MAX_INLINE_QASM_CHARS}`
+        : `${sample.qubits} qubits`;
+      el.exampleSelect.value = state.example;
+      el.heuristicSelect.value = state.heuristic;
+      setPressed("[data-example]", "example", state.example);
+      setPressed("[data-heuristic]", "heuristic", state.heuristic);
+    }
+
+    function renderSteps() {
+      document.querySelectorAll("[data-step]").forEach((button) => {
+        button.classList.toggle("active", Number(button.dataset.step) === state.step);
+      });
+      const names = ["parse", "map", "route", "emit"];
+      el.routeStatus.textContent = names[state.step] || "ready";
+    }
+
+    function renderTopology() {
+      const svgNS = "http://www.w3.org/2000/svg";
+      const nodes = new Map(topologyNodes.map(([id, x, y]) => [id, { x, y }]));
+      const sample = selectedExample();
+      const preview = new Set(sample.path.map(edgeKey));
+      const active = sample.path[state.edge % sample.path.length];
+      const activeKey = edgeKey(active);
+      const activeNodes = new Set(active);
+      const mapped = new Set(sample.path.flat());
+
+      el.svg.textContent = "";
+      topologyEdges.forEach(([a, b]) => {
+        const from = nodes.get(a);
+        const to = nodes.get(b);
+        const line = document.createElementNS(svgNS, "line");
+        line.setAttribute("x1", from.x);
+        line.setAttribute("y1", from.y);
+        line.setAttribute("x2", to.x);
+        line.setAttribute("y2", to.y);
+        line.classList.add("topology-edge");
+        if (preview.has(edgeKey([a, b]))) {
+          line.classList.add("preview");
         }
-
-        function setApiMode(ready) {
-            apiReady = ready;
-            els.apiMode.textContent = ready ? "本地 API 已连接" : "本地 API 未连接";
-            els.apiMode.classList.toggle("ready", ready);
-            els.apiMode.classList.toggle("offline", !ready);
+        if (edgeKey([a, b]) === activeKey) {
+          line.classList.add("active");
         }
+        line.addEventListener("mousemove", (event) => showTooltip(event, `edge ${a}-${b}`));
+        line.addEventListener("mouseleave", hideTooltip);
+        el.svg.appendChild(line);
+      });
 
-        async function detectApi() {
-            const controller = new AbortController();
-            const timer = window.setTimeout(() => controller.abort(), 700);
-            try {
-                const response = await fetch(`${apiBase}/api/status`, { signal: controller.signal });
-                setApiMode(response.ok);
-            } catch (_) {
-                setApiMode(false);
-            } finally {
-                window.clearTimeout(timer);
-            }
+      topologyNodes.forEach(([id, x, y]) => {
+        const group = document.createElementNS(svgNS, "g");
+        const circle = document.createElementNS(svgNS, "circle");
+        const text = document.createElementNS(svgNS, "text");
+        circle.setAttribute("cx", x);
+        circle.setAttribute("cy", y);
+        circle.setAttribute("r", 16);
+        circle.classList.add("topology-node");
+        if (mapped.has(id)) {
+          circle.classList.add("mapped");
         }
-
-        function updateCharCount() {
-            const length = els.qasmInput.value.length;
-            els.charCount.textContent = `${length} / ${maxInlineQasmChars} 字符`;
-            els.charCount.classList.toggle("warn", length > maxInlineQasmChars * 0.9);
+        if (activeNodes.has(id)) {
+          circle.classList.add("active");
         }
+        text.setAttribute("x", x);
+        text.setAttribute("y", y + 0.5);
+        text.classList.add("node-label");
+        text.textContent = id;
+        group.append(circle, text);
+        group.addEventListener("mousemove", (event) => showTooltip(event, `q${id}`));
+        group.addEventListener("mouseleave", hideTooltip);
+        el.svg.appendChild(group);
+      });
+    }
 
-        function setSummary(data) {
-            els.resultStatus.textContent = data.status ?? "—";
-            els.resultQubits.textContent = data.input_qubits ?? "—";
-            els.resultCx.textContent = data.input_cx ?? "—";
-            els.resultSwaps.textContent = data.swaps ?? "—";
-            els.resultDepth.textContent = data.depth ?? "—";
-            els.resultTime.textContent = Number.isFinite(data.elapsed_ms)
-                ? `${Math.round(data.elapsed_ms)} ms`
-                : "—";
+    function showTooltip(event, text) {
+      const box = el.svg.getBoundingClientRect();
+      el.tooltip.textContent = text;
+      el.tooltip.style.display = "block";
+      el.tooltip.style.left = `${event.clientX - box.left + 10}px`;
+      el.tooltip.style.top = `${event.clientY - box.top + 10}px`;
+    }
+
+    function hideTooltip() {
+      el.tooltip.style.display = "none";
+    }
+
+    function stepOnce() {
+      const sample = selectedExample();
+      state.step = (state.step + 1) % 4;
+      state.edge = (state.edge + 1) % sample.path.length;
+      renderSteps();
+      renderTopology();
+    }
+
+    function startAnimation() {
+      window.clearInterval(state.timer);
+      state.timer = window.setInterval(stepOnce, 620);
+    }
+
+    function stopAnimation() {
+      window.clearInterval(state.timer);
+      state.timer = null;
+    }
+
+    function reset() {
+      stopAnimation();
+      state.running = false;
+      state.paused = false;
+      state.step = 0;
+      state.edge = 0;
+      state.example = "qft5";
+      state.heuristic = "lookahead";
+      el.run.textContent = "▶";
+      el.status.textContent = "Ready";
+      el.swaps.textContent = "--";
+      el.depth.textContent = "--";
+      el.elapsed.textContent = "--";
+      el.message.classList.remove("error");
+      el.message.textContent = "Run NPQR to compile the selected circuit.";
+      el.compiled.textContent = "// compiled_qasm appears here after Run.";
+      renderInput();
+      renderSteps();
+      renderTopology();
+    }
+
+    function payload() {
+      const base = { backend: "npqr", topology: "tokyo", heuristic: state.heuristic };
+      return state.example === "custom" ? { qasm: el.qasm.value, ...base } : { example: state.example, ...base };
+    }
+
+    function validate() {
+      if (state.example !== "custom") {
+        return null;
+      }
+      const qasm = el.qasm.value.trim();
+      if (!qasm) {
+        return "Custom QASM is empty.";
+      }
+      if (qasm.length > MAX_INLINE_QASM_CHARS) {
+        return "Custom QASM is too long.";
+      }
+      if (!qasm.startsWith("OPENQASM 2.0;")) {
+        return "Custom input must start with OPENQASM 2.0;";
+      }
+      return null;
+    }
+
+    async function callApiAt(base, path, options = {}, timeoutMs = API_TIMEOUT_MS) {
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(`${base}${path}`, { ...options, signal: controller.signal });
+        const text = await response.text();
+        let data = {};
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch (_) {
+          data = { detail: text.trim() };
         }
-
-        function resetSummary(status = "未运行") {
-            setSummary({
-                status,
-                input_qubits: "—",
-                input_cx: "—",
-                swaps: "—",
-                depth: "—",
-                elapsed_ms: NaN
-            });
-            els.compiledQasm.value = "";
-            els.downloadQasm.disabled = true;
-            els.downloadJson.disabled = true;
-            lastResult = null;
+        if (!response.ok) {
+          const detail = data.detail || data.error?.message || `HTTP ${response.status}`;
+          const error = new Error(detail);
+          error.status = response.status;
+          error.apiBase = base;
+          throw error;
         }
+        return data;
+      } finally {
+        window.clearTimeout(timeout);
+      }
+    }
 
-        function formatError(error) {
-            return [
-                `编译失败：${error.message || String(error)}`,
-                "",
-                "检查项：",
-                "1. 本地 API 是否正在 8765 端口运行。",
-                "2. 输入是否为 OpenQASM 2，并包含 qelib1.inc。",
-                "3. 电路是否不超过 20 个 qubits。",
-                "4. 文件内容是否不超过 8000 字符。"
-            ].join("\n");
+    async function callApi(path, options = {}) {
+      let lastError = null;
+      for (const candidate of apiCandidates()) {
+        try {
+          const data = await callApiAt(candidate, path, options);
+          apiBase = candidate;
+          setBackend("ok", "online");
+          syncApiControls(`active: ${apiBase}`);
+          return data;
+        } catch (error) {
+          lastError = error;
         }
+      }
+      throw lastError || new Error("REST API unavailable");
+    }
 
-        async function readSelectedFile(file) {
-            selectedFileName = file.name;
-            if (file.size > maxInlineQasmChars * 4) {
-                els.fileMeta.textContent = `${file.name} 太大，建议上传不超过 ${maxInlineQasmChars} 字符的 OpenQASM 2。`;
-                els.fileMeta.classList.add("warn");
-                return;
-            }
-            const text = await file.text();
-            els.qasmInput.value = text;
-            els.fileMeta.textContent = `已读取 ${file.name}，${text.length} 字符。`;
-            els.fileMeta.classList.remove("warn");
-            updateCharCount();
-            resetSummary("待编译");
-            els.resultMessage.textContent = "文件已读取到浏览器内存。点击“编译上传电路”后，会把内容发送给本地 API。";
+    async function checkBackend() {
+      setBackend("loading", "checking");
+      let lastError = null;
+      for (const candidate of apiCandidates()) {
+        try {
+          await callApiAt(candidate, "/api/status", {}, API_STATUS_TIMEOUT_MS);
+          apiBase = candidate;
+          setBackend("ok", "online");
+          syncApiControls(`active: ${apiBase}`);
+          return;
+        } catch (error) {
+          lastError = error;
         }
+      }
+      setBackend("error", "offline");
+      syncApiControls(formatBackendNote(lastError));
+    }
 
-        async function compileUploadedCircuit() {
-            const qasm = currentQasm();
-            const heuristic = els.heuristic.value;
-            if (!qasm) {
-                resetSummary("输入为空");
-                els.resultMessage.textContent = "请先上传 .qasm 文件，或粘贴 OpenQASM 2 电路。";
-                return;
-            }
-            if (qasm.length > maxInlineQasmChars) {
-                resetSummary("输入过长");
-                els.resultMessage.textContent = `当前输入 ${qasm.length} 字符，超过 ${maxInlineQasmChars} 字符限制。`;
-                return;
-            }
+    function formatBackendNote(error) {
+      const reason = error?.status ? `HTTP ${error.status}` : "network error";
+      return `REST API offline (${reason}). This is not the MCP endpoint.`;
+    }
 
-            await detectApi();
-            if (!apiReady) {
-                resetSummary("API 离线");
-                els.resultMessage.textContent = [
-                    "本地 API 未连接，GitHub Pages 不能单独编译电路。",
-                    "",
-                    "请在仓库根目录启动：",
-                    "uvicorn src.server.app:app --reload --port 8765",
-                    "",
-                    "服务启动后再点击“编译上传电路”。"
-                ].join("\n");
-                return;
-            }
+    function formatBackendHelp(error) {
+      const reason = error?.status ? `HTTP ${error.status}` : "network error or timeout";
+      return [
+        "// Backend unavailable.",
+        "// no compiled_qasm",
+        `// REST API is offline, not MCP. Last error: ${reason}.`,
+        `// Active API: ${apiBase}`,
+        "// Public users need the deployed REST API to be online.",
+        "// Maintainers can override the API base in Advanced or with ?api=..."
+      ].join("\n");
+    }
 
-            resetSummary("运行中");
-            els.resultMessage.textContent = `正在调用 ${apiBase}/api/compile，heuristic=${heuristic}。`;
+    function applyApiBase() {
+      const next = normalizeApiBase(el.apiBaseInput.value);
+      if (!next) {
+        syncApiControls("Enter a REST API base URL.");
+        return;
+      }
+      apiBase = next;
+      checkBackend();
+    }
 
-            try {
-                const payload = {
-                    qasm,
-                    backend: "sabre",
-                    topology: "tokyo",
-                    heuristic
-                };
-                const response = await fetch(`${apiBase}/api/compile`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
-                const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.detail || `HTTP ${response.status}`);
-                }
+    function showResult(data) {
+      el.status.textContent = data.status || "OK";
+      el.swaps.textContent = data.swaps ?? "--";
+      el.depth.textContent = data.depth ?? "--";
+      el.elapsed.textContent = Number.isFinite(data.elapsed_ms) ? data.elapsed_ms.toFixed(1) : "--";
+      el.message.classList.remove("error");
+      const baseline = data.baseline?.swaps ?? null;
+      el.message.textContent = baseline === null
+        ? (data.message || "Compiled.")
+        : `${data.message || "Compiled."} SABRE baseline SWAP: ${baseline}.`;
+      el.compiled.textContent = data.compiled_qasm || "// No compiled_qasm returned.";
+    }
 
-                lastResult = {
-                    source_file: selectedFileName,
-                    request: {
-                        backend: "sabre",
-                        topology: "tokyo",
-                        heuristic,
-                        qasm_chars: qasm.length
-                    },
-                    response: data
-                };
-                setSummary(data);
-                els.compiledQasm.value = data.compiled_qasm || "";
-                els.downloadQasm.disabled = !data.compiled_qasm;
-                els.downloadJson.disabled = false;
-                els.resultMessage.textContent = [
-                    "编译完成。",
-                    `backend: ${data.backend}`,
-                    `heuristic: ${data.heuristic}`,
-                    `topology: ${data.topology}`,
-                    `circuit: ${data.circuit_name}`,
-                    `input_qubits: ${data.input_qubits}`,
-                    `input_cx: ${data.input_cx}`,
-                    `swaps: ${data.swaps}`,
-                    `depth: ${data.depth}`,
-                    data.message ? `message: ${data.message}` : ""
-                ].filter(Boolean).join("\n");
-            } catch (error) {
-                resetSummary("失败");
-                lastResult = { error: error.message || String(error) };
-                els.resultMessage.textContent = formatError(error);
-            }
-        }
+    async function run() {
+      if (state.running) {
+        state.paused = !state.paused;
+        el.run.textContent = state.paused ? "▶" : "Ⅱ";
+        state.paused ? stopAnimation() : startAnimation();
+        return;
+      }
 
-        async function copyText(text) {
-            try {
-                await navigator.clipboard.writeText(text);
-            } catch (_) {
-                const scratch = document.createElement("textarea");
-                scratch.value = text;
-                document.body.appendChild(scratch);
-                scratch.select();
-                document.execCommand("copy");
-                scratch.remove();
-            }
-        }
+      const error = validate();
+      if (error) {
+        el.status.textContent = "Invalid";
+        el.message.classList.add("error");
+        el.message.textContent = error;
+        return;
+      }
 
-        function downloadText(filename, content, type) {
-            const blob = new Blob([content], { type });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-        }
+      state.running = true;
+      state.paused = false;
+      el.run.textContent = "Ⅱ";
+      el.status.textContent = "Running";
+      el.swaps.textContent = "--";
+      el.depth.textContent = "--";
+      el.elapsed.textContent = "--";
+      el.message.classList.remove("error");
+      el.message.textContent = "Compiling...";
+      el.compiled.textContent = "// waiting for compiled_qasm";
+      startAnimation();
 
-        els.fileInput.addEventListener("change", async () => {
-            const file = els.fileInput.files && els.fileInput.files[0];
-            if (file) {
-                await readSelectedFile(file);
-            }
+      try {
+        const data = await callApi("/api/compile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload())
         });
+        showResult(data);
+      } catch (error) {
+        el.status.textContent = "Error";
+        el.message.classList.add("error");
+        el.message.textContent = "Backend unavailable. REST API is offline.";
+        el.compiled.textContent = formatBackendHelp(error);
+      } finally {
+        state.running = false;
+        state.paused = false;
+        el.run.textContent = "▶";
+        stopAnimation();
+        renderTopology();
+      }
+    }
 
-        document.getElementById("load-ghz-example").addEventListener("click", () => {
-            selectedFileName = "内置 GHZ 示例";
-            els.qasmInput.value = miniGhzQasm;
-            els.fileMeta.textContent = "已载入内置 GHZ 示例，可直接编译。";
-            updateCharCount();
-            resetSummary("待编译");
-        });
+    async function copyQasm() {
+      try {
+        await navigator.clipboard.writeText(el.compiled.textContent);
+        el.copy.textContent = "copied";
+        window.setTimeout(() => { el.copy.textContent = "copy"; }, 1000);
+      } catch (_) {
+        el.copy.textContent = "select";
+      }
+    }
 
-        document.getElementById("clear-input").addEventListener("click", () => {
-            selectedFileName = null;
-            els.fileInput.value = "";
-            els.qasmInput.value = "";
-            els.fileMeta.textContent = "尚未选择文件。浏览器只读取文本内容，不上传到 GitHub。";
-            updateCharCount();
-            resetSummary();
-            els.resultMessage.textContent = "等待输入电路。启动本地 API 后，上传 .qasm 文件或粘贴 OpenQASM 2，再点击“编译上传电路”。";
-        });
+    function downloadQasm() {
+      const blob = new Blob([el.compiled.textContent], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const backend = payload().backend || "npqr";
+      link.download = `compiled_tokyo_${backend}.qasm`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
 
-        document.getElementById("run-compile").addEventListener("click", compileUploadedCircuit);
-        els.qasmInput.addEventListener("input", () => {
-            updateCharCount();
-            if (lastResult) {
-                resetSummary("待编译");
-                els.resultMessage.textContent = "输入已修改，请重新编译。";
-            }
-        });
+    document.querySelectorAll("[data-example]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.example = button.dataset.example;
+        renderInput();
+        renderTopology();
+      });
+    });
 
-        document.getElementById("copy-api-start").addEventListener("click", async () => {
-            const command = document.getElementById("api-start-command").textContent.trim();
-            await copyText(command);
-            document.getElementById("copy-api-start").textContent = "已复制";
-            window.setTimeout(() => {
-                document.getElementById("copy-api-start").textContent = "复制启动命令";
-            }, 1200);
-        });
+    document.querySelectorAll("[data-heuristic]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.heuristic = button.dataset.heuristic;
+        renderInput();
+      });
+    });
 
-        document.getElementById("copy-result").addEventListener("click", async () => {
-            const text = [
-                els.resultMessage.textContent.trim(),
-                "",
-                els.compiledQasm.value ? "compiled_qasm:" : "",
-                els.compiledQasm.value
-            ].filter(Boolean).join("\n");
-            await copyText(text || "暂无结果。");
-            document.getElementById("copy-result").textContent = "已复制";
-            window.setTimeout(() => {
-                document.getElementById("copy-result").textContent = "复制结果";
-            }, 1200);
-        });
+    document.querySelectorAll("[data-step]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.step = Number(button.dataset.step);
+        state.edge = state.step % selectedExample().path.length;
+        renderSteps();
+        renderTopology();
+      });
+    });
 
-        els.downloadQasm.addEventListener("click", () => {
-            if (lastResult && lastResult.response && lastResult.response.compiled_qasm) {
-                downloadText("compiled-tokyo-sabre.qasm", lastResult.response.compiled_qasm, "text/plain");
-            }
-        });
+    el.exampleSelect.addEventListener("change", () => {
+      state.example = el.exampleSelect.value;
+      renderInput();
+      renderTopology();
+    });
 
-        els.downloadJson.addEventListener("click", () => {
-            if (lastResult) {
-                downloadText("quantum-compile-result.json", JSON.stringify(lastResult, null, 2), "application/json");
-            }
-        });
+    el.heuristicSelect.addEventListener("change", () => {
+      state.heuristic = el.heuristicSelect.value;
+      renderInput();
+    });
 
-        updateCharCount();
-        detectApi();
-    </script>
+    el.qasm.addEventListener("input", () => {
+      state.example = "custom";
+      renderInput();
+    });
+
+    el.run.addEventListener("click", run);
+    el.step.addEventListener("click", stepOnce);
+    el.reset.addEventListener("click", reset);
+    el.copy.addEventListener("click", copyQasm);
+    el.download.addEventListener("click", downloadQasm);
+    el.applyApiBase.addEventListener("click", applyApiBase);
+    el.apiBaseInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        applyApiBase();
+      }
+    });
+
+    renderInput();
+    renderSteps();
+    renderTopology();
+    syncApiControls();
+    checkBackend();
+  </script>
 </body>
 </html>
