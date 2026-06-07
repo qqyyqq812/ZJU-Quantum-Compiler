@@ -19,6 +19,7 @@
       --tf-code: #fafafa;
       --tf-error: #c33;
       --tf-ok: #2b8a3e;
+      --tf-ink: #18212b;
       --qc-void: #060812;
       --qc-space: #0d1230;
       --qc-cyan: #22d3ee;
@@ -72,9 +73,19 @@
 
     header {
       position: relative;
+      overflow: hidden;
       background: rgba(6, 8, 18, 0.93);
       color: #fff;
       border-bottom: 1px solid rgba(34, 211, 238, 0.18);
+    }
+
+    header::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--qc-cyan), var(--qc-violet), transparent);
+      opacity: 0.65;
     }
 
     body::before,
@@ -109,6 +120,7 @@
     }
 
     .topbar {
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -156,10 +168,13 @@
 
     #top-controls {
       border-bottom: 1px solid rgba(34, 211, 238, 0.22);
-      background: rgba(255, 255, 255, 0.96);
+      background:
+        linear-gradient(90deg, rgba(34, 211, 238, 0.05), transparent 28%, rgba(245, 147, 34, 0.04)),
+        rgba(255, 255, 255, 0.98);
     }
 
     .control-row {
+      position: relative;
       display: flex;
       align-items: center;
       gap: 24px;
@@ -170,7 +185,7 @@
     .timeline-controls {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       padding-right: 6px;
     }
 
@@ -178,6 +193,8 @@
     .play-button {
       display: inline-grid;
       place-items: center;
+      grid-template-rows: 1fr auto;
+      gap: 2px;
       border: 0;
       background: transparent;
       color: var(--tf-muted);
@@ -185,28 +202,61 @@
     }
 
     .icon-button {
-      width: 34px;
-      height: 34px;
-      font-size: 23px;
+      width: 44px;
+      height: 50px;
+      padding: 3px 0 5px;
     }
 
     .icon-button:hover {
       color: var(--tf-orange);
     }
 
+    .command-icon {
+      display: grid;
+      place-items: center;
+      min-height: 25px;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .command-label {
+      color: currentColor;
+      font-size: 10px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
     .play-button {
-      width: 46px;
-      height: 46px;
+      width: 56px;
+      height: 56px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--tf-orange) 0%, #ff9f32 54%, var(--qc-cyan) 145%);
       color: #fff;
-      font-size: 25px;
+      padding: 7px 0 8px;
       line-height: 1;
       box-shadow: 0 0 0 1px rgba(245, 147, 34, 0.28), 0 0 18px rgba(34, 211, 238, 0.22);
+      transition: background 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+    }
+
+    .play-button .command-icon {
+      min-height: 23px;
+      font-size: 22px;
     }
 
     .play-button:hover {
       background: #e58211;
+      transform: translateY(-1px);
+    }
+
+    .play-button[data-state="running"] {
+      background: var(--tf-ink);
+      box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.34), 0 0 20px rgba(245, 147, 34, 0.18);
+    }
+
+    .play-button[data-state="paused"] {
+      background: #fff;
+      color: var(--tf-orange);
+      box-shadow: 0 0 0 1px var(--tf-orange);
     }
 
     .control {
@@ -266,15 +316,31 @@
       position: relative;
       display: grid;
       grid-template-columns: 278px minmax(420px, 1fr) 300px;
-      min-height: calc(100vh - 123px);
-      background: #fff;
+      min-height: 0;
+      background:
+        linear-gradient(180deg, rgba(34, 211, 238, 0.035), transparent 92px),
+        #fff;
       border-left: 1px solid var(--tf-line);
       border-right: 1px solid var(--tf-line);
       border-top: 3px solid transparent;
       border-image: linear-gradient(90deg, var(--qc-cyan), var(--qc-violet), var(--tf-orange)) 1;
+      box-shadow: 0 18px 46px rgba(0, 0, 0, 0.22);
+    }
+
+    #main-part::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(34, 211, 238, 0.08) 0 1px, transparent 1px 100%),
+        linear-gradient(180deg, rgba(124, 92, 255, 0.05) 0 1px, transparent 1px 100%);
+      background-size: 72px 100%, 100% 72px;
+      opacity: 0.42;
     }
 
     .column {
+      position: relative;
       min-width: 0;
       padding: 18px 18px 20px;
       border-left: 1px solid var(--tf-line);
@@ -290,6 +356,10 @@
       gap: 8px;
       margin: 0 0 14px;
       color: #555;
+    }
+
+    h4 span {
+      color: var(--tf-ink);
     }
 
     h4::after {
@@ -316,18 +386,28 @@
     }
 
     .dataset {
+      position: relative;
       height: 50px;
       border: 2px solid transparent;
-      background: #f8f8f8;
+      background: linear-gradient(90deg, transparent 0 3px, #f8f8f8 3px);
       color: var(--tf-text);
       cursor: pointer;
       text-align: left;
+      transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
     }
 
     .dataset:hover,
     .dataset[aria-pressed="true"] {
       border-color: var(--tf-orange);
       background: #fff;
+    }
+
+    .dataset:hover {
+      transform: translateY(-1px);
+    }
+
+    .dataset[aria-pressed="true"] {
+      background: linear-gradient(90deg, var(--tf-orange) 0 3px, #fff 3px);
     }
 
     .dataset b {
@@ -346,11 +426,12 @@
 
     .heuristics {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       border: 1px solid var(--tf-line-dark);
     }
 
     .heuristics button {
+      min-width: 0;
       height: 32px;
       border: 0;
       border-left: 1px solid var(--tf-line-dark);
@@ -365,7 +446,7 @@
     }
 
     .heuristics button[aria-pressed="true"] {
-      background: var(--tf-blue);
+      background: linear-gradient(135deg, var(--tf-blue), #075f99);
       color: #fff;
     }
 
@@ -375,7 +456,10 @@
       margin: 0;
       border: 1px solid var(--tf-line-dark);
       border-radius: 0;
-      background: var(--tf-code);
+      background:
+        linear-gradient(90deg, rgba(8, 119, 189, 0.035) 50%, transparent 50%),
+        var(--tf-code);
+      background-size: 44px 100%, auto;
       color: var(--tf-text);
       font-family: var(--mono);
       font-size: 12px;
@@ -387,10 +471,19 @@
       min-height: 260px;
       padding: 10px;
       resize: vertical;
+      transition: border-color 0.16s ease, background 0.16s ease;
     }
 
     textarea[readonly] {
       color: #555;
+    }
+
+    textarea[data-mode="custom"] {
+      border-color: var(--tf-orange);
+      background:
+        linear-gradient(90deg, rgba(245, 147, 34, 0.055) 50%, transparent 50%),
+        #fffdf9;
+      background-size: 44px 100%, auto;
     }
 
     .input-meta {
@@ -405,9 +498,9 @@
 
     .topology-area {
       display: grid;
-      grid-template-rows: auto 1fr auto;
-      height: 100%;
-      min-height: 620px;
+      grid-template-rows: auto auto auto;
+      height: auto;
+      min-height: 0;
     }
 
     .topology-head {
@@ -425,25 +518,37 @@
 
     .topology-stage-wrap {
       position: relative;
-      min-height: 430px;
+      aspect-ratio: 4 / 3;
+      min-height: 0;
       border: 1px solid var(--tf-line);
       background:
         radial-gradient(circle at 12px 12px, rgba(34, 211, 238, 0.08) 1px, transparent 1.5px),
+        linear-gradient(135deg, rgba(34, 211, 238, 0.05), transparent 38%, rgba(124, 92, 255, 0.04)),
         #fff;
       background-size: 24px 24px, auto;
+      overflow: hidden;
+    }
+
+    .topology-stage-wrap::before {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      pointer-events: none;
+      border: 1px solid rgba(34, 211, 238, 0.14);
     }
 
     .topology-stage {
       display: block;
       width: 100%;
       height: 100%;
-      min-height: 430px;
+      min-height: 0;
     }
 
     .topology-edge {
       stroke: #c8c8c8;
       stroke-width: 2;
       stroke-linecap: round;
+      transition: stroke 0.16s ease, stroke-width 0.16s ease, opacity 0.16s ease;
     }
 
     .topology-edge.preview {
@@ -452,11 +557,25 @@
       stroke-width: 2.5;
     }
 
+    .topology-edge.gate-edge {
+      stroke: var(--qc-violet);
+      opacity: 0.74;
+    }
+
+    .topology-edge.swap-edge {
+      stroke: var(--tf-orange);
+      opacity: 0.82;
+    }
+
     .topology-edge.active {
       stroke: var(--tf-orange);
-      stroke-width: 5;
+      stroke-width: 4.5;
       stroke-dasharray: 12 8;
       animation: route-pulse 0.85s linear infinite;
+    }
+
+    .topology-edge.active.gate-edge {
+      stroke: var(--qc-cyan);
     }
 
     .topology-node {
@@ -507,47 +626,120 @@
       display: none;
       max-width: 170px;
       padding: 5px 7px;
-      background: rgba(0, 0, 0, 0.78);
+      border: 1px solid rgba(34, 211, 238, 0.32);
+      background: rgba(6, 8, 18, 0.86);
       color: #fff;
       font-size: 11px;
       pointer-events: none;
     }
 
-    .route-steps {
+    .compiler-flow {
+      margin-top: 12px;
+      border: 1px solid var(--tf-line);
+      background: rgba(255, 255, 255, 0.84);
+    }
+
+    .flow-rail {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin-top: 12px;
+      border-bottom: 1px solid var(--tf-line);
     }
 
-    .route-step {
-      min-height: 52px;
-      border: 1px solid var(--tf-line);
-      background: #fafafa;
-      color: #555;
-      cursor: pointer;
-      text-align: left;
-      font-size: 12px;
+    .flow-stage {
+      position: relative;
+      min-height: 44px;
+      padding: 8px 10px 8px 22px;
+      color: var(--tf-muted);
+      font-size: 11px;
+      text-transform: uppercase;
     }
 
-    .route-step b {
+    .flow-stage::before {
+      content: "";
+      position: absolute;
+      left: 9px;
+      top: 14px;
+      width: 6px;
+      height: 6px;
+      border: 1px solid var(--tf-line-dark);
+      background: #fff;
+    }
+
+    .flow-stage::after {
+      content: "";
+      position: absolute;
+      left: 15px;
+      right: 0;
+      top: 17px;
+      height: 1px;
+      background: var(--tf-line);
+    }
+
+    .flow-stage:last-child::after {
+      display: none;
+    }
+
+    .flow-stage b {
       display: block;
-      margin: 7px 8px 1px;
       color: var(--tf-text);
+      font-size: 12px;
       font-weight: 500;
+      text-transform: none;
     }
 
-    .route-step span {
-      display: block;
-      margin: 0 8px 7px;
+    .flow-stage.is-done::before {
+      background: var(--qc-cyan);
+      border-color: var(--qc-cyan);
+    }
+
+    .flow-stage.is-active {
+      color: var(--tf-orange);
+      background: rgba(245, 147, 34, 0.045);
+    }
+
+    .flow-stage.is-active::before {
+      background: var(--tf-orange);
+      border-color: var(--tf-orange);
+    }
+
+    .trace-readout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 52px;
+      padding: 8px 10px;
+    }
+
+    .trace-op {
+      min-width: 0;
+      color: var(--tf-text);
+      font-family: var(--mono);
+      font-size: 12px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .route-step.active {
-      border-color: var(--tf-orange);
-      background: #fff;
+    .trace-meta {
+      color: var(--tf-muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .trace-bar {
+      grid-column: 1 / -1;
+      height: 3px;
+      background: var(--tf-faint);
+    }
+
+    .trace-bar span {
+      display: block;
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--qc-cyan), var(--tf-orange));
+      transition: width 0.18s ease;
     }
 
     .metrics {
@@ -558,11 +750,38 @@
     }
 
     .metric {
+      position: relative;
       min-height: 66px;
       padding: 9px;
       border-right: 1px solid var(--tf-line);
       border-bottom: 1px solid var(--tf-line);
-      background: #fff;
+      background: linear-gradient(180deg, #fff, #fcfcfc);
+    }
+
+    .metric::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 3px;
+      height: 100%;
+      background: transparent;
+    }
+
+    .metric:nth-child(1)::before {
+      background: var(--tf-orange);
+    }
+
+    .metric:nth-child(2)::before {
+      background: var(--qc-cyan);
+    }
+
+    .metric:nth-child(3)::before {
+      background: var(--qc-violet);
+    }
+
+    .metric:nth-child(4)::before {
+      background: var(--tf-blue);
     }
 
     .metric span {
@@ -583,11 +802,16 @@
     .message {
       min-height: 40px;
       margin: 14px 0;
+      padding: 8px 10px;
+      border-left: 3px solid var(--qc-cyan);
+      background: rgba(34, 211, 238, 0.045);
       color: #555;
       font-size: 12px;
     }
 
     .message.error {
+      border-left-color: var(--tf-error);
+      background: rgba(204, 51, 51, 0.055);
       color: var(--tf-error);
     }
 
@@ -604,13 +828,52 @@
       flex: 1;
     }
 
+    .output-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      border: 1px solid var(--tf-line-dark);
+      padding: 0 7px;
+      color: var(--tf-muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .output-chip[data-tone="busy"] {
+      border-color: var(--tf-orange);
+      color: var(--tf-orange);
+    }
+
+    .output-chip[data-tone="ready"] {
+      border-color: var(--qc-cyan);
+      color: var(--tf-blue);
+    }
+
+    .output-chip[data-tone="error"] {
+      border-color: var(--tf-error);
+      color: var(--tf-error);
+    }
+
     .text-button {
-      border: 0;
-      background: transparent;
+      min-width: 44px;
+      border: 1px solid var(--tf-line-dark);
+      background: #fff;
       color: var(--tf-blue);
       cursor: pointer;
       font-size: 12px;
-      text-decoration: underline;
+      text-decoration: none;
+    }
+
+    .text-button:hover {
+      border-color: var(--tf-blue);
+      background: #f6fbff;
+    }
+
+    .text-button:disabled {
+      border-color: var(--tf-line);
+      color: #aaa;
+      cursor: default;
+      background: #fafafa;
     }
 
     #compiled-qasm-output {
@@ -760,7 +1023,7 @@
       .topology-area,
       .topology-stage,
       .topology-stage-wrap {
-        min-height: 360px;
+        min-height: 0;
       }
     }
 
@@ -784,14 +1047,18 @@
 
       .dataset-list,
       .metrics,
-      .route-steps,
+      .flow-rail,
       .tool-list div {
         grid-template-columns: 1fr;
       }
 
+      .column {
+        padding: 16px 10px 18px;
+      }
+
       .dataset-list {
         grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
+        gap: 6px;
       }
 
       .dataset {
@@ -800,6 +1067,24 @@
 
       .dataset b {
         margin-top: 5px;
+      }
+
+      .heuristics button {
+        padding: 0 2px;
+        font-size: 11px;
+      }
+
+      .heuristics {
+        grid-template-columns: 1fr;
+      }
+
+      .heuristics button {
+        border-left: 0;
+        border-top: 1px solid var(--tf-line-dark);
+      }
+
+      .heuristics button:first-child {
+        border-top: 0;
       }
 
       textarea {
@@ -813,10 +1098,10 @@
     <div class="page topbar">
       <div class="brand">
         <h1>Quantum <b>Compiler</b> Playground</h1>
-        <span class="subtitle">OpenQASM routing on IBM Tokyo</span>
+        <span class="subtitle">OpenQASM routing on IBM Tokyo · 中文实验台</span>
       </div>
       <nav class="nav" aria-label="主导航">
-        <a href="#playground">Playground</a>
+        <a href="#playground">试验台</a>
         <a href="#advanced">Advanced</a>
         <a href="https://github.com/qqyyqq812/ZJU-Quantum-Compiler">GitHub</a>
       </nav>
@@ -826,12 +1111,21 @@
   <div id="top-controls">
     <div class="page control-row">
       <div class="timeline-controls" aria-label="运行控制">
-        <button class="icon-button" id="reset-button" type="button" title="Reset">↺</button>
-        <button class="play-button" id="run-button" type="button" title="Run/Pause">▶</button>
-        <button class="icon-button" id="step-button" type="button" title="Step">▸</button>
+        <button class="icon-button" id="reset-button" type="button" title="Reset" aria-label="重置">
+          <span class="command-icon" aria-hidden="true">↺</span>
+          <span class="command-label">Reset</span>
+        </button>
+        <button class="play-button" id="run-button" type="button" title="Run/Pause" aria-label="运行" data-state="idle">
+          <span class="command-icon" id="run-icon" aria-hidden="true">▶</span>
+          <span class="command-label" id="run-label">Run</span>
+        </button>
+        <button class="icon-button" id="step-button" type="button" title="Step" aria-label="单步推进">
+          <span class="command-icon" aria-hidden="true">▸</span>
+          <span class="command-label">Step</span>
+        </button>
       </div>
       <div class="control">
-        <label for="example-select">Circuit</label>
+        <label for="example-select">电路 Circuit</label>
         <select id="example-select">
           <option value="qft5">QFT 5</option>
           <option value="ghz5">GHZ 5</option>
@@ -852,7 +1146,7 @@
         </select>
       </div>
       <div class="control">
-        <span class="label">Status</span>
+        <span class="label">后端 API</span>
         <div class="backend loading" id="backend-status">
           <span class="backend-dot"></span>
           <span id="backend-copy">checking</span>
@@ -864,23 +1158,23 @@
   <main class="page" id="playground">
     <div id="main-part" aria-label="一键量子编译 Playground">
       <section class="column data">
-        <h4><span>Input</span></h4>
+        <h4><span>输入 Input</span></h4>
         <div class="section">
-          <p>Choose a circuit.</p>
+          <p>选择 OpenQASM 示例，或切到 Custom 直接编辑。</p>
           <div class="dataset-list" aria-label="OpenQASM 示例">
-            <button class="dataset" type="button" data-example="qft5" aria-pressed="true"><b>QFT 5</b><span>dense</span></button>
-            <button class="dataset" type="button" data-example="ghz5" aria-pressed="false"><b>GHZ 5</b><span>chain</span></button>
-            <button class="dataset" type="button" data-example="qaoa5" aria-pressed="false"><b>QAOA 5</b><span>layer</span></button>
-            <button class="dataset" type="button" data-example="qft10" aria-pressed="false"><b>QFT 10</b><span>dense</span></button>
-            <button class="dataset" type="button" data-example="qaoa10" aria-pressed="false"><b>QAOA 10</b><span>layer</span></button>
-            <button class="dataset" type="button" data-example="ghz10" aria-pressed="false"><b>GHZ 10</b><span>chain</span></button>
+            <button class="dataset" type="button" data-example="qft5" aria-pressed="true"><b>QFT 5</b><span>密集相位</span></button>
+            <button class="dataset" type="button" data-example="ghz5" aria-pressed="false"><b>GHZ 5</b><span>纠缠链</span></button>
+            <button class="dataset" type="button" data-example="qaoa5" aria-pressed="false"><b>QAOA 5</b><span>分层耦合</span></button>
+            <button class="dataset" type="button" data-example="qft10" aria-pressed="false"><b>QFT 10</b><span>大电路</span></button>
+            <button class="dataset" type="button" data-example="qaoa10" aria-pressed="false"><b>QAOA 10</b><span>硬样例</span></button>
+            <button class="dataset" type="button" data-example="ghz10" aria-pressed="false"><b>GHZ 10</b><span>长链</span></button>
             <button class="dataset" type="button" data-example="vqe10" aria-pressed="false"><b>VQE 10</b><span>ansatz</span></button>
-            <button class="dataset" type="button" data-example="custom" aria-pressed="false"><b>Custom</b><span>textarea</span></button>
+            <button class="dataset" type="button" data-example="custom" aria-pressed="false"><b>Custom</b><span>手写 QASM</span></button>
           </div>
         </div>
 
         <div class="section">
-          <p>Routing heuristic.</p>
+          <p>选择 routing heuristic；NPQR 默认返回 SABRE 对比基线。</p>
           <div class="heuristics" aria-label="heuristic 控制">
             <button type="button" data-heuristic="basic" aria-pressed="false">basic</button>
             <button type="button" data-heuristic="lookahead" aria-pressed="true">lookahead</button>
@@ -898,56 +1192,64 @@
       </section>
 
       <section class="column topology">
-        <h4><span>Topology</span></h4>
+        <h4><span>拓扑 Topology</span></h4>
         <div class="topology-area">
           <div class="topology-head">
             <div>IBM Tokyo physical graph</div>
-            <div class="route-status" id="route-status">ready</div>
+            <div class="route-status" id="route-status">就绪</div>
           </div>
           <div class="topology-stage-wrap">
             <svg class="topology-stage" id="tokyo-topology" viewBox="0 0 640 480" preserveAspectRatio="xMidYMin meet" role="img" aria-label="SVG IBM Tokyo 20Q topology animation"></svg>
             <div class="topology-tooltip" id="topology-tooltip" role="status"></div>
           </div>
-          <div class="route-steps" aria-label="SABRE routing steps">
-            <button class="route-step active" type="button" data-step="0"><b>Parse</b><span>read QASM</span></button>
-            <button class="route-step" type="button" data-step="1"><b>Map</b><span>place qubits</span></button>
-            <button class="route-step" type="button" data-step="2"><b>Route</b><span>insert SWAP</span></button>
-            <button class="route-step" type="button" data-step="3"><b>Emit</b><span>compiled QASM</span></button>
+          <div class="compiler-flow" aria-label="NPQR compiler inference trace">
+            <div class="flow-rail">
+              <div class="flow-stage is-active" data-stage="0"><b>Parse</b>QASM</div>
+              <div class="flow-stage" data-stage="1"><b>Map</b>layout</div>
+              <div class="flow-stage" data-stage="2"><b>Route</b>actions</div>
+              <div class="flow-stage" data-stage="3"><b>Emit</b>QASM</div>
+            </div>
+            <div class="trace-readout">
+              <div class="trace-op" id="trace-op">等待 Run；Step 可预览 Tokyo 路径。</div>
+              <div class="trace-meta" id="trace-progress">0/0</div>
+              <div class="trace-bar" aria-hidden="true"><span id="trace-bar"></span></div>
+            </div>
           </div>
         </div>
       </section>
 
       <section class="column output">
-        <h4><span>Output</span></h4>
+        <h4><span>输出 Output</span></h4>
         <div class="metrics" aria-label="编译结果摘要">
-          <div class="metric"><span>Status</span><strong id="metric-status">Ready</strong></div>
+          <div class="metric"><span>状态</span><strong id="metric-status">就绪</strong></div>
           <div class="metric"><span>SWAP</span><strong id="metric-swaps">--</strong></div>
           <div class="metric"><span>Depth</span><strong id="metric-depth">--</strong></div>
           <div class="metric"><span>elapsed_ms</span><strong id="metric-elapsed">--</strong></div>
         </div>
-        <div class="message" id="result-message">Run NPQR to compile the selected circuit.</div>
+        <div class="message" id="result-message">点击 Run 编译当前电路，结果会在这里更新。</div>
         <div class="compiled-head">
           <h4><span>compiled_qasm</span></h4>
-          <button class="text-button" id="copy-qasm" type="button">copy</button>
-          <button class="text-button" id="download-qasm" type="button">download</button>
+          <span class="output-chip" id="compiled-state" data-tone="idle">等待结果</span>
+          <button class="text-button" id="copy-qasm" type="button" disabled>复制</button>
+          <button class="text-button" id="download-qasm" type="button" disabled>下载</button>
         </div>
-        <pre id="compiled-qasm-output" tabindex="0"><code id="compiled-qasm-code">// compiled_qasm appears here after Run.</code></pre>
+        <pre id="compiled-qasm-output" tabindex="0"><code id="compiled-qasm-code">// 点击 Run 后显示 compiled_qasm.</code></pre>
       </section>
     </div>
   </main>
 
   <details class="page" id="advanced" aria-label="高级 MCP 和部署入口">
-    <summary>Advanced</summary>
+    <summary>Advanced 高级入口</summary>
     <div class="advanced-body">
       <section>
-        <h4><span>Maintainer backend</span></h4>
+        <h4><span>维护者 REST API</span></h4>
         <p>普通用户不需要部署。页面默认调用项目方部署的 FastAPI REST 后端；维护者可用 URL 参数覆盖。后端默认使用 NPQR，Qiskit SABRE 作为对比基线。</p>
         <label class="endpoint-label" for="api-base-input">REST API</label>
         <div class="endpoint-control">
           <input id="api-base-input" type="url" spellcheck="false" aria-describedby="api-base-note">
           <button id="apply-api-base" type="button">apply</button>
         </div>
-        <p class="endpoint-note" id="api-base-note">active endpoint</p>
+        <p class="endpoint-note" id="api-base-note">当前 endpoint</p>
         <pre><code>uvicorn src.server.app:app --host 0.0.0.0 --port $PORT
 ?api=https://your-api.example
 uvicorn src.server.app:app --reload --port 8765
@@ -975,9 +1277,9 @@ POST /mcp</code></pre>
   </details>
 
   <script>
-    const PUBLIC_API_BASE = "https://zju-quantum-compiler-api.onrender.com";
-    const API_TIMEOUT_MS = 30000;
-    const API_STATUS_TIMEOUT_MS = 8000;
+    const PUBLIC_API_BASE = "http://1.95.70.10";
+    const API_TIMEOUT_MS = 120000;
+    const API_STATUS_TIMEOUT_MS = 20000;
     const MAX_INLINE_QASM_CHARS = 8000;
 
     const params = new URLSearchParams(window.location.search);
@@ -1118,6 +1420,8 @@ cx q[0],q[1];`,
       heuristic: "lookahead",
       step: 0,
       edge: 0,
+      trace: [],
+      traceIndex: 0,
       running: false,
       paused: false,
       timer: null
@@ -1125,6 +1429,8 @@ cx q[0],q[1];`,
 
     const el = {
       run: document.getElementById("run-button"),
+      runIcon: document.getElementById("run-icon"),
+      runLabel: document.getElementById("run-label"),
       step: document.getElementById("step-button"),
       reset: document.getElementById("reset-button"),
       exampleSelect: document.getElementById("example-select"),
@@ -1143,11 +1449,15 @@ cx q[0],q[1];`,
       elapsed: document.getElementById("metric-elapsed"),
       message: document.getElementById("result-message"),
       compiled: document.getElementById("compiled-qasm-code"),
+      compiledState: document.getElementById("compiled-state"),
       copy: document.getElementById("copy-qasm"),
       download: document.getElementById("download-qasm"),
       apiBaseInput: document.getElementById("api-base-input"),
       applyApiBase: document.getElementById("apply-api-base"),
-      apiBaseNote: document.getElementById("api-base-note")
+      apiBaseNote: document.getElementById("api-base-note"),
+      traceOp: document.getElementById("trace-op"),
+      traceProgress: document.getElementById("trace-progress"),
+      traceBar: document.getElementById("trace-bar")
     };
 
     function normalizeApiBase(value) {
@@ -1165,6 +1475,23 @@ cx q[0],q[1];`,
     function setBackend(tone, text) {
       el.backend.className = `backend ${tone}`;
       el.backendCopy.textContent = text;
+    }
+
+    function setRunVisual(mode) {
+      const running = mode === "running";
+      const paused = mode === "paused";
+      el.run.dataset.state = mode;
+      el.runIcon.textContent = running ? "Ⅱ" : "▶";
+      el.runLabel.textContent = paused ? "继续" : running ? "Pause" : "Run";
+      el.run.title = paused ? "继续 Run" : running ? "Pause" : "Run/Pause";
+      el.run.setAttribute("aria-label", paused ? "继续运行" : running ? "暂停" : "运行");
+    }
+
+    function setCompiledState(tone, text, enabled = false) {
+      el.compiledState.dataset.tone = tone;
+      el.compiledState.textContent = text;
+      el.copy.disabled = !enabled;
+      el.download.disabled = !enabled;
     }
 
     function syncApiControls(note) {
@@ -1189,6 +1516,7 @@ cx q[0],q[1];`,
     function renderInput() {
       const sample = selectedExample();
       el.qasm.readOnly = state.example !== "custom";
+      el.qasm.dataset.mode = state.example;
       if (state.example !== "custom" || !el.qasm.value.trim()) {
         el.qasm.value = sample.qasm;
       }
@@ -1202,23 +1530,77 @@ cx q[0],q[1];`,
       setPressed("[data-heuristic]", "heuristic", state.heuristic);
     }
 
-    function renderSteps() {
-      document.querySelectorAll("[data-step]").forEach((button) => {
-        button.classList.toggle("active", Number(button.dataset.step) === state.step);
+    function normalizeTrace(trace) {
+      return Array.isArray(trace)
+        ? trace.filter((event) => Array.isArray(event.physical_qubits))
+        : [];
+    }
+
+    function currentTraceEvent() {
+      return state.trace[state.traceIndex] || null;
+    }
+
+    function traceEdge(event) {
+      return event?.physical_qubits?.length >= 2
+        ? [Number(event.physical_qubits[0]), Number(event.physical_qubits[1])]
+        : null;
+    }
+
+    function describeTraceEvent(event) {
+      if (!event) {
+        const preview = selectedExample().path[state.edge % selectedExample().path.length];
+        return `Preview Tokyo edge p${preview[0]}-p${preview[1]}`;
+      }
+      const qubits = event.physical_qubits.map((qubit) => `p${qubit}`).join("-");
+      if (event.kind === "swap") {
+        return `SWAP ${qubits} · action ${event.action ?? "--"}`;
+      }
+      return `Gate ${event.gate_index ?? "--"} · ${qubits}`;
+    }
+
+    function renderFlow() {
+      const names = ["解析 QASM", "选择初始映射", "回放模型动作", "生成 compiled_qasm"];
+      document.querySelectorAll("[data-stage]").forEach((stage) => {
+        const index = Number(stage.dataset.stage);
+        stage.classList.toggle("is-active", index === state.step);
+        stage.classList.toggle("is-done", index < state.step);
       });
-      const names = ["parse", "map", "route", "emit"];
       el.routeStatus.textContent = names[state.step] || "ready";
+
+      const event = currentTraceEvent();
+      const total = state.trace.length || selectedExample().path.length;
+      const current = state.trace.length ? state.traceIndex + 1 : state.edge + 1;
+      const ratio = total ? Math.min(100, Math.max(0, (current / total) * 100)) : 0;
+      el.traceOp.textContent = describeTraceEvent(event);
+      el.traceProgress.textContent = `${current}/${total}`;
+      el.traceBar.style.width = `${ratio}%`;
     }
 
     function renderTopology() {
       const svgNS = "http://www.w3.org/2000/svg";
       const nodes = new Map(topologyNodes.map(([id, x, y]) => [id, { x, y }]));
       const sample = selectedExample();
-      const preview = new Set(sample.path.map(edgeKey));
-      const active = sample.path[state.edge % sample.path.length];
-      const activeKey = edgeKey(active);
-      const activeNodes = new Set(active);
-      const mapped = new Set(sample.path.flat());
+      const traceEvents = state.trace.slice(0, state.traceIndex + 1).filter(traceEdge);
+      const previewEdges = traceEvents.length
+        ? traceEvents.map(traceEdge)
+        : sample.path;
+      const preview = new Set(previewEdges.map(edgeKey));
+      const event = currentTraceEvent();
+      const eventEdge = traceEdge(event);
+      const active = eventEdge || (state.trace.length ? null : sample.path[state.edge % sample.path.length]);
+      const activeKey = active ? edgeKey(active) : "";
+      const activeKind = event?.kind || "preview";
+      const activeNodes = new Set(
+        event?.physical_qubits?.map((qubit) => Number(qubit))
+          || active
+          || []
+      );
+      const mapped = new Set([
+        ...previewEdges.flat(),
+        ...(event?.physical_qubits?.map((qubit) => Number(qubit)) || [])
+      ]);
+      const gateEdges = new Set(traceEvents.filter((event) => event.kind === "gate").map((event) => edgeKey(traceEdge(event))));
+      const swapEdges = new Set(traceEvents.filter((event) => event.kind === "swap").map((event) => edgeKey(traceEdge(event))));
 
       el.svg.textContent = "";
       topologyEdges.forEach(([a, b]) => {
@@ -1233,8 +1615,14 @@ cx q[0],q[1];`,
         if (preview.has(edgeKey([a, b]))) {
           line.classList.add("preview");
         }
+        if (gateEdges.has(edgeKey([a, b]))) {
+          line.classList.add("gate-edge");
+        }
+        if (swapEdges.has(edgeKey([a, b]))) {
+          line.classList.add("swap-edge");
+        }
         if (edgeKey([a, b]) === activeKey) {
-          line.classList.add("active");
+          line.classList.add("active", activeKind === "gate" ? "gate-edge" : "swap-edge");
         }
         line.addEventListener("mousemove", (event) => showTooltip(event, `edge ${a}-${b}`));
         line.addEventListener("mouseleave", hideTooltip);
@@ -1279,21 +1667,50 @@ cx q[0],q[1];`,
     }
 
     function stepOnce() {
-      const sample = selectedExample();
-      state.step = (state.step + 1) % 4;
-      state.edge = (state.edge + 1) % sample.path.length;
-      renderSteps();
+      if (state.trace.length) {
+        state.traceIndex = (state.traceIndex + 1) % state.trace.length;
+        state.step = state.traceIndex === state.trace.length - 1 ? 3 : 2;
+      } else {
+        const sample = selectedExample();
+        state.step = (state.step + 1) % 4;
+        state.edge = (state.edge + 1) % sample.path.length;
+      }
+      renderFlow();
       renderTopology();
     }
 
     function startAnimation() {
       window.clearInterval(state.timer);
-      state.timer = window.setInterval(stepOnce, 620);
+      state.timer = window.setInterval(stepOnce, 760);
     }
 
     function stopAnimation() {
       window.clearInterval(state.timer);
       state.timer = null;
+    }
+
+    function startTraceReplay() {
+      if (!state.trace.length) {
+        return;
+      }
+      stopAnimation();
+      state.traceIndex = 0;
+      state.step = 2;
+      renderFlow();
+      renderTopology();
+      const stride = Math.max(1, Math.ceil(state.trace.length / 42));
+      state.timer = window.setInterval(() => {
+        if (state.traceIndex >= state.trace.length - 1) {
+          state.step = 3;
+          renderFlow();
+          stopAnimation();
+          return;
+        }
+        state.traceIndex = Math.min(state.trace.length - 1, state.traceIndex + stride);
+        state.step = state.traceIndex >= state.trace.length - 1 ? 3 : 2;
+        renderFlow();
+        renderTopology();
+      }, 460);
     }
 
     function reset() {
@@ -1302,18 +1719,21 @@ cx q[0],q[1];`,
       state.paused = false;
       state.step = 0;
       state.edge = 0;
+      state.trace = [];
+      state.traceIndex = 0;
       state.example = "qft5";
       state.heuristic = "lookahead";
-      el.run.textContent = "▶";
-      el.status.textContent = "Ready";
+      setRunVisual("idle");
+      setCompiledState("idle", "等待结果");
+      el.status.textContent = "就绪";
       el.swaps.textContent = "--";
       el.depth.textContent = "--";
       el.elapsed.textContent = "--";
       el.message.classList.remove("error");
-      el.message.textContent = "Run NPQR to compile the selected circuit.";
-      el.compiled.textContent = "// compiled_qasm appears here after Run.";
+      el.message.textContent = "点击 Run 编译当前电路，结果会在这里更新。";
+      el.compiled.textContent = "// 点击 Run 后显示 compiled_qasm.";
       renderInput();
-      renderSteps();
+      renderFlow();
       renderTopology();
     }
 
@@ -1370,7 +1790,7 @@ cx q[0],q[1];`,
         try {
           const data = await callApiAt(candidate, path, options);
           apiBase = candidate;
-          setBackend("ok", "online");
+          setBackend("ok", "在线");
           syncApiControls(`active: ${apiBase}`);
           return data;
         } catch (error) {
@@ -1381,32 +1801,47 @@ cx q[0],q[1];`,
     }
 
     async function checkBackend() {
-      setBackend("loading", "checking");
+      setBackend("loading", "检测中");
       let lastError = null;
       for (const candidate of apiCandidates()) {
         try {
           await callApiAt(candidate, "/api/status", {}, API_STATUS_TIMEOUT_MS);
           apiBase = candidate;
-          setBackend("ok", "online");
+          setBackend("ok", "在线");
           syncApiControls(`active: ${apiBase}`);
           return;
         } catch (error) {
           lastError = error;
         }
       }
-      setBackend("error", "offline");
+      setBackend("error", "离线");
       syncApiControls(formatBackendNote(lastError));
     }
 
     function formatBackendNote(error) {
+      if (isTimeoutError(error)) {
+        return "REST API is still computing. Try Run again after a moment.";
+      }
       const reason = error?.status ? `HTTP ${error.status}` : "network error";
       return `REST API offline (${reason}). This is not the MCP endpoint.`;
     }
 
+    function isTimeoutError(error) {
+      return error?.name === "AbortError";
+    }
+
     function formatBackendHelp(error) {
+      if (isTimeoutError(error)) {
+        return [
+          "// Compile timed out before the browser received the result.",
+          "// The REST API may still be computing; this is not necessarily offline.",
+          `// Active API: ${apiBase}`,
+          "// Try Run again after a moment, or choose a smaller example."
+        ].join("\n");
+      }
       const reason = error?.status ? `HTTP ${error.status}` : "network error or timeout";
       return [
-        "// Backend unavailable.",
+        "// Backend unavailable. REST API is offline.",
         "// no compiled_qasm",
         `// REST API is offline, not MCP. Last error: ${reason}.`,
         `// Active API: ${apiBase}`,
@@ -1426,22 +1861,29 @@ cx q[0],q[1];`,
     }
 
     function showResult(data) {
+      state.trace = normalizeTrace(data.route_trace);
+      state.traceIndex = 0;
+      state.step = state.trace.length ? 2 : 3;
       el.status.textContent = data.status || "OK";
       el.swaps.textContent = data.swaps ?? "--";
       el.depth.textContent = data.depth ?? "--";
       el.elapsed.textContent = Number.isFinite(data.elapsed_ms) ? data.elapsed_ms.toFixed(1) : "--";
       el.message.classList.remove("error");
       const baseline = data.baseline?.swaps ?? null;
+      const traceCopy = state.trace.length ? ` Trace events: ${state.trace.length}.` : "";
       el.message.textContent = baseline === null
-        ? (data.message || "Compiled.")
-        : `${data.message || "Compiled."} SABRE baseline SWAP: ${baseline}.`;
+        ? (data.message || "编译完成。")
+        : `${data.message || "编译完成。"} SABRE baseline SWAP: ${baseline}.${traceCopy}`;
       el.compiled.textContent = data.compiled_qasm || "// No compiled_qasm returned.";
+      setCompiledState("ready", "已生成", Boolean(data.compiled_qasm));
+      renderFlow();
+      renderTopology();
     }
 
     async function run() {
       if (state.running) {
         state.paused = !state.paused;
-        el.run.textContent = state.paused ? "▶" : "Ⅱ";
+        setRunVisual(state.paused ? "paused" : "running");
         state.paused ? stopAnimation() : startAnimation();
         return;
       }
@@ -1456,16 +1898,24 @@ cx q[0],q[1];`,
 
       state.running = true;
       state.paused = false;
-      el.run.textContent = "Ⅱ";
-      el.status.textContent = "Running";
+      state.trace = [];
+      state.traceIndex = 0;
+      state.step = 0;
+      state.edge = 0;
+      setRunVisual("running");
+      setCompiledState("busy", "生成中");
+      el.status.textContent = "编译中";
       el.swaps.textContent = "--";
       el.depth.textContent = "--";
       el.elapsed.textContent = "--";
       el.message.classList.remove("error");
-      el.message.textContent = "Compiling...";
+      el.message.textContent = "正在请求 FastAPI REST 后端...";
       el.compiled.textContent = "// waiting for compiled_qasm";
+      renderFlow();
+      renderTopology();
       startAnimation();
 
+      let shouldReplay = false;
       try {
         const data = await callApi("/api/compile", {
           method: "POST",
@@ -1473,31 +1923,49 @@ cx q[0],q[1];`,
           body: JSON.stringify(payload())
         });
         showResult(data);
+        shouldReplay = state.trace.length > 1;
       } catch (error) {
         el.status.textContent = "Error";
         el.message.classList.add("error");
-        el.message.textContent = "Backend unavailable. REST API is offline.";
+        el.message.textContent = isTimeoutError(error)
+          ? "这个电路计算时间较长，服务器可能仍在运行，请稍后重试。"
+          : "后端暂时不可用，请稍后重试。";
         el.compiled.textContent = formatBackendHelp(error);
+        setCompiledState("error", isTimeoutError(error) ? "超时" : "不可用");
+        state.trace = [];
+        state.traceIndex = 0;
+        renderFlow();
       } finally {
         state.running = false;
         state.paused = false;
-        el.run.textContent = "▶";
+        setRunVisual("idle");
         stopAnimation();
-        renderTopology();
+        if (shouldReplay) {
+          startTraceReplay();
+        } else {
+          renderFlow();
+          renderTopology();
+        }
       }
     }
 
     async function copyQasm() {
+      if (el.copy.disabled) {
+        return;
+      }
       try {
         await navigator.clipboard.writeText(el.compiled.textContent);
-        el.copy.textContent = "copied";
-        window.setTimeout(() => { el.copy.textContent = "copy"; }, 1000);
+        el.copy.textContent = "已复制";
+        window.setTimeout(() => { el.copy.textContent = "复制"; }, 1000);
       } catch (_) {
-        el.copy.textContent = "select";
+        el.copy.textContent = "选择";
       }
     }
 
     function downloadQasm() {
+      if (el.download.disabled) {
+        return;
+      }
       const blob = new Blob([el.compiled.textContent], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -1513,7 +1981,13 @@ cx q[0],q[1];`,
     document.querySelectorAll("[data-example]").forEach((button) => {
       button.addEventListener("click", () => {
         state.example = button.dataset.example;
+        state.step = 0;
+        state.edge = 0;
+        state.trace = [];
+        state.traceIndex = 0;
+        stopAnimation();
         renderInput();
+        renderFlow();
         renderTopology();
       });
     });
@@ -1525,18 +1999,15 @@ cx q[0],q[1];`,
       });
     });
 
-    document.querySelectorAll("[data-step]").forEach((button) => {
-      button.addEventListener("click", () => {
-        state.step = Number(button.dataset.step);
-        state.edge = state.step % selectedExample().path.length;
-        renderSteps();
-        renderTopology();
-      });
-    });
-
     el.exampleSelect.addEventListener("change", () => {
       state.example = el.exampleSelect.value;
+      state.step = 0;
+      state.edge = 0;
+      state.trace = [];
+      state.traceIndex = 0;
+      stopAnimation();
       renderInput();
+      renderFlow();
       renderTopology();
     });
 
@@ -1547,11 +2018,20 @@ cx q[0],q[1];`,
 
     el.qasm.addEventListener("input", () => {
       state.example = "custom";
+      state.step = 0;
+      state.edge = 0;
+      state.trace = [];
+      state.traceIndex = 0;
       renderInput();
+      renderFlow();
+      renderTopology();
     });
 
     el.run.addEventListener("click", run);
-    el.step.addEventListener("click", stepOnce);
+    el.step.addEventListener("click", () => {
+      stopAnimation();
+      stepOnce();
+    });
     el.reset.addEventListener("click", reset);
     el.copy.addEventListener("click", copyQasm);
     el.download.addEventListener("click", downloadQasm);
@@ -1563,8 +2043,10 @@ cx q[0],q[1];`,
     });
 
     renderInput();
-    renderSteps();
+    renderFlow();
     renderTopology();
+    setRunVisual("idle");
+    setCompiledState("idle", "等待结果");
     syncApiControls();
     checkBackend();
   </script>

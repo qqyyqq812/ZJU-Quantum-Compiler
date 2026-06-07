@@ -35,6 +35,8 @@ def test_public_site_adds_restrained_qcanvas_atmosphere():
     assert "body::before" in html
     assert "body::after" in html
     assert "border-image: linear-gradient(90deg, var(--qc-cyan), var(--qc-violet), var(--tf-orange)) 1" in html
+    assert "body.is-running .topology-stage-wrap::after" not in html
+    assert "@keyframes topology-scan" not in html
 
 
 def test_public_site_keeps_first_screen_action_focused():
@@ -47,6 +49,16 @@ def test_public_site_keeps_first_screen_action_focused():
     assert "▶" in html
     assert "↺" in html
     assert "▸" in html
+    assert "command-label" in html
+    assert ">Run</span>" in html
+    assert ">Reset</span>" in html
+    assert ">Step</span>" in html
+    assert "中文实验台" in html
+    assert "选择 OpenQASM 示例" in html
+    assert "点击 Run 编译当前电路" in html
+    assert "setRunVisual" in html
+    assert "route-step" not in html
+    assert "route-steps" not in html
     assert "seed=42" not in html
     assert "trials=1" not in html
     assert "43 undirected" not in html
@@ -57,13 +69,16 @@ def test_public_site_keeps_first_screen_action_focused():
 def test_public_site_defaults_to_public_fastapi_rest_backend():
     html = _html()
 
-    assert 'const PUBLIC_API_BASE = "https://zju-quantum-compiler-api.onrender.com";' in html
+    assert 'const PUBLIC_API_BASE = "http://1.95.70.10";' in html
     assert "LOCAL_API_BASE" not in html
     assert "src.server.app:app" in html
     assert "fetch(`${base}${path}`" in html
+    assert "const API_TIMEOUT_MS = 120000;" in html
+    assert "const API_STATUS_TIMEOUT_MS = 20000;" in html
     assert '"/api/status"' in html
     assert 'callApi("/api/compile"' in html
     assert 'callApiAt(candidate, "/api/status"' in html
+    assert "normalizeTrace(data.route_trace)" in html
     assert 'method: "POST"' in html
     assert 'backend: "npqr"' in html
     assert 'topology: "tokyo"' in html
@@ -101,9 +116,18 @@ def test_public_site_renders_lightweight_svg_tokyo_topology():
     assert "const topologyNodes = [" in html
     assert "const topologyEdges = [" in html
     assert ".topology-edge.active" in html
+    assert ".topology-edge.gate-edge" in html
+    assert ".topology-edge.swap-edge" in html
     assert ".topology-node.active" in html
     assert "showTooltip" in html
     assert "stepOnce" in html
+    assert "startTraceReplay" in html
+    assert "traceEdge(event)" in html
+    assert 'id="trace-op"' in html
+    assert 'id="trace-progress"' in html
+    assert 'id="trace-bar"' in html
+    assert 'class="compiler-flow"' in html
+    assert 'class="flow-stage is-active" data-stage="0"' in html
     assert "@keyframes route-pulse" in html
     assert "animation: route-pulse 0.85s linear infinite" in html
     assert "stroke: var(--qc-cyan)" in html
@@ -120,15 +144,23 @@ def test_public_site_exposes_required_outputs_and_brief_error_state():
         "metric-elapsed",
         "compiled-qasm-output",
         "compiled-qasm-code",
+        "compiled-state",
         "copy-qasm",
         "download-qasm",
     ]:
         assert f'id="{element_id}"' in html
 
     assert "elapsed_ms" in html
+    assert "等待结果" in html
+    assert "setCompiledState" in html
+    assert 'id="copy-qasm" type="button" disabled' in html
+    assert 'id="download-qasm" type="button" disabled' in html
     assert "Backend unavailable." in html
     assert "Backend unavailable. REST API is offline." in html
     assert "REST API is offline, not MCP." in html
+    assert "Compile timed out before the browser received the result." in html
+    assert "The REST API may still be computing; this is not necessarily offline." in html
+    assert "这个电路计算时间较长，服务器可能仍在运行，请稍后重试。" in html
     assert "// no compiled_qasm" in html
     assert "公开页面不会自动探测访问者电脑上的本地服务" in html
     assert "OpenQASM routing on IBM Tokyo" in html

@@ -133,7 +133,14 @@ class CompileRequest(BaseModel):
     backend: Literal["npqr", "sabre", "ai"] = "npqr"
     heuristic: Literal["basic", "lookahead", "decay"] = "lookahead"
     topology: str = "tokyo"
-    max_steps: int = 2000
+    max_steps: int = 45
+
+
+class RouteTraceEvent(BaseModel):
+    kind: Literal["swap", "gate"]
+    physical_qubits: list[int]
+    gate_index: int | None = None
+    action: int | None = None
 
 
 class CompileResponse(BaseModel):
@@ -152,6 +159,11 @@ class CompileResponse(BaseModel):
     model_path: str | None = None
     components: dict[str, Any] | None = None
     baseline: dict[str, Any] | None = None
+    route_trace: list[RouteTraceEvent] | None = None
+    trace_len: int | None = None
+    executed_gates: int | None = None
+    initial_mapping: dict[int, int] | None = None
+    final_mapping: dict[int, int] | None = None
     message: str | None = None
 
 
@@ -230,6 +242,20 @@ def _sabre_summary(
         "depth": compiled.depth(),
         "elapsed_ms": (time.perf_counter() - started) * 1000,
     }
+
+
+def _route_trace_payload(result: Any) -> list[RouteTraceEvent]:
+    if not result.replay:
+        return []
+    return [
+        RouteTraceEvent(
+            kind=event.kind,
+            physical_qubits=list(event.physical_qubits),
+            gate_index=event.gate_index,
+            action=event.action,
+        )
+        for event in result.replay.events
+    ]
 
 
 @lru_cache(maxsize=4)
@@ -429,6 +455,11 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
             model_path=str(DEFAULT_NPQR_MODEL.relative_to(PROJECT_ROOT)),
             components=result.components,
             baseline=_sabre_summary(circuit, coupling_map, req.heuristic),
+            route_trace=_route_trace_payload(result),
+            trace_len=result.trace_len,
+            executed_gates=result.executed_gates,
+            initial_mapping=result.initial_mapping,
+            final_mapping=result.final_mapping,
             message=result.message,
         )
 
