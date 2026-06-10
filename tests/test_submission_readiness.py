@@ -19,6 +19,7 @@ def test_submission_readiness_marks_public_release_ready():
         "README explains install, API, MCP, and algorithm",
         "Public docs hide internal experiment names",
         "Team report guide uses course algorithm language",
+        "Detailed Chinese project guide exists",
         "Website calls REST API without changing the visual shell",
         "Final package script is user-facing",
         "Algorithm matrix remains reproducible",

@@ -30,6 +30,8 @@ def test_readme_documents_public_run_paths():
     assert "models/default/npqr-default.pt" in readme
     assert "启动 REST API" in readme
     assert "启动 MCP 服务" in readme
+    assert "docs/项目说明.md" in readme
+    assert "docs/plans/组员分工.md" in readme
 
 
 def test_readme_documents_algorithm_without_internal_experiment_names():

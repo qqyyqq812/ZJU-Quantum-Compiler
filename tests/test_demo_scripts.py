@@ -35,7 +35,8 @@ def test_submission_package_script_defines_public_review_manifest():
     required_entries = [
         "README.md",
         "docs/index.html",
-        "docs/plans/2026-06-05-mcp-work-split.md",
+        "docs/项目说明.md",
+        "docs/plans/组员分工.md",
         "docs/slides/quantum-routing-algorithm-showcase-final.pptx",
         "examples/qft5.qasm",
         "readiness.md",
@@ -43,6 +44,8 @@ def test_submission_package_script_defines_public_review_manifest():
         "public_algorithm_evidence.json",
         "algorithm_summary.md",
         "results/submission_package",
+        "项目说明.md",
+        "组员分工.md",
     ]
 
     for entry in required_entries:

@@ -15,7 +15,7 @@ OpenQASM 2 电路后，系统会把逻辑量子比特映射到真实芯片拓扑
 - `src/`：量子路由编译器、NPQR 运行时、REST API 和 MCP 服务。
 - `examples/`：可直接运行的 OpenQASM 示例电路。
 - `models/default/npqr-default.pt`：默认 NPQR 推理模型。
-- `docs/`：网页、算法说明、PPT 和报告分工材料。
+- `docs/`：网页、项目说明、PPT 和报告分工材料。
 - `scripts/`：可复现实验矩阵、提交检查和材料打包脚本。
 - `tests/`：公开接口、网页、部署、文档和检查脚本的测试。
 
@@ -202,8 +202,11 @@ python scripts/experiment_algorithm_matrix.py --quick --json
 示例电路、自定义 QASM、生成电路、Tokyo 映射、路线轨迹和 `compiled_qasm`
 结果面板。
 
-`docs/plans/2026-06-05-mcp-work-split.md` 是组内报告分工说明，内容围绕算法
-流程、课程概念、复杂度分析、对比基线、PPT 结构和口播材料展开。
+`docs/项目说明.md` 提供更完整的中文项目说明，覆盖背景、算法、接口、
+目录结构、运行方式、测试和结果边界。
+
+`docs/plans/组员分工.md` 是组员报告分工说明，内容围绕算法流程、课程概念、
+复杂度分析、对比基线、PPT 结构和口播材料展开。
 
 PPT 材料位于 `docs/slides/`。
 

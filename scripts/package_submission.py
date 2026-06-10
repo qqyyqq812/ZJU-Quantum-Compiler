@@ -14,7 +14,8 @@ PACKAGE_DIR = PROJECT_ROOT / "results" / "submission_package"
 PACKAGE_MANIFEST = [
     ("README.md", "README.md"),
     ("docs/index.html", "website/index.html"),
-    ("docs/plans/2026-06-05-mcp-work-split.md", "report-work-split.md"),
+    ("docs/项目说明.md", "项目说明.md"),
+    ("docs/plans/组员分工.md", "组员分工.md"),
     (
         "docs/slides/quantum-routing-algorithm-showcase-final.pptx",
         "slides/quantum-routing-algorithm-showcase-final.pptx",
@@ -46,27 +47,25 @@ def _copy_file(source: Path, destination: Path) -> None:
 
 
 def _write_algorithm_summary(output_dir: Path) -> None:
-    summary = """# NPQR algorithm summary
+    summary = """# NPQR 算法摘要
 
-NPQR is a neural-assisted quantum routing workflow. It uses a checked-in neural
-policy to score SWAP actions, then combines that model with initial mapping
-selection, bounded beam search, trigger-based pruning, suffix repair, and trace
-replay verification.
+NPQR 是一个神经辅助量子路由流程。它使用默认神经网络模型对 SWAP 动作进行
+评分，并结合初始映射选择、有界束搜索、触发式剪枝、后缀修复和轨迹复放验证。
 
-SABRE is the baseline. It is used for comparison and explanation, not as the
-self-developed algorithm and not as an NPQR fallback.
+SABRE 是对比基线。项目使用它进行指标对比和算法说明，不把它作为自研算法，
+也不把它作为 NPQR 的隐藏完成路径。
 
-Course concepts used in the report:
+报告中可以使用的课程概念包括：
 
-- Graph modeling: the hardware topology is a coupling graph.
-- Transform-and-conquer: routing becomes graph-constrained mapping and search.
-- Greedy heuristics: front-gate distance helps score local moves.
-- Decrease-and-conquer: each executed gate reduces the remaining task.
-- Time-space tradeoff: distance matrices and candidate beams reduce recomputation.
-- Iterative improvement: swaps and suffix repair improve the route step by step.
-- Search pruning: beam width, trigger rules, and action limits bound the search.
-- Approximation: the algorithm seeks high-quality feasible routes in bounded time.
-- Neural network inference: the policy model supplies learned action preferences.
+- 图问题：硬件拓扑是耦合图。
+- 变治法：路由被转化为图约束下的映射和搜索。
+- 贪婪思想：前沿门距离可辅助评价局部动作。
+- 减治法：每执行一个门都会减少剩余任务。
+- 时空权衡：距离矩阵和候选路线减少重复计算。
+- 迭代改进：SWAP 和后缀修复逐步改进路线。
+- 搜索剪枝：束宽、触发规则和动作限制控制搜索规模。
+- 近似求解：算法在有限时间内寻找高质量可行解。
+- 神经网络推理：模型提供学习得到的动作偏好。
 """
     (output_dir / "algorithm_summary.md").write_text(summary, encoding="utf-8")
 

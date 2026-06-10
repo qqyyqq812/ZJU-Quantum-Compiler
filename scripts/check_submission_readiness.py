@@ -11,7 +11,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 README_PATH = PROJECT_ROOT / "README.md"
 SITE_PATH = PROJECT_ROOT / "docs" / "index.html"
-WORK_SPLIT_PATH = PROJECT_ROOT / "docs" / "plans" / "2026-06-05-mcp-work-split.md"
+WORK_SPLIT_PATH = PROJECT_ROOT / "docs" / "plans" / "组员分工.md"
+PROJECT_GUIDE_PATH = PROJECT_ROOT / "docs" / "项目说明.md"
 PPTX_PATH = PROJECT_ROOT / "docs" / "slides" / "quantum-routing-algorithm-showcase-final.pptx"
 MODEL_PATH = PROJECT_ROOT / "models" / "default" / "npqr-default.pt"
 REST_APP = PROJECT_ROOT / "src" / "server" / "app.py"
@@ -75,6 +76,7 @@ def check_readiness() -> list[ReadinessItem]:
     readme = _read_text(README_PATH)
     site = _read_text(SITE_PATH)
     work_split = _read_text(WORK_SPLIT_PATH)
+    project_guide = _read_text(PROJECT_GUIDE_PATH)
     rest_app = _read_text(REST_APP)
     mcp_app = _read_text(MCP_APP)
     evidence = _read_text(EVIDENCE_MODULE)
@@ -136,6 +138,8 @@ def check_readiness() -> list[ReadinessItem]:
                 and "算法说明" in readme
                 and "课程算法概念对应" in readme
                 and "models/default/npqr-default.pt" in readme
+                and "docs/项目说明.md" in readme
+                and "docs/plans/组员分工.md" in readme
                 and "清" + "理版" not in readme
                 and "按" + "要求" not in readme
                 and "提示" + "词" not in readme
@@ -145,8 +149,8 @@ def check_readiness() -> list[ReadinessItem]:
         ReadinessItem(
             "docs",
             "Public docs hide internal experiment names",
-            _status(not _has_forbidden_public_terms(public_docs)),
-            "README.md + docs/plans/2026-06-05-mcp-work-split.md",
+            _status(not _has_forbidden_public_terms(public_docs + "\n" + project_guide)),
+            "README.md + docs/plans/组员分工.md + docs/项目说明.md",
         ),
         ReadinessItem(
             "docs",
@@ -159,7 +163,20 @@ def check_readiness() -> list[ReadinessItem]:
                 and "神经网络" in work_split
                 and "SABRE 是主要基线算法" in work_split
             ),
-            "docs/plans/2026-06-05-mcp-work-split.md",
+            "docs/plans/组员分工.md",
+        ),
+        ReadinessItem(
+            "docs",
+            "Detailed Chinese project guide exists",
+            _status(
+                "项目概述" in project_guide
+                and "算法流程" in project_guide
+                and "接口说明" in project_guide
+                and "目录结构" in project_guide
+                and "结果边界" in project_guide
+                and "SABRE 是对比基线" in project_guide
+            ),
+            "docs/项目说明.md",
         ),
         ReadinessItem(
             "website",
