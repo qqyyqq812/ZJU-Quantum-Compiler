@@ -65,7 +65,7 @@ def test_readme_and_public_site_link_to_playground_user_guide():
     html = Path("docs/index.html").read_text(encoding="utf-8")
 
     assert "docs/playground-user-guide.md" in readme
-    assert "NPQR versus the fixed SABRE baseline" in readme
-    assert "Tokyo mapping" in readme
+    assert "固定 SABRE 基线" in readme
+    assert "Tokyo 映射" in readme
     assert 'href="playground-user-guide.md"' in html
     assert "Playground user guide" in html

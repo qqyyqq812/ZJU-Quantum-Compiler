@@ -131,11 +131,14 @@ def check_readiness() -> list[ReadinessItem]:
             "README explains install, API, MCP, and algorithm",
             _status(
                 "# ZJU Quantum Compiler" in readme
-                and "Run the REST API" in readme
-                and "Run the MCP server" in readme
-                and "Algorithm summary" in readme
-                and "Course algorithm mapping" in readme
+                and "启动 REST API" in readme
+                and "启动 MCP 服务" in readme
+                and "算法说明" in readme
+                and "课程算法概念对应" in readme
                 and "models/default/npqr-default.pt" in readme
+                and "清" + "理版" not in readme
+                and "按" + "要求" not in readme
+                and "提示" + "词" not in readme
             ),
             "README.md",
         ),
