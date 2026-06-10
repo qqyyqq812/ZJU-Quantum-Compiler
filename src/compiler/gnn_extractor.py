@@ -1,11 +1,4 @@
-"""
-统一的拓扑感知图特征提取器 (V13)
-===============================
-将当前电路路由状态编码为以物理量子比特为节点的单一图结构。
-
-V13 升级: 5维 → 9维节点特征
-- 新增: 映射对目标距离、DAG 剩余深度、前沿门目标物理距离、逻辑比特归一化 ID
-"""
+"""Topology-aware graph feature extraction for NPQR."""
 from __future__ import annotations
 
 import torch
@@ -67,7 +60,7 @@ def extract_physical_graph(
     coupling_map: CouplingMap,
     mapping: dict[int, int],
     dag: CircuitDAG | None
-) -> Data:
+) -> GraphData:
     """提取基于物理拓扑的统一图表征。
 
     图定义:

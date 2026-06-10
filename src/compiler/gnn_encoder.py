@@ -1,9 +1,4 @@
-"""
-Topology-Aware GraphSAGE 编码器 (V13 — 纯 PyTorch 版)
-====================================
-V13: 节点特征 9维, 完全去除 torch_geometric 依赖
-用纯 PyTorch 实现 SAGEConv + global pooling
-"""
+"""Pure PyTorch GraphSAGE encoder for NPQR topology features."""
 from __future__ import annotations
 
 import torch

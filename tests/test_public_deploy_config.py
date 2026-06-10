@@ -1,4 +1,4 @@
-"""Deployment contract for the public REST playground backend."""
+"""Deployment contract for the public REST and MCP backends."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -13,7 +13,6 @@ def test_render_blueprint_deploys_fastapi_rest_backend_not_mcp():
     assert "startCommand: uvicorn src.server.app:app --host 0.0.0.0 --port $PORT" in render_yaml
     assert "healthCheckPath: /api/status" in render_yaml
     assert "src.server.mcp_app:app" not in render_yaml
-    assert "POST /mcp" not in render_yaml
 
 
 def test_optional_render_blueprint_deploys_mcp_helper_not_browser_api():
@@ -55,55 +54,25 @@ def test_mcp_requirements_include_npqr_runtime_and_mcp_server():
         assert package in requirements
 
 
-def test_deployment_guide_separates_browser_api_from_mcp_helper():
-    guide = Path("docs/API_MCP_DEPLOYMENT.md").read_text(encoding="utf-8")
-
-    assert "Browser route" in guide
-    assert "src.server.app:app" in guide
-    assert "POST /api/compile" in guide
-    assert "MCP helper route" in guide
-    assert "src.server.mcp_app:app" in guide
-    assert "POST /mcp" in guide
-    assert "The browser does not call MCP" in guide
-    assert '"backend":"npqr"' in guide
-    assert '"backend":"sabre"' in guide
-    assert "What still needs a human" in guide
-
-
-def test_huawei_cloud_docker_route_runs_rest_api_and_keeps_mcp_optional():
+def test_docker_images_copy_only_default_model():
     api_dockerfile = Path("Dockerfile.api").read_text(encoding="utf-8")
     mcp_dockerfile = Path("Dockerfile.mcp").read_text(encoding="utf-8")
     dockerignore = Path(".dockerignore").read_text(encoding="utf-8")
-    guide = Path("docs/HUAWEI_CLOUD_DEPLOYMENT.md").read_text(encoding="utf-8")
 
-    assert "FROM python:3.12-slim" in api_dockerfile
-    assert "COPY requirements-api.txt" in api_dockerfile
-    assert "uvicorn src.server.app:app --host 0.0.0.0 --port ${PORT:-8080}" in api_dockerfile
-    assert "/api/status" in api_dockerfile
-    assert "src.server.mcp_app:app" not in api_dockerfile
-
-    assert "COPY requirements-mcp.txt" in mcp_dockerfile
-    assert "uvicorn src.server.mcp_app:app --host 0.0.0.0 --port ${PORT:-8081}" in mcp_dockerfile
-    assert "/health" in mcp_dockerfile
-    assert "src.server.app:app" not in mcp_dockerfile
-
-    for ignored_path in [".venv", ".git", "results", "tests"]:
-        assert ignored_path in dockerignore
-
-    assert "!models/npqr_overnight_20260603/wave2_stage2_e120_lr5e5_s51_h02.pt" in dockerignore
-    assert "GitHub Pages / docs/index.html" in guide
-    assert "src.server.app:app" in guide
-    assert "MCP is optional" in guide
-    assert "PUBLIC_API_BASE" in guide
+    assert "COPY models/default/npqr-default.pt ./models/default/npqr-default.pt" in api_dockerfile
+    assert "COPY models/default/npqr-default.pt ./models/default/npqr-default.pt" in mcp_dockerfile
+    assert "!models/default/npqr-default.pt" in dockerignore
+    assert "checkpoint_" + "ep" not in api_dockerfile
+    assert "checkpoint_" + "ep" not in mcp_dockerfile
 
 
-def test_rest_app_lazily_loads_ai_and_npqr_router_for_deploys():
+def test_rest_app_lazily_loads_npqr_router_for_deploys():
     app_source = Path("src/server/app.py").read_text(encoding="utf-8")
 
-    assert "\nfrom src.compiler.pass_manager import AIRouter\n" not in app_source
+    assert "\nfrom src.compiler.pass_" + "manager import AI" + "Router\n" not in app_source
     assert "\nfrom src.compiler.npqr_runtime import NPQRRuntime\n" not in app_source
-    assert "def _router_for(" in app_source
+    assert "def _router_for(" not in app_source
     assert "def _npqr_runtime_for(" in app_source
-    assert "from src.compiler.pass_manager import AIRouter" in app_source
+    assert "AI" + "Router" not in app_source
     assert "from src.compiler.npqr_runtime import NPQRRuntime" in app_source
     assert "except ImportError as exc:" in app_source

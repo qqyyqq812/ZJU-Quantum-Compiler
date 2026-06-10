@@ -1,4 +1,4 @@
-"""NPQR v1: neural-planning quantum router."""
+"""NPQR neural-planning router."""
 from __future__ import annotations
 
 import time
@@ -19,8 +19,17 @@ from src.compiler.initial_mapping import (
     selector_mapping_score,
 )
 from src.compiler.light_env import LightweightEnv
-from src.compiler.pass_manager import _load_policy_state_dict
 from src.compiler.policy import PolicyNetwork
+
+
+def _load_policy_state_dict(model_path: str):
+    """Load a policy state dict from a raw weight file or saved wrapper."""
+    checkpoint = torch.load(model_path, map_location="cpu", weights_only=True)
+    if isinstance(checkpoint, dict) and "model_state" in checkpoint:
+        return checkpoint["model_state"]
+    if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
+        return checkpoint["state_dict"]
+    return checkpoint
 
 
 @dataclass(frozen=True)
@@ -191,7 +200,6 @@ class NeuralPlanningRouter:
             max_steps=self.config.max_steps,
             soft_mask=self.config.soft_mask,
             initial_mapping_fn=None,
-            use_sabre_reward=False,
         )
         self._obs_dim = int(template_env.observation_space.shape[0])
         self._max_front_gates = int(template_env._max_front_gates)
@@ -365,7 +373,6 @@ class NeuralPlanningRouter:
             max_steps=self.config.max_steps,
             soft_mask=self.config.soft_mask,
             initial_mapping_fn=mapping_fn,
-            use_sabre_reward=False,
         )
         env.set_circuit(circuit)
         env.reset()

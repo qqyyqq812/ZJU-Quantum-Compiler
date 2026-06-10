@@ -53,7 +53,7 @@ def compile_sabre(
     heuristic: str,
     trials: int,
 ) -> tuple[int, int]:
-    pass_manager = PassManager(
+    routing_passes = PassManager(
         [
             TrivialLayout(coupling_map),
             FullAncillaAllocation(coupling_map),
@@ -62,7 +62,7 @@ def compile_sabre(
             SabreSwap(coupling_map, heuristic=heuristic, seed=42, trials=trials),
         ]
     )
-    routed = pass_manager.run(circuit)
+    routed = routing_passes.run(circuit)
     compiled = transpile(
         routed,
         basis_gates=BASIS_GATES,

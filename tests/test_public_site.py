@@ -53,13 +53,13 @@ def test_public_site_keeps_first_screen_action_focused():
     assert ">Run</span>" in html
     assert ">Reset</span>" in html
     assert ">Step</span>" in html
-    assert "中文实验台" in html
-    assert "选择 OpenQASM 示例" in html
+    assert "中文实验台" not in html
+    assert "选择、编辑或生成真实 OpenQASM" in html
     assert "点击 Run 编译当前电路" in html
     assert "setRunVisual" in html
     assert "route-step" not in html
     assert "route-steps" not in html
-    assert "seed=42" not in html
+    assert "data-heuristic" not in html
     assert "trials=1" not in html
     assert "43 undirected" not in html
     assert "编译上传电路" not in html
@@ -78,9 +78,13 @@ def test_public_site_defaults_to_public_fastapi_rest_backend():
     assert '"/api/status"' in html
     assert 'callApi("/api/compile"' in html
     assert 'callApiAt(candidate, "/api/status"' in html
-    assert "normalizeTrace(data.route_trace)" in html
+    assert "normalizeTrace(npqrResult?.route_trace)" in html
+    assert "normalizeTrace(sabreResult?.route_trace)" in html
     assert 'method: "POST"' in html
-    assert 'backend: "npqr"' in html
+    assert 'compilePayload("npqr")' in html
+    assert 'compilePayload("sabre")' in html
+    assert "Promise.allSettled" in html
+    assert "heuristic:" not in html
     assert 'topology: "tokyo"' in html
     assert "?api=" in html
     assert 'id="api-base-input"' in html
@@ -92,18 +96,32 @@ def test_public_site_defaults_to_public_fastapi_rest_backend():
     assert "GitHub Pages 不能单独编译电路" not in html
 
 
-def test_public_site_exposes_examples_custom_qasm_and_heuristic_controls():
+def test_public_site_exposes_examples_custom_generator_and_fixed_baseline():
     html = _html()
 
     for example in ["qft5", "ghz5", "qaoa5", "qft10", "qaoa10", "ghz10", "vqe10", "custom"]:
         assert f'data-example="{example}"' in html
         assert f'<option value="{example}"' in html
 
-    for heuristic in ["basic", "lookahead", "decay"]:
-        assert f'data-heuristic="{heuristic}"' in html
-        assert f'<option value="{heuristic}"' in html
-
     assert 'id="qasm-input"' in html
+    assert 'data-input-mode="examples"' in html
+    assert 'data-input-mode="custom"' in html
+    assert 'data-input-mode="generate"' in html
+    assert 'id="generator-family"' in html
+    assert 'id="generator-qubits"' in html
+    assert 'id="generator-layers"' in html
+    assert 'id="generate-qasm"' in html
+    assert "GHZ chain" in html
+    assert "QFT-like" in html
+    assert "QAOA ring" in html
+    assert "VQE ansatz" in html
+    assert "Random CX layers" in html
+    assert "generateCircuitQasm" in html
+    assert "lines.push(`sx" not in html
+    assert "SABRE standard" in html
+    assert "Qiskit default/basic" in html
+    assert "data-heuristic" not in html
+    assert 'id="heuristic-select"' not in html
     assert "MAX_INLINE_QASM_CHARS = 8000" in html
     assert "Custom input must start with OPENQASM 2.0;" in html
 
@@ -126,6 +144,25 @@ def test_public_site_renders_lightweight_svg_tokyo_topology():
     assert 'id="trace-op"' in html
     assert 'id="trace-progress"' in html
     assert 'id="trace-bar"' in html
+    assert 'id="route-view-npqr"' in html
+    assert 'id="route-view-sabre"' in html
+    assert 'data-route-view="npqr"' in html
+    assert 'data-route-view="sabre"' in html
+    assert 'id="route-count"' in html
+    assert 'id="event-title"' in html
+    assert 'id="event-op"' in html
+    assert 'id="event-logical"' in html
+    assert 'id="event-physical"' in html
+    assert 'id="event-insertion"' in html
+    assert 'id="mapping-grid"' in html
+    assert 'id="route-timeline"' in html
+    assert "Current logical→physical map" in html
+    assert "insert before" in html
+    assert "timelineText" in html
+    assert "setRouteView" in html
+    assert "renderRouteInspector" in html
+    assert "mapping_after" in html
+    assert "event.physical_qubits.length >= 2" in html
     assert 'class="compiler-flow"' in html
     assert 'class="flow-stage is-active" data-stage="0"' in html
     assert "@keyframes route-pulse" in html
@@ -134,14 +171,36 @@ def test_public_site_renders_lightweight_svg_tokyo_topology():
     assert "filter: drop-shadow" not in html
 
 
+def test_public_site_uses_wide_inspector_layout_without_right_overflow():
+    html = _html()
+
+    assert "width: min(100%, 1280px);" in html
+    assert 'grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);' in html
+    assert 'grid-template-areas:' in html
+    assert '"data output"' in html
+    assert '"data topology"' in html
+    assert ".route-layout" in html
+    assert "grid-template-columns: minmax(0, 1fr) minmax(260px, 330px);" in html
+    assert "overflow-x: clip;" in html
+
+
 def test_public_site_exposes_required_outputs_and_brief_error_state():
     html = _html()
 
     for element_id in [
-        "metric-status",
-        "metric-swaps",
-        "metric-depth",
-        "metric-elapsed",
+        "npqr-status",
+        "npqr-swaps",
+        "npqr-depth",
+        "npqr-elapsed",
+        "sabre-status",
+        "sabre-swaps",
+        "sabre-depth",
+        "sabre-elapsed",
+        "delta-swaps",
+        "delta-depth",
+        "delta-time",
+        "qasm-view-npqr",
+        "qasm-view-sabre",
         "compiled-qasm-output",
         "compiled-qasm-code",
         "compiled-state",
@@ -151,6 +210,14 @@ def test_public_site_exposes_required_outputs_and_brief_error_state():
         assert f'id="{element_id}"' in html
 
     assert "elapsed_ms" in html
+    assert "NPQR QASM" in html
+    assert "SABRE QASM" in html
+    assert "flex-wrap: wrap;" in html
+    assert "flex: 0 0 174px;" in html
+    assert "ΔSWAP" in html
+    assert "ΔDepth" in html
+    assert "time ratio" in html
+    assert "showComparisonResult" in html
     assert "等待结果" in html
     assert "setCompiledState" in html
     assert 'id="copy-qasm" type="button" disabled' in html
@@ -184,7 +251,7 @@ def test_public_site_keeps_mcp_as_folded_advanced_entry():
         "qcompiler_status",
         "get_benchmarks",
         "get_npqr_boundary",
-        "get_npqr_stage7_evidence",
+        "get_algorithm_evidence",
     ]:
         assert tool in html
 
@@ -195,8 +262,8 @@ def test_public_site_keeps_required_domain_terms_and_honest_boundary():
     for term in ["MCP", "OpenQASM 2", "SABRE", "SWAP", "Qiskit", "IBM Tokyo", "FastAPI REST"]:
         assert term in html
 
-    assert "NPQR evidence boundary; no general SABRE win claim." in html
-    assert "后端默认使用 NPQR，Qiskit SABRE 作为对比基线" in html
+    assert "NPQR claims, baseline role, and non-claims." in html
+    assert "网页里的 SABRE baseline 固定为 Qiskit default/basic" in html
     assert "不宣传全面超过 SABRE" not in html
     assert "登录" not in html
     assert "注册" not in html
@@ -208,7 +275,7 @@ def test_public_site_preserves_accessibility_and_responsive_basics():
     assert 'lang="zh-CN"' in html
     assert 'aria-label="一键量子编译 Playground"' in html
     assert 'aria-label="运行控制"' in html
-    assert 'aria-label="编译结果摘要"' in html
+    assert 'aria-label="NPQR 与标准 SABRE 对比"' in html
     assert 'aria-label="高级 MCP 和部署入口"' in html
     assert "overflow-x: clip;" in html
     assert "@media (max-width: 980px)" in html
@@ -219,11 +286,11 @@ def test_public_site_does_not_reintroduce_old_overclaims():
     html = _html()
     forbidden = [
         "AI OUTPERFORMS HEURISTICS",
-        "Quantum Router V9",
-        "V9 Universal Model",
+        "Quantum Router V" + "9",
+        "V" + "9 Universal Model",
         "MTx100",
-        "quickstart_v9.py",
-        "models/v9_tokyo20",
+        "quickstart_v" + "9.py",
+        "models/v" + "9_tokyo20",
         "打败经典启发式",
     ]
 

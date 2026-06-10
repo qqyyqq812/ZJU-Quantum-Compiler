@@ -1,50 +1,52 @@
-"""Regression tests for teacher-facing local demo scripts."""
+"""Regression tests for final public helper scripts."""
 from __future__ import annotations
 
 from pathlib import Path
 
 
-def test_public_demo_script_documents_heuristic_lab_evidence():
+def test_public_demo_script_uses_default_npqr_and_api_smoke():
     script = Path("run_public_demo.sh").read_text(encoding="utf-8")
 
-    assert "[1/6] qcompiler info" in script
-    assert "[6/6] SabreSwap heuristic lab 证据" in script
-    assert "--heuristic lookahead" in script
-    assert "scripts/experiment_sabre_trials.py" in script
-    assert "scripts/experiment_bounded_search.py" in script
-    assert "06_sabre_heuristic_lab.md" in script
-    assert "07_bounded_search_negative_sample.md" in script
-    assert "uvicorn src.server.app:app --reload --port 8765" in script
-    assert "python -m http.server 8766 --directory docs" in script
-    assert "bounded search v1 是负样本" in script
+    assert "models/default/npqr-default.pt" in script
+    assert "qcompiler info" in script
+    assert "TestClient" in script
+    assert "from src.server.app import app" in script
+    assert "/api/status" in script
+    assert "/api/compile" in script
+    assert '"backend": "npqr"' in script
+    assert '"backend": "sabre"' in script
+    assert "checkpoint_" + "ep" not in script
+    assert "V" + "14" not in script
 
 
-def test_teacher_eval_index_uses_current_project_positioning():
+def test_teacher_eval_script_wraps_public_demo():
     script = Path("run_teacher_eval.sh").read_text(encoding="utf-8")
 
-    assert "GitHub Pages heuristic lab" in script
-    assert "06_sabre_heuristic_lab.md" in script
-    assert "07_bounded_search_negative_sample.md" in script
-    assert "SABRE / LightSABRE is the stable practical baseline." in script
-    assert "The public website is now a heuristic lab" in script
-    assert "lookahead + seed=42 + trials=1" in script
-    assert "Bounded search v1 is a negative sample" in script
-    assert "have not beaten SABRE" in script
+    assert "run_public_demo.sh" in script
+    assert "results/teacher_demo" in script
+    assert "NPQR is the default route" in script
+    assert "SABRE is the comparison baseline" in script
+    assert "checkpoint_" + "ep" not in script
 
 
-def test_teacher_eval_generated_index_lists_all_demo_files():
-    script = Path("run_teacher_eval.sh").read_text(encoding="utf-8")
+def test_submission_package_script_defines_public_review_manifest():
+    script = Path("scripts/package_submission.py").read_text(encoding="utf-8")
 
-    expected_files = [
-        "01_qcompiler_info.txt",
-        "02_sabre_compile.txt",
-        "03_qcompiler_eval.txt",
-        "04_mqt_5q_demo.md",
-        "04_mqt_5q_demo.json",
-        "05_ibm_tokyo_topology.png",
-        "06_sabre_heuristic_lab.md",
-        "07_bounded_search_negative_sample.md",
+    required_entries = [
+        "README.md",
+        "docs/index.html",
+        "docs/plans/2026-06-05-mcp-work-split.md",
+        "docs/slides/quantum-routing-algorithm-showcase-final.pptx",
+        "examples/qft5.qasm",
+        "readiness.md",
+        "algorithm_matrix.json",
+        "public_algorithm_evidence.json",
+        "algorithm_summary.md",
+        "results/submission_package",
     ]
 
-    for file_name in expected_files:
-        assert file_name in script
+    for entry in required_entries:
+        assert entry in script
+
+    assert "npqr_" + "stage" not in script
+    assert "St" + "age" not in script

@@ -5,14 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "zju-quantum-compiler"
 version = "0.14.2"
-description = "ZJU Quantum Circuit AI Compiler — RL-driven dynamic routing under complex topologies"
+description = "Neural-assisted quantum circuit routing compiler for constrained hardware"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
     { name = "ZJU Quantum Compiler Project", email = "qqyyqq812@users.noreply.github.com" },
 ]
-keywords = ["quantum", "compiler", "reinforcement-learning", "qiskit", "sabre"]
+keywords = ["quantum", "compiler", "routing", "qiskit", "sabre", "mcp"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
@@ -35,6 +35,7 @@ dependencies = [
     "matplotlib>=3.7",
     "rustworkx>=0.14",
     "scipy>=1.12",
+    "mcp[cli]>=1.27",
 ]
 
 [project.optional-dependencies]
@@ -55,6 +56,7 @@ Issues = "https://github.com/qqyyqq812/ZJU-Quantum-Compiler/issues"
 
 [project.scripts]
 qcompiler = "src.cli:main"
+qcompiler-mcp-http = "src.server.mcp_app:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

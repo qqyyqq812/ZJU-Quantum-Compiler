@@ -6,8 +6,7 @@
 #   pip install -r requirements.txt
 #   pip install -e .
 #
-# The current V13+ GraphSAGE implementation is pure PyTorch. Do not install
-# torch_geometric for the default acceptance path.
+# The public NPQR GraphSAGE implementation is pure PyTorch.
 
 qiskit==2.3.1
 qiskit-aer==0.17.2
@@ -20,6 +19,7 @@ gymnasium==1.2.3
 PyYAML==6.0.3
 scipy==1.17.1
 rustworkx==0.17.1
+mcp[cli]==1.27.2
 
 # Tests, CLI/API smoke checks, and local playground backend.
 pytest==9.0.2

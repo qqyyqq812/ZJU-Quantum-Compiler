@@ -33,6 +33,10 @@
       box-sizing: border-box;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
     html,
     body {
       max-width: 100%;
@@ -114,7 +118,7 @@
     }
 
     .page {
-      width: min(100%, 1180px);
+      width: min(100%, 1280px);
       margin: 0 auto;
       padding: 0 18px;
     }
@@ -315,7 +319,10 @@
     #main-part {
       position: relative;
       display: grid;
-      grid-template-columns: 278px minmax(420px, 1fr) 300px;
+      grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+      grid-template-areas:
+        "data output"
+        "data topology";
       min-height: 0;
       background:
         linear-gradient(180deg, rgba(34, 211, 238, 0.035), transparent 92px),
@@ -348,6 +355,19 @@
 
     .column:first-child {
       border-left: 0;
+    }
+
+    .column.data {
+      grid-area: data;
+    }
+
+    .column.output {
+      grid-area: output;
+    }
+
+    .column.topology {
+      grid-area: topology;
+      border-top: 1px solid var(--tf-line);
     }
 
     h4 {
@@ -424,13 +444,28 @@
       font-size: 11px;
     }
 
-    .heuristics {
+    .baseline-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      border: 1px solid var(--tf-line-dark);
+      padding: 0 9px;
+      background: #fff;
+      color: var(--tf-text);
+      font-family: var(--mono);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .input-tabs,
+    .qasm-tabs {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       border: 1px solid var(--tf-line-dark);
     }
 
-    .heuristics button {
+    .input-tabs button,
+    .qasm-tabs button {
       min-width: 0;
       height: 32px;
       border: 0;
@@ -441,13 +476,57 @@
       font-size: 12px;
     }
 
-    .heuristics button:first-child {
+    .input-tabs button:first-child,
+    .qasm-tabs button:first-child {
       border-left: 0;
     }
 
-    .heuristics button[aria-pressed="true"] {
+    .input-tabs button[aria-pressed="true"],
+    .qasm-tabs button[aria-pressed="true"] {
       background: linear-gradient(135deg, var(--tf-blue), #075f99);
       color: #fff;
+    }
+
+    .generator-controls {
+      display: grid;
+      grid-template-columns: 1fr 68px 68px;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .generator-controls label {
+      display: grid;
+      gap: 4px;
+      color: var(--tf-muted);
+      font-size: 11px;
+    }
+
+    .generator-controls select,
+    .generator-controls input {
+      min-width: 0;
+      height: 30px;
+      border: 1px solid var(--tf-line-dark);
+      border-radius: 0;
+      background: #fff;
+      color: var(--tf-text);
+      padding: 3px 6px;
+      font: inherit;
+    }
+
+    .generator-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      margin-top: 8px;
+    }
+
+    .generator-actions button {
+      height: 30px;
+      border: 1px solid var(--tf-blue);
+      border-radius: 0;
+      background: #fff;
+      color: var(--tf-blue);
+      cursor: pointer;
+      font-size: 12px;
     }
 
     textarea,
@@ -503,6 +582,53 @@
       min-height: 0;
     }
 
+    .route-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .route-tabs {
+      display: inline-grid;
+      grid-template-columns: repeat(2, minmax(112px, 1fr));
+      border: 1px solid var(--tf-line-dark);
+    }
+
+    .route-tabs button {
+      height: 32px;
+      border: 0;
+      border-left: 1px solid var(--tf-line-dark);
+      background: #fff;
+      color: var(--tf-text);
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .route-tabs button:first-child {
+      border-left: 0;
+    }
+
+    .route-tabs button[aria-pressed="true"] {
+      background: linear-gradient(135deg, var(--tf-ink), #102736);
+      color: #fff;
+    }
+
+    .route-count {
+      color: var(--tf-muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .route-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 330px);
+      gap: 14px;
+      align-items: start;
+    }
+
     .topology-head {
       display: flex;
       align-items: baseline;
@@ -518,7 +644,7 @@
 
     .topology-stage-wrap {
       position: relative;
-      aspect-ratio: 4 / 3;
+      aspect-ratio: 16 / 10;
       min-height: 0;
       border: 1px solid var(--tf-line);
       background:
@@ -616,6 +742,15 @@
       fill: #444;
       font-family: var(--mono);
       font-size: 12px;
+      pointer-events: none;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+
+    .node-map-label {
+      fill: var(--tf-blue);
+      font-family: var(--mono);
+      font-size: 9px;
       pointer-events: none;
       text-anchor: middle;
       dominant-baseline: central;
@@ -742,17 +877,242 @@
       transition: width 0.18s ease;
     }
 
-    .metrics {
+    .route-inspector {
+      display: grid;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .event-card,
+    .mapping-panel,
+    .timeline-panel {
+      border: 1px solid var(--tf-line);
+      background: #fff;
+    }
+
+    .event-card {
+      border-top: 2px solid var(--tf-orange);
+    }
+
+    .inspector-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--tf-line);
+      color: var(--tf-ink);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .inspector-title small {
+      color: var(--tf-muted);
+      font-family: var(--mono);
+      font-weight: 400;
+    }
+
+    .event-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      border-left: 1px solid var(--tf-line);
+      border-top: 1px solid var(--tf-line);
+      margin: 10px;
+    }
+
+    .event-field {
+      min-width: 0;
+      padding: 7px 8px;
+      border-right: 1px solid var(--tf-line);
+      border-bottom: 1px solid var(--tf-line);
+      background: #fcfcfc;
+    }
+
+    .event-field span {
+      display: block;
+      color: var(--tf-muted);
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .event-field strong {
+      display: block;
+      margin-top: 4px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mapping-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 5px;
+      padding: 10px;
+    }
+
+    .mapping-cell {
+      min-height: 38px;
+      border: 1px solid var(--tf-line);
+      background: #fafafa;
+      color: var(--tf-muted);
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 4px;
+    }
+
+    .mapping-cell b,
+    .mapping-cell span {
+      display: block;
+    }
+
+    .mapping-cell b {
+      color: var(--tf-text);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .mapping-cell.is-used {
+      border-color: rgba(34, 211, 238, 0.5);
+      background: rgba(34, 211, 238, 0.055);
+      color: var(--tf-blue);
+    }
+
+    .mapping-cell.is-active {
+      border-color: var(--tf-orange);
+      background: rgba(245, 147, 34, 0.09);
+      color: var(--tf-orange);
+    }
+
+    .route-timeline {
+      max-height: 210px;
+      overflow: auto;
+    }
+
+    .timeline-row {
+      display: grid;
+      grid-template-columns: 34px 54px minmax(0, 1fr) 70px;
+      gap: 6px;
+      align-items: center;
+      width: 100%;
+      min-height: 30px;
+      border: 0;
+      border-top: 1px solid var(--tf-line);
+      background: #fff;
+      color: var(--tf-text);
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 11px;
+      text-align: left;
+    }
+
+    .timeline-row:first-child {
+      border-top: 0;
+    }
+
+    .timeline-row[aria-current="true"] {
+      background: rgba(245, 147, 34, 0.085);
+      color: var(--tf-ink);
+    }
+
+    .timeline-kind {
+      color: var(--tf-orange);
+      text-transform: uppercase;
+    }
+
+    .timeline-row[data-kind="gate"] .timeline-kind {
+      color: var(--tf-blue);
+    }
+
+    .timeline-main {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .timeline-insert {
+      color: var(--tf-muted);
+      text-align: right;
+      padding-right: 8px;
+    }
+
+    .route-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 10px;
+      color: var(--tf-muted);
+      font-size: 11px;
+    }
+
+    .route-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .route-legend b {
+      width: 18px;
+      height: 3px;
+      display: inline-block;
+      background: var(--tf-line-dark);
+    }
+
+    .legend-gate {
+      background: var(--qc-cyan) !important;
+    }
+
+    .legend-swap {
+      background: var(--tf-orange) !important;
+    }
+
+    .legend-map {
+      height: 10px !important;
+      border-radius: 50%;
+      background: var(--tf-blue) !important;
+    }
+
+    .comparison-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .compare-card {
       border-top: 1px solid var(--tf-line);
       border-left: 1px solid var(--tf-line);
     }
 
+    .compare-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      min-height: 32px;
+      padding: 7px 8px;
+      border-right: 1px solid var(--tf-line);
+      border-bottom: 1px solid var(--tf-line);
+      background: #fff;
+      color: var(--tf-ink);
+      font-weight: 500;
+    }
+
+    .compare-title small {
+      color: var(--tf-muted);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 400;
+    }
+
+    .compare-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+    }
+
     .metric {
       position: relative;
-      min-height: 66px;
-      padding: 9px;
+      min-height: 54px;
+      padding: 7px 9px;
       border-right: 1px solid var(--tf-line);
       border-bottom: 1px solid var(--tf-line);
       background: linear-gradient(180deg, #fff, #fcfcfc);
@@ -793,9 +1153,40 @@
 
     .metric strong {
       display: block;
-      margin-top: 5px;
+      margin-top: 3px;
       font-family: var(--mono);
-      font-size: 20px;
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .delta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      margin-top: 10px;
+      border-top: 1px solid var(--tf-line);
+      border-left: 1px solid var(--tf-line);
+    }
+
+    .delta {
+      min-height: 42px;
+      padding: 8px;
+      border-right: 1px solid var(--tf-line);
+      border-bottom: 1px solid var(--tf-line);
+      background: rgba(34, 211, 238, 0.035);
+    }
+
+    .delta span {
+      display: block;
+      color: var(--tf-muted);
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .delta strong {
+      display: block;
+      margin-top: 2px;
+      font-family: var(--mono);
+      font-size: 13px;
       font-weight: 500;
     }
 
@@ -817,6 +1208,7 @@
 
     .compiled-head {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
       gap: 10px;
@@ -825,7 +1217,18 @@
 
     .compiled-head h4 {
       margin: 0;
-      flex: 1;
+      flex: 1 1 100%;
+    }
+
+    .qasm-tabs {
+      flex: 0 0 174px;
+      width: 174px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .qasm-tabs button {
+      height: 26px;
+      font-size: 11px;
     }
 
     .output-chip {
@@ -877,8 +1280,8 @@
     }
 
     #compiled-qasm-output {
-      min-height: 286px;
-      max-height: 360px;
+      min-height: 108px;
+      max-height: 145px;
       overflow: auto;
       padding: 10px;
     }
@@ -1008,6 +1411,14 @@
       #main-part,
       .advanced-body {
         grid-template-columns: 1fr;
+        grid-template-areas:
+          "data"
+          "output"
+          "topology";
+      }
+
+      .route-layout {
+        grid-template-columns: 1fr;
       }
 
       .column,
@@ -1046,10 +1457,22 @@
       }
 
       .dataset-list,
-      .metrics,
+      .comparison-grid,
+      .compare-metrics,
+      .delta-grid,
       .flow-rail,
+      .event-grid,
       .tool-list div {
         grid-template-columns: 1fr;
+      }
+
+      .route-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .route-tabs {
+        width: 100%;
       }
 
       .column {
@@ -1069,22 +1492,24 @@
         margin-top: 5px;
       }
 
-      .heuristics button {
-        padding: 0 2px;
-        font-size: 11px;
-      }
-
-      .heuristics {
+      .input-tabs,
+      .qasm-tabs {
         grid-template-columns: 1fr;
       }
 
-      .heuristics button {
+      .input-tabs button,
+      .qasm-tabs button {
         border-left: 0;
         border-top: 1px solid var(--tf-line-dark);
       }
 
-      .heuristics button:first-child {
+      .input-tabs button:first-child,
+      .qasm-tabs button:first-child {
         border-top: 0;
+      }
+
+      .generator-controls {
+        grid-template-columns: 1fr;
       }
 
       textarea {
@@ -1098,10 +1523,10 @@
     <div class="page topbar">
       <div class="brand">
         <h1>Quantum <b>Compiler</b> Playground</h1>
-        <span class="subtitle">OpenQASM routing on IBM Tokyo · 中文实验台</span>
+        <span class="subtitle">OpenQASM routing on IBM Tokyo</span>
       </div>
       <nav class="nav" aria-label="主导航">
-        <a href="#playground">试验台</a>
+        <a href="#playground">Playground</a>
         <a href="#advanced">Advanced</a>
         <a href="https://github.com/qqyyqq812/ZJU-Quantum-Compiler">GitHub</a>
       </nav>
@@ -1138,12 +1563,8 @@
         </select>
       </div>
       <div class="control">
-        <label for="heuristic-select">Heuristic</label>
-        <select id="heuristic-select">
-          <option value="basic">basic</option>
-          <option value="lookahead" selected>lookahead</option>
-          <option value="decay">decay</option>
-        </select>
+        <span class="label">基准 Baseline</span>
+        <div class="baseline-badge" title="Qiskit default/basic, reproducible seed=42">SABRE standard</div>
       </div>
       <div class="control">
         <span class="label">后端 API</span>
@@ -1160,7 +1581,15 @@
       <section class="column data">
         <h4><span>输入 Input</span></h4>
         <div class="section">
-          <p>选择 OpenQASM 示例，或切到 Custom 直接编辑。</p>
+          <p>选择、编辑或生成真实 OpenQASM；Run 会同时调用 NPQR 和标准 SABRE。</p>
+          <div class="input-tabs" aria-label="输入模式">
+            <button type="button" data-input-mode="examples" aria-pressed="true">Examples</button>
+            <button type="button" data-input-mode="custom" aria-pressed="false">Custom</button>
+            <button type="button" data-input-mode="generate" aria-pressed="false">Generate</button>
+          </div>
+        </div>
+
+        <div class="section" id="examples-panel">
           <div class="dataset-list" aria-label="OpenQASM 示例">
             <button class="dataset" type="button" data-example="qft5" aria-pressed="true"><b>QFT 5</b><span>密集相位</span></button>
             <button class="dataset" type="button" data-example="ghz5" aria-pressed="false"><b>GHZ 5</b><span>纠缠链</span></button>
@@ -1173,12 +1602,27 @@
           </div>
         </div>
 
-        <div class="section">
-          <p>选择 routing heuristic；NPQR 默认返回 SABRE 对比基线。</p>
-          <div class="heuristics" aria-label="heuristic 控制">
-            <button type="button" data-heuristic="basic" aria-pressed="false">basic</button>
-            <button type="button" data-heuristic="lookahead" aria-pressed="true">lookahead</button>
-            <button type="button" data-heuristic="decay" aria-pressed="false">decay</button>
+        <div class="section" id="generator-panel" hidden>
+          <p>生成器只写入 QASM；点击 Run 才真实调用后端编译。</p>
+          <div class="generator-controls">
+            <label for="generator-family">Family
+              <select id="generator-family">
+                <option value="ghz">GHZ chain</option>
+                <option value="qft">QFT-like</option>
+                <option value="qaoa" selected>QAOA ring</option>
+                <option value="vqe">VQE ansatz</option>
+                <option value="random">Random CX layers</option>
+              </select>
+            </label>
+            <label for="generator-qubits">Qubits
+              <input id="generator-qubits" type="number" min="2" max="10" value="8">
+            </label>
+            <label for="generator-layers">Layers
+              <input id="generator-layers" type="number" min="1" max="6" value="2">
+            </label>
+          </div>
+          <div class="generator-actions">
+            <button id="generate-qasm" type="button">Generate OpenQASM</button>
           </div>
         </div>
 
@@ -1194,41 +1638,110 @@
       <section class="column topology">
         <h4><span>拓扑 Topology</span></h4>
         <div class="topology-area">
+          <div class="route-toolbar">
+            <div class="route-tabs" aria-label="路线可视化">
+              <button id="route-view-npqr" type="button" data-route-view="npqr" aria-pressed="true">NPQR route</button>
+              <button id="route-view-sabre" type="button" data-route-view="sabre" aria-pressed="false">SABRE route</button>
+            </div>
+            <div class="route-count" id="route-count">0 events</div>
+          </div>
           <div class="topology-head">
             <div>IBM Tokyo physical graph</div>
-            <div class="route-status" id="route-status">就绪</div>
+            <div class="route-status" id="route-status">ready</div>
           </div>
-          <div class="topology-stage-wrap">
-            <svg class="topology-stage" id="tokyo-topology" viewBox="0 0 640 480" preserveAspectRatio="xMidYMin meet" role="img" aria-label="SVG IBM Tokyo 20Q topology animation"></svg>
-            <div class="topology-tooltip" id="topology-tooltip" role="status"></div>
+          <div class="route-layout">
+            <div>
+              <div class="topology-stage-wrap">
+                <svg class="topology-stage" id="tokyo-topology" viewBox="0 0 640 480" preserveAspectRatio="xMidYMin meet" role="img" aria-label="SVG IBM Tokyo 20Q topology animation"></svg>
+                <div class="topology-tooltip" id="topology-tooltip" role="status"></div>
+              </div>
+              <div class="compiler-flow" aria-label="routing event progress">
+                <div class="flow-rail">
+                  <div class="flow-stage is-active" data-stage="0"><b>Parse</b>QASM</div>
+                  <div class="flow-stage" data-stage="1"><b>Map</b>logical→physical</div>
+                  <div class="flow-stage" data-stage="2"><b>Route</b>gate/SWAP</div>
+                  <div class="flow-stage" data-stage="3"><b>Emit</b>QASM</div>
+                </div>
+                <div class="trace-readout">
+                  <div class="trace-op" id="trace-op">Run 后显示真实 route event。</div>
+                  <div class="trace-meta" id="trace-progress">0/0</div>
+                  <div class="trace-bar" aria-hidden="true"><span id="trace-bar"></span></div>
+                </div>
+              </div>
+            </div>
+            <aside class="route-inspector" aria-label="route event inspector">
+              <section class="event-card">
+                <div class="inspector-title">
+                  <span id="event-title">No route event</span>
+                  <small id="event-index">--</small>
+                </div>
+                <div class="event-grid">
+                  <div class="event-field"><span>op</span><strong id="event-op">--</strong></div>
+                  <div class="event-field"><span>kind</span><strong id="event-kind">--</strong></div>
+                  <div class="event-field"><span>logical</span><strong id="event-logical">--</strong></div>
+                  <div class="event-field"><span>physical</span><strong id="event-physical">--</strong></div>
+                  <div class="event-field"><span>insert before</span><strong id="event-insertion">--</strong></div>
+                  <div class="event-field"><span>compiled idx</span><strong id="event-compiled">--</strong></div>
+                </div>
+              </section>
+              <section class="mapping-panel">
+                <div class="inspector-title">
+                  <span>Current logical→physical map</span>
+                  <small id="mapping-active">--</small>
+                </div>
+                <div class="mapping-grid" id="mapping-grid" aria-label="当前映射表"></div>
+              </section>
+              <section class="timeline-panel">
+                <div class="inspector-title">
+                  <span>Route timeline</span>
+                  <small id="timeline-summary">waiting</small>
+                </div>
+                <div class="route-timeline" id="route-timeline" aria-label="真实 route event 时间线"></div>
+              </section>
+            </aside>
           </div>
-          <div class="compiler-flow" aria-label="NPQR compiler inference trace">
-            <div class="flow-rail">
-              <div class="flow-stage is-active" data-stage="0"><b>Parse</b>QASM</div>
-              <div class="flow-stage" data-stage="1"><b>Map</b>layout</div>
-              <div class="flow-stage" data-stage="2"><b>Route</b>actions</div>
-              <div class="flow-stage" data-stage="3"><b>Emit</b>QASM</div>
-            </div>
-            <div class="trace-readout">
-              <div class="trace-op" id="trace-op">等待 Run；Step 可预览 Tokyo 路径。</div>
-              <div class="trace-meta" id="trace-progress">0/0</div>
-              <div class="trace-bar" aria-hidden="true"><span id="trace-bar"></span></div>
-            </div>
+          <div class="route-legend" aria-hidden="true">
+            <span><b class="legend-gate"></b>gate edge</span>
+            <span><b class="legend-swap"></b>inserted SWAP</span>
+            <span><b class="legend-map"></b>mapped physical qubit</span>
           </div>
         </div>
       </section>
 
       <section class="column output">
         <h4><span>输出 Output</span></h4>
-        <div class="metrics" aria-label="编译结果摘要">
-          <div class="metric"><span>状态</span><strong id="metric-status">就绪</strong></div>
-          <div class="metric"><span>SWAP</span><strong id="metric-swaps">--</strong></div>
-          <div class="metric"><span>Depth</span><strong id="metric-depth">--</strong></div>
-          <div class="metric"><span>elapsed_ms</span><strong id="metric-elapsed">--</strong></div>
+        <div class="comparison-grid" aria-label="NPQR 与标准 SABRE 对比">
+          <article class="compare-card" id="npqr-card">
+            <div class="compare-title">NPQR <small>ours</small></div>
+            <div class="compare-metrics">
+              <div class="metric"><span>状态</span><strong id="npqr-status">就绪</strong></div>
+              <div class="metric"><span>SWAP</span><strong id="npqr-swaps">--</strong></div>
+              <div class="metric"><span>Depth</span><strong id="npqr-depth">--</strong></div>
+              <div class="metric"><span>elapsed_ms</span><strong id="npqr-elapsed">--</strong></div>
+            </div>
+          </article>
+          <article class="compare-card" id="sabre-card">
+            <div class="compare-title">SABRE baseline <small>standard</small></div>
+            <div class="compare-metrics">
+              <div class="metric"><span>状态</span><strong id="sabre-status">就绪</strong></div>
+              <div class="metric"><span>SWAP</span><strong id="sabre-swaps">--</strong></div>
+              <div class="metric"><span>Depth</span><strong id="sabre-depth">--</strong></div>
+              <div class="metric"><span>elapsed_ms</span><strong id="sabre-elapsed">--</strong></div>
+            </div>
+          </article>
+        </div>
+        <div class="delta-grid" aria-label="对比差值">
+          <div class="delta"><span>ΔSWAP</span><strong id="delta-swaps">--</strong></div>
+          <div class="delta"><span>ΔDepth</span><strong id="delta-depth">--</strong></div>
+          <div class="delta"><span>time ratio</span><strong id="delta-time">--</strong></div>
         </div>
         <div class="message" id="result-message">点击 Run 编译当前电路，结果会在这里更新。</div>
         <div class="compiled-head">
           <h4><span>compiled_qasm</span></h4>
+          <div class="qasm-tabs" aria-label="compiled_qasm 视图">
+            <button id="qasm-view-npqr" type="button" data-qasm-view="npqr" aria-pressed="true">NPQR QASM</button>
+            <button id="qasm-view-sabre" type="button" data-qasm-view="sabre" aria-pressed="false">SABRE QASM</button>
+          </div>
           <span class="output-chip" id="compiled-state" data-tone="idle">等待结果</span>
           <button class="text-button" id="copy-qasm" type="button" disabled>复制</button>
           <button class="text-button" id="download-qasm" type="button" disabled>下载</button>
@@ -1243,7 +1756,8 @@
     <div class="advanced-body">
       <section>
         <h4><span>维护者 REST API</span></h4>
-        <p>普通用户不需要部署。页面默认调用项目方部署的 FastAPI REST 后端；维护者可用 URL 参数覆盖。后端默认使用 NPQR，Qiskit SABRE 作为对比基线。</p>
+        <p>普通用户不需要部署。页面默认调用项目方部署的 FastAPI REST 后端；维护者可用 URL 参数覆盖。网页里的 SABRE baseline 固定为 Qiskit default/basic；高级 REST 直连仍兼容显式 heuristic 参数。</p>
+        <p>网页操作说明见 <a href="playground-user-guide.md">Playground user guide</a>；这里保留部署和调试入口。</p>
         <label class="endpoint-label" for="api-base-input">REST API</label>
         <div class="endpoint-control">
           <input id="api-base-input" type="url" spellcheck="false" aria-describedby="api-base-note">
@@ -1267,10 +1781,10 @@ POST /mcp</code></pre>
           <div><strong>compile_npqr</strong><p>Run checked-in examples with NPQR.</p></div>
           <div><strong>compile_sabre</strong><p>Run checked-in examples with SABRE.</p></div>
           <div><strong>list_examples</strong><p>Show available QASM examples.</p></div>
-          <div><strong>qcompiler_status</strong><p>Project status and honest AI boundary.</p></div>
-          <div><strong>get_benchmarks</strong><p>Read checked-in benchmark summaries.</p></div>
-          <div><strong>get_npqr_boundary</strong><p>NPQR evidence boundary; no general SABRE win claim.</p></div>
-          <div><strong>get_npqr_stage7_evidence</strong><p>Read-only evidence chain.</p></div>
+          <div><strong>qcompiler_status</strong><p>Project status and NPQR boundary.</p></div>
+          <div><strong>get_benchmarks</strong><p>Read public benchmark and claim boundaries.</p></div>
+          <div><strong>get_npqr_boundary</strong><p>NPQR claims, baseline role, and non-claims.</p></div>
+          <div><strong>get_algorithm_evidence</strong><p>Course-facing algorithm component summary.</p></div>
         </div>
       </section>
     </div>
@@ -1417,7 +1931,14 @@ cx q[0],q[1];`,
 
     const state = {
       example: "qft5",
-      heuristic: "lookahead",
+      inputMode: "examples",
+      activeQasmView: "npqr",
+      activeRouteView: "npqr",
+      results: {
+        npqr: null,
+        sabre: null
+      },
+      runId: 0,
       step: 0,
       edge: 0,
       trace: [],
@@ -1434,22 +1955,51 @@ cx q[0],q[1];`,
       step: document.getElementById("step-button"),
       reset: document.getElementById("reset-button"),
       exampleSelect: document.getElementById("example-select"),
-      heuristicSelect: document.getElementById("heuristic-select"),
       backend: document.getElementById("backend-status"),
       backendCopy: document.getElementById("backend-copy"),
+      examplesPanel: document.getElementById("examples-panel"),
+      generatorPanel: document.getElementById("generator-panel"),
+      generatorFamily: document.getElementById("generator-family"),
+      generatorQubits: document.getElementById("generator-qubits"),
+      generatorLayers: document.getElementById("generator-layers"),
+      generateQasm: document.getElementById("generate-qasm"),
       qasm: document.getElementById("qasm-input"),
       qasmLabel: document.getElementById("qasm-label"),
       qasmCount: document.getElementById("qasm-count"),
       svg: document.getElementById("tokyo-topology"),
       tooltip: document.getElementById("topology-tooltip"),
       routeStatus: document.getElementById("route-status"),
-      status: document.getElementById("metric-status"),
-      swaps: document.getElementById("metric-swaps"),
-      depth: document.getElementById("metric-depth"),
-      elapsed: document.getElementById("metric-elapsed"),
+      npqrStatus: document.getElementById("npqr-status"),
+      npqrSwaps: document.getElementById("npqr-swaps"),
+      npqrDepth: document.getElementById("npqr-depth"),
+      npqrElapsed: document.getElementById("npqr-elapsed"),
+      sabreStatus: document.getElementById("sabre-status"),
+      sabreSwaps: document.getElementById("sabre-swaps"),
+      sabreDepth: document.getElementById("sabre-depth"),
+      sabreElapsed: document.getElementById("sabre-elapsed"),
+      deltaSwaps: document.getElementById("delta-swaps"),
+      deltaDepth: document.getElementById("delta-depth"),
+      deltaTime: document.getElementById("delta-time"),
       message: document.getElementById("result-message"),
       compiled: document.getElementById("compiled-qasm-code"),
       compiledState: document.getElementById("compiled-state"),
+      qasmViewNpqr: document.getElementById("qasm-view-npqr"),
+      qasmViewSabre: document.getElementById("qasm-view-sabre"),
+      routeViewNpqr: document.getElementById("route-view-npqr"),
+      routeViewSabre: document.getElementById("route-view-sabre"),
+      routeCount: document.getElementById("route-count"),
+      eventTitle: document.getElementById("event-title"),
+      eventIndex: document.getElementById("event-index"),
+      eventOp: document.getElementById("event-op"),
+      eventKind: document.getElementById("event-kind"),
+      eventLogical: document.getElementById("event-logical"),
+      eventPhysical: document.getElementById("event-physical"),
+      eventInsertion: document.getElementById("event-insertion"),
+      eventCompiled: document.getElementById("event-compiled"),
+      mappingActive: document.getElementById("mapping-active"),
+      mappingGrid: document.getElementById("mapping-grid"),
+      timelineSummary: document.getElementById("timeline-summary"),
+      routeTimeline: document.getElementById("route-timeline"),
       copy: document.getElementById("copy-qasm"),
       download: document.getElementById("download-qasm"),
       apiBaseInput: document.getElementById("api-base-input"),
@@ -1513,27 +2063,146 @@ cx q[0],q[1];`,
       });
     }
 
+    function clampInteger(value, min, max, fallback) {
+      const parsed = Number.parseInt(value, 10);
+      if (!Number.isFinite(parsed)) {
+        return fallback;
+      }
+      return Math.min(max, Math.max(min, parsed));
+    }
+
+    function generateCircuitQasm(family, qubits, layers) {
+      const n = clampInteger(qubits, 2, 10, 8);
+      const depth = clampInteger(layers, 1, 6, 2);
+      const lines = [
+        "OPENQASM 2.0;",
+        'include "qelib1.inc";',
+        `qreg q[${n}];`
+      ];
+
+      if (family === "ghz") {
+        lines.push("h q[0];");
+        for (let layer = 0; layer < depth; layer += 1) {
+          for (let i = 0; i < n - 1; i += 1) {
+            lines.push(`cx q[${i}],q[${i + 1}];`);
+          }
+          if (layer < depth - 1) {
+            lines.push(`rz(pi/${layer + 3}) q[${n - 1}];`);
+          }
+        }
+      } else if (family === "qft") {
+        for (let target = n - 1; target >= 0; target -= 1) {
+          lines.push(`h q[${target}];`);
+          const limit = Math.max(0, target - depth);
+          for (let control = target - 1; control >= limit; control -= 1) {
+            lines.push(`cx q[${target}],q[${control}];`);
+            lines.push(`rz(pi/${2 ** (target - control + 1)}) q[${control}];`);
+            lines.push(`cx q[${target}],q[${control}];`);
+          }
+        }
+      } else if (family === "vqe") {
+        for (let layer = 0; layer < depth; layer += 1) {
+          for (let i = 0; i < n; i += 1) {
+            lines.push(`rz(${((layer + 1) * (i + 1)).toFixed(1)}) q[${i}];`);
+            lines.push(`h q[${i}];`);
+          }
+          for (let i = layer % 2; i < n - 1; i += 2) {
+            lines.push(`cx q[${i}],q[${i + 1}];`);
+          }
+        }
+      } else if (family === "random") {
+        for (let layer = 0; layer < depth; layer += 1) {
+          for (let i = 0; i < n; i += 1) {
+            lines.push(i % 2 === 0 ? `h q[${i}];` : `x q[${i}];`);
+          }
+          for (let i = 0; i < n - 1; i += 1) {
+            const a = (i * 3 + layer) % n;
+            const b = (a + 1 + ((i + layer) % (n - 1))) % n;
+            if (a !== b) {
+              lines.push(`cx q[${a}],q[${b}];`);
+            }
+          }
+        }
+      } else {
+        for (let layer = 0; layer < depth; layer += 1) {
+          for (let i = 0; i < n; i += 1) {
+            lines.push(`h q[${i}];`);
+          }
+          for (let i = 0; i < n; i += 1) {
+            const j = (i + 1) % n;
+            lines.push(`cx q[${i}],q[${j}];`);
+            lines.push(`rz(pi/${layer + 4}) q[${j}];`);
+            lines.push(`cx q[${i}],q[${j}];`);
+          }
+        }
+      }
+      return `${lines.join("\n")}\n`;
+    }
+
+    function generateQasmIntoEditor() {
+      const qasm = generateCircuitQasm(
+        el.generatorFamily.value,
+        el.generatorQubits.value,
+        el.generatorLayers.value
+      );
+      state.inputMode = "generate";
+      state.example = "custom";
+      state.trace = [];
+      state.traceIndex = 0;
+      state.results = { npqr: null, sabre: null };
+      state.activeQasmView = "npqr";
+      state.activeRouteView = "npqr";
+      el.qasm.value = qasm;
+      renderInput();
+      clearComparison("已生成 OpenQASM；点击 Run 同时编译 NPQR 和 SABRE baseline。");
+      renderFlow();
+      renderTopology();
+    }
+
     function renderInput() {
       const sample = selectedExample();
+      el.examplesPanel.hidden = state.inputMode !== "examples";
+      el.generatorPanel.hidden = state.inputMode !== "generate";
       el.qasm.readOnly = state.example !== "custom";
       el.qasm.dataset.mode = state.example;
       if (state.example !== "custom" || !el.qasm.value.trim()) {
         el.qasm.value = sample.qasm;
       }
-      el.qasmLabel.textContent = state.example === "custom" ? "custom OpenQASM 2" : `examples/${state.example}.qasm`;
+      el.qasmLabel.textContent = state.example === "custom"
+        ? state.inputMode === "generate" ? "generated OpenQASM 2" : "custom OpenQASM 2"
+        : `examples/${state.example}.qasm`;
       el.qasmCount.textContent = state.example === "custom"
         ? `${el.qasm.value.length} / ${MAX_INLINE_QASM_CHARS}`
         : `${sample.qubits} qubits`;
       el.exampleSelect.value = state.example;
-      el.heuristicSelect.value = state.heuristic;
+      setPressed("[data-input-mode]", "inputMode", state.inputMode);
       setPressed("[data-example]", "example", state.example);
-      setPressed("[data-heuristic]", "heuristic", state.heuristic);
     }
 
     function normalizeTrace(trace) {
       return Array.isArray(trace)
-        ? trace.filter((event) => Array.isArray(event.physical_qubits))
+        ? trace.filter((event) => Array.isArray(event.physical_qubits) && event.physical_qubits.length >= 2)
         : [];
+    }
+
+    function routeTrace(view = state.activeRouteView) {
+      return normalizeTrace(state.results[view]?.route_trace);
+    }
+
+    function resultMapping(view = state.activeRouteView) {
+      const result = state.results[view] || {};
+      const mapping = result.initial_mapping || {};
+      return Object.fromEntries(Object.entries(mapping).map(([logical, physical]) => [Number(logical), Number(physical)]));
+    }
+
+    function setRouteView(view) {
+      state.activeRouteView = view;
+      state.trace = routeTrace(view);
+      state.traceIndex = 0;
+      state.step = state.trace.length ? 2 : 0;
+      renderFlow();
+      renderTopology();
+      renderRouteInspector();
     }
 
     function currentTraceEvent() {
@@ -1552,14 +2221,26 @@ cx q[0],q[1];`,
         return `Preview Tokyo edge p${preview[0]}-p${preview[1]}`;
       }
       const qubits = event.physical_qubits.map((qubit) => `p${qubit}`).join("-");
+      const logical = formatQubits(event.logical_qubits, "q");
       if (event.kind === "swap") {
-        return `SWAP ${qubits} · action ${event.action ?? "--"}`;
+        return `insert SWAP ${qubits} before gate ${formatOptional(event.insertion_index)} · logical ${logical}`;
       }
-      return `Gate ${event.gate_index ?? "--"} · ${qubits}`;
+      return `${event.op || "gate"} ${logical} → ${qubits}`;
+    }
+
+    function formatOptional(value) {
+      return value === null || value === undefined ? "--" : String(value);
+    }
+
+    function formatQubits(values, prefix) {
+      if (!Array.isArray(values) || !values.length) {
+        return "--";
+      }
+      return values.map((value) => value === null || value === undefined ? "--" : `${prefix}${value}`).join("-");
     }
 
     function renderFlow() {
-      const names = ["解析 QASM", "选择初始映射", "回放模型动作", "生成 compiled_qasm"];
+      const names = ["parse", "map", `${state.activeRouteView.toUpperCase()} route`, "emit"];
       document.querySelectorAll("[data-stage]").forEach((stage) => {
         const index = Number(stage.dataset.stage);
         stage.classList.toggle("is-active", index === state.step);
@@ -1568,12 +2249,14 @@ cx q[0],q[1];`,
       el.routeStatus.textContent = names[state.step] || "ready";
 
       const event = currentTraceEvent();
-      const total = state.trace.length || selectedExample().path.length;
-      const current = state.trace.length ? state.traceIndex + 1 : state.edge + 1;
+      const total = state.trace.length;
+      const current = state.trace.length ? state.traceIndex + 1 : 0;
       const ratio = total ? Math.min(100, Math.max(0, (current / total) * 100)) : 0;
       el.traceOp.textContent = describeTraceEvent(event);
       el.traceProgress.textContent = `${current}/${total}`;
       el.traceBar.style.width = `${ratio}%`;
+      el.routeCount.textContent = `${state.activeRouteView.toUpperCase()} · ${total} events`;
+      setPressed("[data-route-view]", "routeView", state.activeRouteView);
     }
 
     function renderTopology() {
@@ -1590,17 +2273,18 @@ cx q[0],q[1];`,
       const active = eventEdge || (state.trace.length ? null : sample.path[state.edge % sample.path.length]);
       const activeKey = active ? edgeKey(active) : "";
       const activeKind = event?.kind || "preview";
+      const eventMapping = event?.mapping_after || event?.mapping || resultMapping();
       const activeNodes = new Set(
         event?.physical_qubits?.map((qubit) => Number(qubit))
           || active
           || []
       );
-      const mapped = new Set([
-        ...previewEdges.flat(),
-        ...(event?.physical_qubits?.map((qubit) => Number(qubit)) || [])
-      ]);
+      const mapped = new Set(Object.values(eventMapping).map((value) => Number(value)));
       const gateEdges = new Set(traceEvents.filter((event) => event.kind === "gate").map((event) => edgeKey(traceEdge(event))));
       const swapEdges = new Set(traceEvents.filter((event) => event.kind === "swap").map((event) => edgeKey(traceEdge(event))));
+      const logicalByPhysical = new Map(
+        Object.entries(eventMapping).map(([logical, physical]) => [Number(physical), Number(logical)])
+      );
 
       el.svg.textContent = "";
       topologyEdges.forEach(([a, b]) => {
@@ -1624,7 +2308,7 @@ cx q[0],q[1];`,
         if (edgeKey([a, b]) === activeKey) {
           line.classList.add("active", activeKind === "gate" ? "gate-edge" : "swap-edge");
         }
-        line.addEventListener("mousemove", (event) => showTooltip(event, `edge ${a}-${b}`));
+        line.addEventListener("mousemove", (event) => showTooltip(event, `${state.activeRouteView.toUpperCase()} edge p${a}-p${b}`));
         line.addEventListener("mouseleave", hideTooltip);
         el.svg.appendChild(line);
       });
@@ -1633,6 +2317,7 @@ cx q[0],q[1];`,
         const group = document.createElementNS(svgNS, "g");
         const circle = document.createElementNS(svgNS, "circle");
         const text = document.createElementNS(svgNS, "text");
+        const mapText = document.createElementNS(svgNS, "text");
         circle.setAttribute("cx", x);
         circle.setAttribute("cy", y);
         circle.setAttribute("r", 16);
@@ -1647,10 +2332,95 @@ cx q[0],q[1];`,
         text.setAttribute("y", y + 0.5);
         text.classList.add("node-label");
         text.textContent = id;
-        group.append(circle, text);
-        group.addEventListener("mousemove", (event) => showTooltip(event, `q${id}`));
+        mapText.setAttribute("x", x);
+        mapText.setAttribute("y", y + 21);
+        mapText.classList.add("node-map-label");
+        mapText.textContent = logicalByPhysical.has(id) ? `q${logicalByPhysical.get(id)}` : "";
+        group.append(circle, text, mapText);
+        group.addEventListener("mousemove", (event) => showTooltip(event, `p${id}${logicalByPhysical.has(id) ? ` ⇐ q${logicalByPhysical.get(id)}` : ""}`));
         group.addEventListener("mouseleave", hideTooltip);
         el.svg.appendChild(group);
+      });
+      renderRouteInspector();
+    }
+
+    function renderRouteInspector() {
+      const trace = state.trace;
+      const event = currentTraceEvent();
+      const view = state.activeRouteView.toUpperCase();
+      el.eventTitle.textContent = event ? `${view} event` : "No route event";
+      el.eventIndex.textContent = trace.length ? `${state.traceIndex + 1}/${trace.length}` : "--";
+      el.eventOp.textContent = event?.op || "--";
+      el.eventKind.textContent = event?.kind || "--";
+      el.eventLogical.textContent = formatQubits(event?.logical_qubits, "q");
+      el.eventPhysical.textContent = formatQubits(event?.physical_qubits, "p");
+      el.eventInsertion.textContent = `gate ${formatOptional(event?.insertion_index ?? event?.gate_index)}`;
+      el.eventCompiled.textContent = formatOptional(event?.compiled_index);
+      renderMapping(event);
+      renderTimeline();
+    }
+
+    function renderMapping(event) {
+      const mapping = event?.mapping_after || event?.mapping || resultMapping();
+      const activePhysical = new Set((event?.physical_qubits || []).map((value) => Number(value)));
+      const used = new Map(Object.entries(mapping).map(([logical, physical]) => [Number(physical), Number(logical)]));
+      el.mappingActive.textContent = `${used.size} logical qubits`;
+      el.mappingGrid.textContent = "";
+      topologyNodes.forEach(([physical]) => {
+        const cell = document.createElement("div");
+        cell.className = "mapping-cell";
+        if (used.has(Number(physical))) {
+          cell.classList.add("is-used");
+        }
+        if (activePhysical.has(Number(physical))) {
+          cell.classList.add("is-active");
+        }
+        cell.innerHTML = `<b>p${physical}</b><span>${used.has(Number(physical)) ? `q${used.get(Number(physical))}` : "--"}</span>`;
+        el.mappingGrid.appendChild(cell);
+      });
+    }
+
+    function timelineText(event) {
+      const edge = formatQubits(event.physical_qubits, "p");
+      const logical = formatQubits(event.logical_qubits, "q");
+      return event.kind === "swap"
+        ? `SWAP ${edge} (${logical})`
+        : `${event.op || "gate"} ${logical} → ${edge}`;
+    }
+
+    function renderTimeline() {
+      const trace = state.trace;
+      const swapCount = trace.filter((event) => event.kind === "swap").length;
+      const gateCount = trace.filter((event) => event.kind === "gate").length;
+      el.timelineSummary.textContent = trace.length ? `${gateCount} gates · ${swapCount} swaps` : "waiting";
+      el.routeTimeline.textContent = "";
+      if (!trace.length) {
+        const empty = document.createElement("div");
+        empty.className = "timeline-row";
+        empty.textContent = "Run to load route events.";
+        el.routeTimeline.appendChild(empty);
+        return;
+      }
+      trace.forEach((event, index) => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "timeline-row";
+        row.dataset.kind = event.kind;
+        row.setAttribute("aria-current", String(index === state.traceIndex));
+        row.innerHTML = [
+          `<span>${index + 1}</span>`,
+          `<span class="timeline-kind">${event.kind}</span>`,
+          `<span class="timeline-main">${timelineText(event)}</span>`,
+          `<span class="timeline-insert">g${formatOptional(event.insertion_index)}</span>`
+        ].join("");
+        row.addEventListener("click", () => {
+          stopAnimation();
+          state.traceIndex = index;
+          state.step = index >= trace.length - 1 ? 3 : 2;
+          renderFlow();
+          renderTopology();
+        });
+        el.routeTimeline.appendChild(row);
       });
     }
 
@@ -1717,28 +2487,25 @@ cx q[0],q[1];`,
       stopAnimation();
       state.running = false;
       state.paused = false;
+      state.runId += 1;
       state.step = 0;
       state.edge = 0;
       state.trace = [];
       state.traceIndex = 0;
       state.example = "qft5";
-      state.heuristic = "lookahead";
+      state.inputMode = "examples";
+      state.activeQasmView = "npqr";
+      state.activeRouteView = "npqr";
+      state.results = { npqr: null, sabre: null };
       setRunVisual("idle");
-      setCompiledState("idle", "等待结果");
-      el.status.textContent = "就绪";
-      el.swaps.textContent = "--";
-      el.depth.textContent = "--";
-      el.elapsed.textContent = "--";
-      el.message.classList.remove("error");
-      el.message.textContent = "点击 Run 编译当前电路，结果会在这里更新。";
-      el.compiled.textContent = "// 点击 Run 后显示 compiled_qasm.";
       renderInput();
+      clearComparison("点击 Run 编译当前电路，结果会在这里更新。");
       renderFlow();
       renderTopology();
     }
 
-    function payload() {
-      const base = { backend: "npqr", topology: "tokyo", heuristic: state.heuristic };
+    function compilePayload(backend) {
+      const base = { backend, topology: "tokyo" };
       return state.example === "custom" ? { qasm: el.qasm.value, ...base } : { example: state.example, ...base };
     }
 
@@ -1860,24 +2627,116 @@ cx q[0],q[1];`,
       checkBackend();
     }
 
-    function showResult(data) {
-      state.trace = normalizeTrace(data.route_trace);
+    function formatMetric(value, digits = 0) {
+      return Number.isFinite(value) ? Number(value).toFixed(digits) : "--";
+    }
+
+    function formatResultError(error) {
+      if (!error) {
+        return "";
+      }
+      if (isTimeoutError(error)) {
+        return "timeout";
+      }
+      return error.status ? `HTTP ${error.status}` : "error";
+    }
+
+    function setResultMetrics(prefix, result, error = null) {
+      el[`${prefix}Status`].textContent = result?.status || (error ? "Error" : "就绪");
+      el[`${prefix}Swaps`].textContent = result?.swaps ?? "--";
+      el[`${prefix}Depth`].textContent = result?.depth ?? "--";
+      el[`${prefix}Elapsed`].textContent = result && Number.isFinite(result.elapsed_ms)
+        ? Number(result.elapsed_ms).toFixed(1)
+        : formatResultError(error) || "--";
+    }
+
+    function formatDelta(npqrValue, sabreValue, suffix = "") {
+      if (!Number.isFinite(npqrValue) || !Number.isFinite(sabreValue)) {
+        return "--";
+      }
+      const delta = Number(npqrValue) - Number(sabreValue);
+      if (delta === 0) {
+        return `tie${suffix}`;
+      }
+      const winner = delta < 0 ? "NPQR lower" : "SABRE lower";
+      return `${delta > 0 ? "+" : ""}${delta}${suffix} · ${winner}`;
+    }
+
+    function updateDelta(npqr, sabre) {
+      el.deltaSwaps.textContent = formatDelta(npqr?.swaps, sabre?.swaps);
+      el.deltaDepth.textContent = formatDelta(npqr?.depth, sabre?.depth);
+      if (npqr && sabre && Number.isFinite(npqr.elapsed_ms) && Number.isFinite(sabre.elapsed_ms) && sabre.elapsed_ms > 0) {
+        el.deltaTime.textContent = `${(npqr.elapsed_ms / sabre.elapsed_ms).toFixed(1)}x`;
+      } else {
+        el.deltaTime.textContent = "--";
+      }
+    }
+
+    function currentQasmResult() {
+      return state.results[state.activeQasmView] || null;
+    }
+
+    function setQasmView(view) {
+      state.activeQasmView = view;
+      updateQasmView();
+    }
+
+    function updateQasmView() {
+      const result = currentQasmResult();
+      document.querySelectorAll("[data-qasm-view]").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.qasmView === state.activeQasmView));
+      });
+      const qasm = result?.compiled_qasm || "";
+      el.compiled.textContent = qasm || `// ${state.activeQasmView.toUpperCase()} compiled_qasm is not available.`;
+      setCompiledState(qasm ? "ready" : "idle", qasm ? `${state.activeQasmView.toUpperCase()} 已生成` : "等待结果", Boolean(qasm));
+    }
+
+    function clearComparison(message) {
+      state.results = { npqr: null, sabre: null };
+      state.trace = [];
       state.traceIndex = 0;
-      state.step = state.trace.length ? 2 : 3;
-      el.status.textContent = data.status || "OK";
-      el.swaps.textContent = data.swaps ?? "--";
-      el.depth.textContent = data.depth ?? "--";
-      el.elapsed.textContent = Number.isFinite(data.elapsed_ms) ? data.elapsed_ms.toFixed(1) : "--";
+      state.activeQasmView = "npqr";
+      state.activeRouteView = "npqr";
+      setResultMetrics("npqr", null);
+      setResultMetrics("sabre", null);
+      updateDelta(null, null);
       el.message.classList.remove("error");
-      const baseline = data.baseline?.swaps ?? null;
-      const traceCopy = state.trace.length ? ` Trace events: ${state.trace.length}.` : "";
-      el.message.textContent = baseline === null
-        ? (data.message || "编译完成。")
-        : `${data.message || "编译完成。"} SABRE baseline SWAP: ${baseline}.${traceCopy}`;
-      el.compiled.textContent = data.compiled_qasm || "// No compiled_qasm returned.";
-      setCompiledState("ready", "已生成", Boolean(data.compiled_qasm));
+      el.message.textContent = message;
+      updateQasmView();
       renderFlow();
       renderTopology();
+    }
+
+    function showComparisonResult(npqrResult, sabreResult, npqrError = null, sabreError = null) {
+      state.results = {
+        npqr: npqrResult || null,
+        sabre: sabreResult || null
+      };
+      state.activeQasmView = npqrResult?.compiled_qasm ? "npqr" : "sabre";
+      state.activeRouteView = normalizeTrace(npqrResult?.route_trace).length ? "npqr" : "sabre";
+      state.trace = routeTrace(state.activeRouteView);
+      state.traceIndex = 0;
+      state.step = state.trace.length ? 2 : 3;
+      setResultMetrics("npqr", npqrResult, npqrError);
+      setResultMetrics("sabre", sabreResult, sabreError);
+      updateDelta(npqrResult, sabreResult);
+      updateQasmView();
+
+      const npqrTraceCount = normalizeTrace(npqrResult?.route_trace).length;
+      const sabreTraceCount = normalizeTrace(sabreResult?.route_trace).length;
+      const traceCopy = (npqrTraceCount || sabreTraceCount)
+        ? ` Route events: NPQR ${npqrTraceCount}, SABRE ${sabreTraceCount}.`
+        : "";
+      const errorCopy = [
+        npqrError ? `NPQR ${formatResultError(npqrError)}` : "",
+        sabreError ? `SABRE ${formatResultError(sabreError)}` : ""
+      ].filter(Boolean).join(" · ");
+      renderFlow();
+      renderTopology();
+      el.message.classList.toggle("error", Boolean(errorCopy && !npqrResult && !sabreResult));
+      el.message.textContent = errorCopy
+        ? `${errorCopy}. SABRE baseline: Qiskit default/basic, reproducible seed=42.${traceCopy}`
+        : `SABRE baseline: Qiskit default/basic, reproducible seed=42.${traceCopy}`;
     }
 
     async function run() {
@@ -1890,26 +2749,34 @@ cx q[0],q[1];`,
 
       const error = validate();
       if (error) {
-        el.status.textContent = "Invalid";
+        setResultMetrics("npqr", { status: "Invalid" });
+        setResultMetrics("sabre", null);
+        updateDelta(null, null);
         el.message.classList.add("error");
         el.message.textContent = error;
+        el.compiled.textContent = "// no compiled_qasm";
+        setCompiledState("error", "Invalid");
         return;
       }
 
       state.running = true;
       state.paused = false;
+      const runId = state.runId + 1;
+      state.runId = runId;
       state.trace = [];
       state.traceIndex = 0;
       state.step = 0;
       state.edge = 0;
+      state.results = { npqr: null, sabre: null };
+      state.activeQasmView = "npqr";
+      state.activeRouteView = "npqr";
       setRunVisual("running");
       setCompiledState("busy", "生成中");
-      el.status.textContent = "编译中";
-      el.swaps.textContent = "--";
-      el.depth.textContent = "--";
-      el.elapsed.textContent = "--";
+      setResultMetrics("npqr", { status: "编译中" });
+      setResultMetrics("sabre", { status: "编译中" });
+      updateDelta(null, null);
       el.message.classList.remove("error");
-      el.message.textContent = "正在请求 FastAPI REST 后端...";
+      el.message.textContent = "正在同时请求 NPQR 和标准 SABRE baseline...";
       el.compiled.textContent = "// waiting for compiled_qasm";
       renderFlow();
       renderTopology();
@@ -1917,15 +2784,34 @@ cx q[0],q[1];`,
 
       let shouldReplay = false;
       try {
-        const data = await callApi("/api/compile", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload())
-        });
-        showResult(data);
+        const [npqrSettled, sabreSettled] = await Promise.allSettled([
+          callApi("/api/compile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(compilePayload("npqr"))
+          }),
+          callApi("/api/compile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(compilePayload("sabre"))
+          })
+        ]);
+        if (runId !== state.runId) {
+          return;
+        }
+        const npqrData = npqrSettled.status === "fulfilled" ? npqrSettled.value : null;
+        const sabreData = sabreSettled.status === "fulfilled" ? sabreSettled.value : null;
+        const npqrError = npqrSettled.status === "rejected" ? npqrSettled.reason : null;
+        const sabreError = sabreSettled.status === "rejected" ? sabreSettled.reason : null;
+        showComparisonResult(npqrData, sabreData, npqrError, sabreError);
         shouldReplay = state.trace.length > 1;
       } catch (error) {
-        el.status.textContent = "Error";
+        if (runId !== state.runId) {
+          return;
+        }
+        setResultMetrics("npqr", null, error);
+        setResultMetrics("sabre", null, error);
+        updateDelta(null, null);
         el.message.classList.add("error");
         el.message.textContent = isTimeoutError(error)
           ? "这个电路计算时间较长，服务器可能仍在运行，请稍后重试。"
@@ -1936,6 +2822,9 @@ cx q[0],q[1];`,
         state.traceIndex = 0;
         renderFlow();
       } finally {
+        if (runId !== state.runId) {
+          return;
+        }
         state.running = false;
         state.paused = false;
         setRunVisual("idle");
@@ -1954,7 +2843,7 @@ cx q[0],q[1];`,
         return;
       }
       try {
-        await navigator.clipboard.writeText(el.compiled.textContent);
+        await navigator.clipboard.writeText(currentQasmResult()?.compiled_qasm || el.compiled.textContent);
         el.copy.textContent = "已复制";
         window.setTimeout(() => { el.copy.textContent = "复制"; }, 1000);
       } catch (_) {
@@ -1966,11 +2855,11 @@ cx q[0],q[1];`,
       if (el.download.disabled) {
         return;
       }
-      const blob = new Blob([el.compiled.textContent], { type: "text/plain" });
+      const blob = new Blob([currentQasmResult()?.compiled_qasm || el.compiled.textContent], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      const backend = payload().backend || "npqr";
+      const backend = state.activeQasmView || "npqr";
       link.download = `compiled_tokyo_${backend}.qasm`;
       document.body.appendChild(link);
       link.click();
@@ -1981,47 +2870,71 @@ cx q[0],q[1];`,
     document.querySelectorAll("[data-example]").forEach((button) => {
       button.addEventListener("click", () => {
         state.example = button.dataset.example;
+        state.inputMode = state.example === "custom" ? "custom" : "examples";
         state.step = 0;
         state.edge = 0;
         state.trace = [];
         state.traceIndex = 0;
+        state.results = { npqr: null, sabre: null };
+        state.activeRouteView = "npqr";
         stopAnimation();
         renderInput();
+        clearComparison("点击 Run 编译当前电路，结果会在这里更新。");
         renderFlow();
         renderTopology();
       });
     });
 
-    document.querySelectorAll("[data-heuristic]").forEach((button) => {
+    document.querySelectorAll("[data-input-mode]").forEach((button) => {
       button.addEventListener("click", () => {
-        state.heuristic = button.dataset.heuristic;
+        state.inputMode = button.dataset.inputMode;
+        if (state.inputMode === "custom" || state.inputMode === "generate") {
+          state.example = "custom";
+        } else if (state.example === "custom") {
+          state.example = "qft5";
+        }
         renderInput();
+      });
+    });
+
+    document.querySelectorAll("[data-qasm-view]").forEach((button) => {
+      button.addEventListener("click", () => {
+        setQasmView(button.dataset.qasmView);
+      });
+    });
+
+    document.querySelectorAll("[data-route-view]").forEach((button) => {
+      button.addEventListener("click", () => {
+        stopAnimation();
+        setRouteView(button.dataset.routeView);
       });
     });
 
     el.exampleSelect.addEventListener("change", () => {
       state.example = el.exampleSelect.value;
+      state.inputMode = state.example === "custom" ? "custom" : "examples";
       state.step = 0;
       state.edge = 0;
       state.trace = [];
       state.traceIndex = 0;
+      state.results = { npqr: null, sabre: null };
+      state.activeRouteView = "npqr";
       stopAnimation();
       renderInput();
+      clearComparison("点击 Run 编译当前电路，结果会在这里更新。");
       renderFlow();
       renderTopology();
     });
 
-    el.heuristicSelect.addEventListener("change", () => {
-      state.heuristic = el.heuristicSelect.value;
-      renderInput();
-    });
-
     el.qasm.addEventListener("input", () => {
       state.example = "custom";
+      state.inputMode = state.inputMode === "generate" ? "generate" : "custom";
       state.step = 0;
       state.edge = 0;
       state.trace = [];
       state.traceIndex = 0;
+      state.results = { npqr: null, sabre: null };
+      state.activeRouteView = "npqr";
       renderInput();
       renderFlow();
       renderTopology();
@@ -2035,6 +2948,7 @@ cx q[0],q[1];`,
     el.reset.addEventListener("click", reset);
     el.copy.addEventListener("click", copyQasm);
     el.download.addEventListener("click", downloadQasm);
+    el.generateQasm.addEventListener("click", generateQasmIntoEditor);
     el.applyApiBase.addEventListener("click", applyApiBase);
     el.apiBaseInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {

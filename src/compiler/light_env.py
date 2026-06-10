@@ -18,13 +18,11 @@ class MockDAG:
     def get_extended_front(self, depth=2):
         return [MockGate(i, self.env.gate_qubits[i]) for i in self.env.extended_two_qubit_front]
     def remaining_two_qubit_gates(self):
-        # V13 9D GNN feature 6 — 需要的"剩余双比特门数"
         return int(((~self.env.executed) & self.env.gate_is_two_qubit).sum())
     @property
     def n_two_qubit_gates(self):
         return int(self.env.gate_is_two_qubit.sum())
     def qubit_remaining_gates(self, logical_qubit):
-        # V13 9D GNN feature 7 — 指定逻辑比特剩余双比特门数
         cnt = 0
         for i in range(self.env.n_gates):
             if self.env.executed[i] or not self.env.gate_is_two_qubit[i]:

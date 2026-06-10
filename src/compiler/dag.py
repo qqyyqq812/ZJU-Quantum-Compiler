@@ -254,7 +254,7 @@ class CircuitDAG:
         return sum(1 for g in self._gates.values() if g.is_two_qubit)
 
     def qubit_remaining_gates(self, logical_qubit: int) -> int:
-        """V13: 指定逻辑比特的剩余双比特门数。"""
+        """Return remaining two-qubit gates involving one logical qubit."""
         return sum(1 for g in self._gates.values()
                    if not g.executed and g.is_two_qubit
                    and logical_qubit in g.qubits)

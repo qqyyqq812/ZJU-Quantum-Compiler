@@ -1,33 +1,71 @@
-"""Contract tests for the repository README entry points."""
+"""Contract tests for the public README."""
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 
-def test_readme_documents_live_website_demo_checklist():
+FORBIDDEN_PUBLIC_PATTERNS = [
+    r"\b" + "Stage" + r"\d+\b",
+    "npqr_" + "stage",
+    "npqr_" + "model_",
+    "NEXT_" + "HAND" + "OFF",
+    "HAND" + "OFF",
+    "checkpoint_" + "ep",
+    "wave2_" + "stage",
+    "results/" + "npqr_",
+]
+
+
+def test_readme_documents_public_run_paths():
     readme = Path("README.md").read_text(encoding="utf-8")
 
-    assert "## 现场演示 checklist" in readme
-    assert "uvicorn src.server.app:app --reload --port 8765" in readme
-    assert "python -m http.server 8766 --directory docs" in readme
-    assert "http://127.0.0.1:8766/index.html" in readme
-    assert "qcompiler compile examples/qft10.qasm --topology tokyo --backend sabre --heuristic lookahead" in readme
-    assert "`--heuristic basic|lookahead|decay`" in readme
-    assert "The default is `lookahead`, with `seed=42`" in readme
-    assert "选择 `QFT 10` 和 `lookahead`" in readme
-    assert "`SWAP` 应为 `29`" in readme
-    assert "`match` 应为 `yes`" in readme
-    assert "mini GHZ OpenQASM" in readme
-    assert "如果现场 API 无法启动" in readme
-    assert "不能声称完成了 live API 复现" in readme
+    assert "# ZJU Quantum Compiler" in readme
+    assert "pip install -r requirements.txt" in readme
+    assert "qcompiler info" in readme
+    assert "uvicorn src.server.app:app --host 0.0.0.0 --port 8765" in readme
+    assert "qcompiler-mcp-http" in readme
+    assert "http://127.0.0.1:8000/mcp" in readme
+    assert "curl -s http://127.0.0.1:8000/health" in readme
+    assert "models/default/npqr-default.pt" in readme
 
 
-def test_readme_keeps_honest_project_positioning():
+def test_readme_documents_algorithm_without_internal_experiment_names():
     readme = Path("README.md").read_text(encoding="utf-8")
-    normalized = " ".join(readme.split())
 
-    assert "SABRE / LightSABRE 是稳定实用基线" in normalized
-    assert "V14/V15 AI checkpoint" in normalized
-    assert "尚未超过 SABRE" in normalized
-    assert "bounded search 负样本" in normalized
-    assert "AI-router 历史只作为工作量和失败分析证据" in normalized
+    assert "NPQR is a combination pipeline" in readme
+    assert "neural model is the core action scorer" in readme
+    assert "initial mapping selection" in readme
+    assert "bounded beam search" in readme
+    assert "suffix repair" in readme
+    assert "SABRE is the baseline" in readme
+    assert "not as a hidden fallback" in readme
+    assert "Course algorithm mapping" in readme
+
+    for pattern in FORBIDDEN_PUBLIC_PATTERNS:
+        assert re.search(pattern, readme) is None
+
+
+def test_readme_documents_api_and_mcp_tools():
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    for term in [
+        "GET /api/status",
+        "POST /api/compile",
+        "GET /api/npqr/evidence",
+        "compile_qasm",
+        "compile_npqr",
+        "compile_sabre",
+        "get_algorithm_evidence",
+    ]:
+        assert term in readme
+
+
+def test_readme_documents_readiness_and_package_commands():
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    assert "python scripts/experiment_algorithm_matrix.py --quick" in readme
+    assert "python scripts/check_submission_readiness.py" in readme
+    assert "python scripts/package_submission.py" in readme
+    assert "git diff --check" in readme
+    assert "results/submission_package/" in readme

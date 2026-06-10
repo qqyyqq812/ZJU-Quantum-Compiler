@@ -12,41 +12,34 @@ build/
 *.swp
 *.swo
 
-# 模型文件（git-rules.md：禁止提交 models/*.pt 大文件，超过 GitHub 100MB 硬限）
-models/**/*.pt
-models/*/checkpoint_*.pt
-models/*/history_*.json
-models/smoke_*/
-models/v7_local/
-models/v7_full/
-models/v7_final/
-models/history_*.json
-models/router_*.pt
-# V15 训练日志（experiment-log.md：training_v<N>.log 进 .gitignore）
-models/**/training_*.log
-# V15 smoke 临时产物
-/tmp/v15_smoke_run/
+models/*
+!models/default/
+!models/default/npqr-default.pt
 
-# Agent 配置 (不需要上传)
-.agent/
-
-# 交接文档 (内部使用)
-docs/handover/
-
-# 临时文件
+results/
+logs/
+notebooks/
 sandbox/
+configs/
+docs/assets/npqr_evidence_manifest.json
+docs/plans/*npqr*.md
 nohup.out
 scripts/remote_exec.py
-results/*_demo/
+scripts/*npqr*.py
+!scripts/generate_npqr_evidence_manifest.py
+scripts/train_*.py
+tests/test_npqr*.py
+*HANDOFF*.md
+NEXT_HANDOFF.md
 
-# Jupyter checkpoints
 .ipynb_checkpoints/
 *_checkpoint.ipynb
 
-# Agent memory (已废弃)
+.agent/
 .agent_memory/
+.claude/
+.tours/
 
-# 备份文件
 *.backup_*
 README.md.backup_*
 AGENTS.md

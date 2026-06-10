@@ -50,7 +50,6 @@ def _build_env(
         max_steps=max_steps,
         soft_mask=True,
         initial_mapping_fn=mapping_fn,
-        use_sabre_reward=False,
     )
     base_env.set_circuit(circuit)
     base_env.reset()

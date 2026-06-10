@@ -18,8 +18,5 @@ tests
 zju_quantum_compiler.egg-info
 
 models/*
-!models/npqr_overnight_20260603/
-!models/npqr_overnight_20260603/wave2_stage2_e120_lr5e5_s51_h02.pt
-!models/v14_tokyo20/
-!models/v14_tokyo20/checkpoint_ep25333.pt
-!models/v14_tokyo20/eval_report_mqt.json
+!models/default/
+!models/default/npqr-default.pt

@@ -154,7 +154,7 @@ def selector_mapping_score(
     coupling_map: CouplingMap,
     mapping: dict[int, int],
 ) -> float:
-    """Score an initial mapping for Stage10 selector ranking.
+    """Score an initial mapping for selector ranking.
 
     Lower is better. This uses only circuit/topology structure, not route
     completion labels, SWAP counts, or trace replay outcomes.

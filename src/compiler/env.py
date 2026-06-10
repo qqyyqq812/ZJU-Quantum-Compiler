@@ -1,17 +1,4 @@
-"""
-量子电路路由 RL 环境 V14
-========================
-V14 (基于 V13 扩展, 见 docs/technical/decisions.md §V14):
-1. SABRE baseline 缓存 (§V14-1): _compute_sabre_baseline 走 sabre_cache
-2. 阶段化 Mask (§V14-2): get_action_mask 根据 _curriculum_stage 切换 Hard/Soft
-3. 奖励分层 (§V14-3): step terminal 在 stage<=2 用固定完成奖励, stage>=3 用 SABRE 相对
-4. 早期奖励参数化: early_stage_reward_floor / early_stage_sabre_weight 可从 yaml 调
-
-历史承袭 (V13):
-- SABRE 相对奖励作为后期终端奖励
-- Soft Mask + Tabu
-- 9 维 GNN 节点特征
-"""
+"""State environment used by the NPQR neural routing runtime."""
 
 from __future__ import annotations
 
@@ -27,12 +14,10 @@ from src.compiler.dag import CircuitDAG
 
 
 class QuantumRoutingEnv(gym.Env):
-    """V14 量子电路路由 RL 环境。
+    """Quantum routing state machine for NPQR inference.
 
-    - Action Masking (阶段化): stage 0-1 Hard, stage 2-3 Soft delta<=1, stage 4 delta<=2
-    - Look-Ahead: extended front 距离评估
-    - Tabu 物理阻断 + PASS 动作
-    - SABRE baseline 奖励 (可选, 后期 stage 生效)
+    The environment tracks the logical-to-physical mapping, executable front
+    gates, valid SWAP actions, and fixed-size neural observation features.
     """
 
     metadata = {"render_modes": ["human"]}
@@ -40,20 +25,18 @@ class QuantumRoutingEnv(gym.Env):
     def __init__(
         self,
         coupling_map: CouplingMap,
-        reward_gate: float = 0.3,           # V13: 大幅降低门奖励，消除 Reward Drowning
+        reward_gate: float = 0.3,
         penalty_swap: float = -0.5,
         penalty_useless_pass: float = -1.0,
-        reward_done: float = 0.0,           # V13: 完成奖励改由 SABRE 相对值提供
-        distance_reward_coef: float = 0.3,  # V13: 降权 shaping
-        lookahead_coef: float = 0.1,        # V13: 降权 shaping
+        reward_done: float = 0.0,
+        distance_reward_coef: float = 0.3,
+        lookahead_coef: float = 0.1,
         max_steps: int = 2000,
         initial_mapping_fn=None,
-        soft_mask: bool = True,             # V13: 默认开启 Soft Mask
+        soft_mask: bool = True,
         tabu_size: int = 4,
         penalty_tabu: float = -5.0,
-        use_sabre_reward: bool = True,      # V13: SABRE 相对终端奖励
-        early_stage_reward_floor: float = 5.0,       # V14 §V14-3: stage<=2 的最低终端奖励
-        early_stage_sabre_weight: float = 0.1,       # V14 §V14-3: stage<=2 的 SABRE 相对奖励权重
+        early_stage_reward_floor: float = 5.0,
     ):
         super().__init__()
 
@@ -70,10 +53,8 @@ class QuantumRoutingEnv(gym.Env):
         self.soft_mask = soft_mask
         self.tabu_size = tabu_size
         self.penalty_tabu = penalty_tabu
-        self.use_sabre_reward = use_sabre_reward
         self.early_stage_reward_floor = early_stage_reward_floor
-        self.early_stage_sabre_weight = early_stage_sabre_weight
-        self._sabre_swaps: int = 0  # V13: SABRE baseline for current circuit
+        self._sabre_swaps: int = 0
         self.tabu_list = []
 
         # 预计算距离矩阵
@@ -96,8 +77,7 @@ class QuantumRoutingEnv(gym.Env):
         self.n_actions = self.n_swap_actions + 1
         self.action_space = spaces.Discrete(self.n_actions)
 
-        # Observation — V9 拓扑无关编码
-        # 固定维度：不依赖 N 的大小，5Q 和 20Q 使用同一 obs_dim
+        # Fixed-size observation encoding shared by all supported topologies.
         self._max_front_gates = 20
         self._max_swap_edges = 60  # 20Q 拓扑约有 36 条 SWAP 边，余量至 60
         # obs = [per_edge_features(MAX_EDGES*4) + front_dist(MAX_FRONT) + ext_dist(MAX_FRONT) + stats(10) + progress(1)]
@@ -119,19 +99,12 @@ class QuantumRoutingEnv(gym.Env):
         self._total_gates_executed: int = 0
         self._total_gates: int = 0
         self._circuit: QuantumCircuit | None = None
-        self._topology_name: str = "unknown"  # V14: for SABRE cache key
-
-        # V14: curriculum stage 供阶段化 mask / reward 使用
-        self._curriculum_stage: int = 0
+        self._topology_name: str = "unknown"
 
     def set_circuit(self, circuit: QuantumCircuit, topology_name: str | None = None) -> None:
         self._circuit = circuit
         if topology_name:
             self._topology_name = topology_name
-
-    def set_curriculum_stage(self, stage: int) -> None:
-        """V14 §V14-2/§V14-3: 训练端在晋级时调用，切换 mask/reward 策略。"""
-        self._curriculum_stage = int(stage)
 
     def reset(self, *, seed: int | None = None, options: dict | None = None) -> tuple[np.ndarray, dict]:
         super().reset(seed=seed)
@@ -146,16 +119,8 @@ class QuantumRoutingEnv(gym.Env):
         self._total_gates = self._dag.n_gates
         self.tabu_list.clear()
 
-        # V13/V14: 预计算 SABRE baseline
-        # V14 修复: get_sabre_swaps 返回 -1 表示计算失败, 此时
-        # 不启用 SABRE 相对奖励 (避免污染训练信号).
-        if self.use_sabre_reward:
-            sabre = self._compute_sabre_baseline()
-            self._sabre_swaps = sabre if sabre >= 0 else 0
-        else:
-            self._sabre_swaps = 0
+        self._sabre_swaps = 0
 
-        # V3: 支持自定义初始映射
         if self.initial_mapping_fn is not None:
             self._mapping = self.initial_mapping_fn(self._circuit, self.coupling_map)
         else:
@@ -179,7 +144,6 @@ class QuantumRoutingEnv(gym.Env):
             executed = len(executed_gates)
             if executed > 0:
                 reward += executed * self.reward_gate
-                # reward -= self._compute_crosstalk_penalty(executed_gates)  # V7.1: 暂禁，先学基本路由
             else:
                 reward += self.penalty_useless_pass
             self._total_gates_executed += executed
@@ -188,11 +152,6 @@ class QuantumRoutingEnv(gym.Env):
             self._mapping = CircuitDAG.apply_swap(p1, p2, self._mapping)
             self._total_swaps += 1
             reward += self.penalty_swap
-            
-            # V10: 废除教唆式体罚，改用上帝视角物理掩码阻断
-            # if action in self.tabu_list:
-            #     reward += self.penalty_tabu
-            
             # 更新禁忌表 (FIFO)
             if self.tabu_size > 0:
                 self.tabu_list.append(action)
@@ -203,7 +162,6 @@ class QuantumRoutingEnv(gym.Env):
             executed = len(executed_gates)
             self._total_gates_executed += executed
             reward += executed * self.reward_gate
-            # reward -= self._compute_crosstalk_penalty(executed_gates)  # V7.1: 暂禁，先学基本路由
 
         # 距离缩减奖励 (前沿 + look-ahead)
         dist_after = self._compute_front_distance()
@@ -217,38 +175,15 @@ class QuantumRoutingEnv(gym.Env):
         terminated = self._dag.is_done()
         truncated = self._step_count >= self.max_steps
         if terminated:
-            # V14.1 §V14-3: 奖励分层（stage 2->3 平滑过渡 + truncation 惩罚）
-            stage = self._curriculum_stage
-            if stage <= 2:
-                reward += max(self.reward_done, self.early_stage_reward_floor)
-                if self.use_sabre_reward and self._sabre_swaps > 0:
-                    reward += self.early_stage_sabre_weight * float(
-                        self._sabre_swaps - self._total_swaps
-                    )
-            elif stage == 3:
-                # Stage 3 桥接：仍给完成奖励 + 较弱 SABRE 相对（0.3x，否则悬崖）
-                reward += max(self.reward_done, self.early_stage_reward_floor)
-                if self.use_sabre_reward and self._sabre_swaps > 0:
-                    reward += 0.3 * float(self._sabre_swaps - self._total_swaps)
-            else:
-                # Stage 4: 完全 SABRE 相对（+ 完成 floor 防恶性 episode）
-                reward += self.early_stage_reward_floor
-                if self.use_sabre_reward and self._sabre_swaps > 0:
-                    reward += float(self._sabre_swaps - self._total_swaps)
-                else:
-                    reward += self.reward_done
+            reward += max(self.reward_done, self.early_stage_reward_floor)
         elif truncated:
-            # V14.1 fix: truncated 必须惩罚未完成
-            # 否则 agent 学会"刷 SWAP 到超时"（0 reward）而非完成电路
             remaining = self._dag.remaining_gates() if hasattr(self._dag, 'remaining_gates') else 0
             reward -= float(remaining) * 1.0  # 每个剩余门 -1
-            if self.use_sabre_reward and self._sabre_swaps > 0:
-                reward -= 0.5 * float(self._total_swaps - self._sabre_swaps)
 
         return self._get_obs(), reward, terminated, truncated, self._get_info()
 
     def get_action_mask(self) -> np.ndarray:
-        """V3: 返回有效动作 mask。
+        """Return the valid action mask for the current front layer.
 
         SWAP 只保留能缩减某个前沿/扩展前沿门物理距离的。
         PASS 始终可用。
@@ -286,32 +221,20 @@ class QuantumRoutingEnv(gym.Env):
                 delta = d_after - d_now
                 best_delta = min(best_delta, delta)
             
-            # V14 §V14-2: 阶段化 mask —— 根据 curriculum stage 选择容忍度
-            stage = self._curriculum_stage
             if not self.soft_mask:
                 # Hard mask: 严格缩短
                 if best_delta < 0:
                     mask[i] = 1.0
-            elif stage <= 1:
-                # Stage 0-1 (3Q/5Q 学基础): Hard mask
-                if best_delta < 0:
-                    mask[i] = 1.0
-            elif stage <= 3:
-                # Stage 2-3: Soft mask delta <= 1
-                if best_delta <= 1:
-                    mask[i] = 1.0
             else:
-                # Stage 4 (20Q 真实挑战): Soft mask delta <= 2
-                if best_delta <= 2:
+                # Soft mask: keep mildly neutral actions for beam expansion.
+                if best_delta <= 1:
                     mask[i] = 1.0
 
         # 如果没有有用的 SWAP（所有前沿门已可执行），只留 PASS
         if mask[:self.n_swap_actions].sum() == 0:
             return mask
             
-        # V10 核心修复：恢复纯粹的物理掩码封版
-        # 文献调研表明，对于死胡同动作(Tabu)，交给 PPO 的 penalty 学习会导致严重的 Reward Drowning。
-        # 此处必需强制降维打击。
+        # Remove recently reversed SWAPs from the local action set.
         for tabu_action in self.tabu_list:
             if tabu_action < self.n_swap_actions:
                 mask[tabu_action] = 0.0
@@ -342,7 +265,7 @@ class QuantumRoutingEnv(gym.Env):
         return total
 
     def _get_obs(self) -> np.ndarray:
-        """V9 拓扑无关观测编码。
+        """Return the fixed-size NPQR neural observation vector.
         
         核心思想：用 SWAP 边为锚点编码局部距离差分特征，实现观测维度与 N 无关。
         """
@@ -430,12 +353,6 @@ class QuantumRoutingEnv(gym.Env):
 
         return obs
 
-    def _compute_sabre_baseline(self) -> int:
-        """V14: 通过 sabre_cache 查询，命中则 O(1)，未命中才跑 Qiskit transpile。"""
-        from src.compiler.sabre_cache import get_sabre_swaps
-        topology_name = getattr(self, "_topology_name", "unknown")
-        return get_sabre_swaps(self._circuit, self.coupling_map, topology_name)
-
     def _get_info(self) -> dict[str, Any]:
         from src.compiler.gnn_extractor import extract_physical_graph
         graph_data = extract_physical_graph(self.coupling_map, self._mapping, self._dag)
@@ -451,30 +368,3 @@ class QuantumRoutingEnv(gym.Env):
                 'swap_edges': self.swap_edges
             }
         }
-
-    def _compute_crosstalk_penalty(self, executed_gates: list) -> float:
-        """V4: 并行调度产生的硬件串扰(Crosstalk)惩罚。
-        如果多个双比特门在相同的或相邻的物理比特上并行执行，给予误差惩罚。
-        """
-        if len(executed_gates) <= 1:
-            return 0.0
-        
-        penalty = 0.0
-        active_phys = set()
-        
-        for g in executed_gates:
-            if g.is_two_qubit:
-                p0 = self._mapping.get(g.qubits[0], g.qubits[0])
-                p1 = self._mapping.get(g.qubits[1], g.qubits[1])
-                # Crosstalk: 简单的模型，当并行超过1个2比特门时，每个额外门有基础0.5单位的Penalty
-                penalty += 0.5
-                
-                # 若拓扑距离太近(物理相邻),串扰翻倍
-                for act_p in active_phys:
-                    if self._dist_matrix[p0][act_p] <= 1 or self._dist_matrix[p1][act_p] <= 1:
-                        penalty += 1.0
-                
-                active_phys.add(p0)
-                active_phys.add(p1)
-                
-        return penalty

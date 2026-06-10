@@ -5,7 +5,7 @@ Run locally:
     uvicorn src.server.app:app --reload --port 8765
 
 The GitHub Pages site works without this server. When the server is running on
-localhost, the page can call these endpoints for live SABRE and AI routing.
+localhost, the page can call these endpoints for live NPQR and SABRE routing.
 """
 
 from __future__ import annotations
@@ -33,20 +33,26 @@ from src.cli import _DEFAULT_MODEL, _TOPOLOGY_ALIAS
 from src.evidence import load_npqr_evidence_manifest
 
 if TYPE_CHECKING:
-    from src.compiler.pass_manager import AIRouter
     from src.compiler.npqr_runtime import NPQRRuntime
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-REPORT_JSON = PROJECT_ROOT / "models" / "v14_tokyo20" / "eval_report_mqt.json"
 DEFAULT_MODEL = _DEFAULT_MODEL
-DEFAULT_NPQR_MODEL = (
-    PROJECT_ROOT
-    / "models"
-    / "npqr_overnight_20260603"
-    / "wave2_stage2_e120_lr5e5_s51_h02.pt"
-)
+DEFAULT_NPQR_MODEL = PROJECT_ROOT / "models" / "default" / "npqr-default.pt"
 BASIS_GATES = ["cx", "id", "rz", "sx", "x", "swap"]
 MAX_INLINE_QASM_CHARS = 8000
+STANDARD_SABRE_HEURISTIC: Literal["basic", "lookahead", "decay"] = "basic"
+FrontierPruningPolicy = Literal["frontier_touch_8"]
+FrontierTriggerProfile = Literal["u485_d30_r060_c120"]
+REFINED_FRONTIER_TRIGGER_PROFILE = "u485_d30_r060_c120"
+REFINED_FRONTIER_TRIGGER_POLICY: FrontierPruningPolicy = "frontier_touch_8"
+FRONTIER_TRIGGER_PROFILES: dict[str, dict[str, Any]] = {
+    REFINED_FRONTIER_TRIGGER_PROFILE: {
+        "frontier_min_unique_pair_ratio": 0.485,
+        "frontier_max_depth": 30,
+        "frontier_max_repeat_pair_ratio": 0.60,
+        "frontier_max_cx_like": 120,
+    }
+}
 
 EXAMPLES: dict[str, dict[str, str]] = {
     "qft5": {
@@ -90,8 +96,8 @@ app = FastAPI(
     title="ZJU Quantum Compiler Playground API",
     version="0.14.2",
     description=(
-        "Local API for SABRE compilation, experimental AIRouter checks, "
-        "and static benchmark summaries."
+        "Local API for NPQR compilation, SABRE comparison, and static "
+        "benchmark summaries."
     ),
 )
 
@@ -111,13 +117,8 @@ class StatusResponse(BaseModel):
     available_topologies: list[str]
     default_model: str
     model_exists: bool
-    ai_loadable: bool
-    ai_status: str
-    npqr_model: str
-    npqr_model_exists: bool
-    npqr_loadable: bool
-    npqr_status: str
-    benchmark_report: str
+    model_loadable: bool
+    model_status: str
 
 
 class ExampleInfo(BaseModel):
@@ -130,22 +131,45 @@ class ExampleInfo(BaseModel):
 class CompileRequest(BaseModel):
     example: str | None = Field(default=None, description="Example id, such as qft5.")
     qasm: str | None = Field(default=None, description="Inline OpenQASM 2 source.")
-    backend: Literal["npqr", "sabre", "ai"] = "npqr"
-    heuristic: Literal["basic", "lookahead", "decay"] = "lookahead"
+    backend: Literal["npqr", "sabre"] = "npqr"
+    heuristic: Literal["basic", "lookahead", "decay"] = STANDARD_SABRE_HEURISTIC
     topology: str = "tokyo"
     max_steps: int = 45
+    npqr_frontier_pruning_policy: FrontierPruningPolicy | None = Field(
+        default=None,
+        description="Opt-in NPQR staging policy; omitted keeps the public default unchanged.",
+    )
+    npqr_frontier_trigger_profile: FrontierTriggerProfile | None = Field(
+        default=None,
+        description="Opt-in NPQR refined trigger staging profile; omitted keeps the public default unchanged.",
+    )
+    include_route_trace: bool = Field(
+        default=True,
+        description="Include route_trace events in compile responses; false keeps metrics but reduces payload size.",
+    )
+    include_compiled_qasm: bool = Field(
+        default=True,
+        description="Include compiled_qasm in compile responses; false keeps metrics but reduces payload size.",
+    )
 
 
 class RouteTraceEvent(BaseModel):
     kind: Literal["swap", "gate"]
     physical_qubits: list[int]
+    logical_qubits: list[int | None] | None = None
+    op: str | None = None
     gate_index: int | None = None
+    compiled_index: int | None = None
+    insertion_index: int | None = None
     action: int | None = None
+    mapping_before: dict[int, int] | None = None
+    mapping_after: dict[int, int] | None = None
+    mapping: dict[int, int] | None = None
 
 
 class CompileResponse(BaseModel):
     status: Literal["OK", "INCOMPLETE", "N/A"]
-    backend: Literal["npqr", "sabre", "ai"]
+    backend: Literal["npqr", "sabre"]
     algorithm: str | None = None
     heuristic: Literal["basic", "lookahead", "decay"] | None = None
     topology: str
@@ -195,7 +219,10 @@ def _load_request_circuit(req: CompileRequest) -> QuantumCircuit:
                 detail=f"Inline OpenQASM 2 input is limited to {MAX_INLINE_QASM_CHARS} characters.",
             )
         try:
-            qc = qasm2.loads(req.qasm)
+            qc = qasm2.loads(
+                req.qasm,
+                custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
+            )
         except Exception as exc:  # noqa: BLE001
             raise HTTPException(status_code=400, detail=f"Invalid OpenQASM 2 input: {exc}") from exc
         qc.name = "inline_qasm"
@@ -206,7 +233,7 @@ def _load_request_circuit(req: CompileRequest) -> QuantumCircuit:
 def _compile_sabre(
     circuit: QuantumCircuit,
     coupling_map,
-    heuristic: Literal["basic", "lookahead", "decay"],
+    heuristic: Literal["basic", "lookahead", "decay"] = STANDARD_SABRE_HEURISTIC,
 ) -> QuantumCircuit:
     layout_and_route = PassManager(
         [
@@ -229,7 +256,7 @@ def _compile_sabre(
 def _sabre_summary(
     circuit: QuantumCircuit,
     coupling_map,
-    heuristic: Literal["basic", "lookahead", "decay"],
+    heuristic: Literal["basic", "lookahead", "decay"] = STANDARD_SABRE_HEURISTIC,
 ) -> dict[str, Any]:
     started = time.perf_counter()
     compiled = _compile_sabre(circuit, coupling_map, heuristic)
@@ -244,84 +271,183 @@ def _sabre_summary(
     }
 
 
-def _route_trace_payload(result: Any) -> list[RouteTraceEvent]:
+def _logical_at_physical(mapping: dict[int, int], physical: int) -> int | None:
+    for logical, mapped_physical in mapping.items():
+        if int(mapped_physical) == int(physical):
+            return int(logical)
+    return None
+
+
+def _swap_mapping(mapping: dict[int, int], physical_a: int, physical_b: int) -> dict[int, int]:
+    updated = dict(mapping)
+    for logical, physical in mapping.items():
+        if int(physical) == int(physical_a):
+            updated[int(logical)] = int(physical_b)
+        elif int(physical) == int(physical_b):
+            updated[int(logical)] = int(physical_a)
+        else:
+            updated[int(logical)] = int(physical)
+    return updated
+
+
+def _gate_metadata(circuit: QuantumCircuit, gate_index: int | None) -> tuple[str | None, list[int] | None]:
+    if gate_index is None or gate_index < 0 or gate_index >= len(circuit.data):
+        return None, None
+    instruction = circuit.data[gate_index]
+    logical_qubits = [
+        int(circuit.find_bit(qubit).index)
+        for qubit in instruction.qubits
+    ]
+    return instruction.operation.name, logical_qubits
+
+
+def _next_gate_index(events: list[Any], start: int) -> int | None:
+    for event in events[start + 1:]:
+        if event.kind == "gate":
+            return event.gate_index
+    return None
+
+
+def _route_trace_payload(result: Any, circuit: QuantumCircuit) -> list[RouteTraceEvent]:
     if not result.replay:
         return []
-    return [
-        RouteTraceEvent(
-            kind=event.kind,
-            physical_qubits=list(event.physical_qubits),
-            gate_index=event.gate_index,
-            action=event.action,
+    mapping = {
+        int(logical): int(physical)
+        for logical, physical in (result.initial_mapping or {}).items()
+    }
+    events = list(result.replay.events)
+    payload: list[RouteTraceEvent] = []
+    for index, event in enumerate(events):
+        physical_qubits = [int(qubit) for qubit in event.physical_qubits]
+        before = dict(mapping)
+        op, logical_qubits = _gate_metadata(circuit, event.gate_index)
+        insertion_index = event.gate_index
+        if event.kind == "swap":
+            logical_qubits = [_logical_at_physical(before, qubit) for qubit in physical_qubits]
+            op = "swap"
+            insertion_index = _next_gate_index(events, index)
+            if len(physical_qubits) == 2:
+                mapping = _swap_mapping(mapping, physical_qubits[0], physical_qubits[1])
+        after = dict(mapping)
+        payload.append(
+            RouteTraceEvent(
+                kind=event.kind,
+                physical_qubits=physical_qubits,
+                logical_qubits=logical_qubits,
+                op=op,
+                gate_index=event.gate_index,
+                insertion_index=insertion_index,
+                action=event.action,
+                mapping_before=before,
+                mapping_after=after,
+                mapping=after,
+            )
         )
-        for event in result.replay.events
-    ]
+    return payload
 
 
-@lru_cache(maxsize=4)
-def _router_for(topology: str, model_path: str) -> "AIRouter":
-    from src.compiler.pass_manager import AIRouter
+def _sabre_trace_payload(
+    compiled: QuantumCircuit,
+    input_qubits: int,
+) -> tuple[list[RouteTraceEvent], dict[int, int]]:
+    mapping = {logical: logical for logical in range(input_qubits)}
+    payload: list[RouteTraceEvent] = []
+    two_qubit_index = 0
+    for compiled_index, instruction in enumerate(compiled.data):
+        physical_qubits = [
+            int(compiled.find_bit(qubit).index)
+            for qubit in instruction.qubits
+        ]
+        if len(physical_qubits) != 2:
+            continue
+        before = dict(mapping)
+        logical_qubits = [_logical_at_physical(before, qubit) for qubit in physical_qubits]
+        op = instruction.operation.name
+        kind: Literal["swap", "gate"] = "swap" if op == "swap" else "gate"
+        insertion_index = two_qubit_index
+        if kind == "swap":
+            mapping = _swap_mapping(mapping, physical_qubits[0], physical_qubits[1])
+        else:
+            two_qubit_index += 1
+        after = dict(mapping)
+        payload.append(
+            RouteTraceEvent(
+                kind=kind,
+                physical_qubits=physical_qubits,
+                logical_qubits=logical_qubits,
+                op=op,
+                compiled_index=int(compiled_index),
+                insertion_index=int(insertion_index),
+                mapping_before=before,
+                mapping_after=after,
+                mapping=after,
+            )
+        )
+    return payload, mapping
 
-    _, coupling_map = _resolve_topology(topology)
-    return AIRouter(coupling_map, model_path=model_path)
 
-
-@lru_cache(maxsize=4)
-def _npqr_runtime_for(topology: str, model_path: str, max_steps: int) -> "NPQRRuntime":
+@lru_cache(maxsize=8)
+def _npqr_runtime_for(
+    topology: str,
+    model_path: str,
+    max_steps: int,
+    frontier_pruning_policy: str | None = None,
+    frontier_trigger_profile: str | None = None,
+) -> "NPQRRuntime":
     from src.compiler.npqr_runtime import NPQRRuntime, NPQRRuntimeConfig
 
     _, coupling_map = _resolve_topology(topology)
-    config = NPQRRuntimeConfig(max_steps=max_steps)
+    profile_config = _frontier_trigger_profile_config(frontier_trigger_profile)
+    policy = frontier_pruning_policy
+    if frontier_trigger_profile:
+        policy = policy or REFINED_FRONTIER_TRIGGER_POLICY
+    config = NPQRRuntimeConfig(
+        max_steps=max_steps,
+        frontier_rescue_enabled=bool(policy),
+        frontier_action_pruning_policy=policy,
+        **profile_config,
+    )
     return NPQRRuntime(coupling_map, model_path=model_path, config=config)
 
 
-def _ai_load_status(topology: str = "tokyo") -> tuple[bool, str]:
-    if not DEFAULT_MODEL.exists():
-        return False, "V14 checkpoint file is not present locally."
-    try:
-        router = _router_for(topology, str(DEFAULT_MODEL))
-    except ImportError as exc:
-        return False, f"AIRouter dependency is not installed in this REST deployment: {exc.name}."
-    if router._has_model:
-        return True, "V14 checkpoint can be loaded. Routes are still experimental."
-    return False, router.model_load_error or "V14 checkpoint could not be loaded."
+def _frontier_trigger_profile_config(profile: str | None) -> dict[str, Any]:
+    if profile is None:
+        return {}
+    if profile not in FRONTIER_TRIGGER_PROFILES:
+        known = ", ".join(sorted(FRONTIER_TRIGGER_PROFILES))
+        raise ValueError(f"npqr_frontier_trigger_profile must be one of: {known}")
+    return dict(FRONTIER_TRIGGER_PROFILES[profile])
 
 
 def _npqr_load_status(topology: str = "tokyo") -> tuple[bool, str]:
     if not DEFAULT_NPQR_MODEL.exists():
-        return False, "NPQR checkpoint file is not present locally."
+        return False, "Default NPQR model file is not present locally."
     try:
-        runtime = _npqr_runtime_for(topology, str(DEFAULT_NPQR_MODEL), 45)
+        runtime = _npqr_runtime_for(topology, str(DEFAULT_NPQR_MODEL), 45, None, None)
     except ImportError as exc:
         return False, f"NPQR dependency is not installed in this REST deployment: {exc.name}."
     if runtime.has_model:
         return True, "NPQR neural selector/search/repair runtime can be loaded."
-    return False, runtime.model_load_error or "NPQR checkpoint could not be loaded."
+    return False, runtime.model_load_error or "Default NPQR model could not be loaded."
 
 
 @app.get("/api/status", response_model=StatusResponse)
 async def api_status() -> StatusResponse:
     """Return public project and model status without running a benchmark."""
-    ai_loadable, ai_message = _ai_load_status()
     npqr_loadable, npqr_message = _npqr_load_status()
     return StatusResponse(
         version="0.14.2",
         status=(
-            "Default backend is NPQR neural-assisted routing; SABRE remains the "
-            "comparison baseline. V14/V15 raw checkpoints have not beaten SABRE on P1."
+            "Default backend is NPQR neural-assisted routing. SABRE is returned "
+            "as a comparison baseline, not as an NPQR fallback."
         ),
         default_topology="tokyo",
         default_backend="npqr",
         available_topologies=sorted(_TOPOLOGY_ALIAS),
         default_model=str(DEFAULT_MODEL.relative_to(PROJECT_ROOT)),
-        model_exists=DEFAULT_MODEL.exists(),
-        ai_loadable=ai_loadable,
-        ai_status=ai_message,
-        npqr_model=str(DEFAULT_NPQR_MODEL.relative_to(PROJECT_ROOT)),
-        npqr_model_exists=DEFAULT_NPQR_MODEL.exists(),
-        npqr_loadable=npqr_loadable,
-        npqr_status=npqr_message,
-        benchmark_report=str(REPORT_JSON.relative_to(PROJECT_ROOT)),
+        model_exists=DEFAULT_NPQR_MODEL.exists(),
+        model_loadable=npqr_loadable,
+        model_status=npqr_message,
     )
 
 
@@ -336,35 +462,18 @@ async def api_examples() -> list[ExampleInfo]:
 
 @app.get("/api/benchmarks")
 async def api_benchmarks() -> dict:
-    """Return the latest checked-in V14 P1 benchmark summary."""
-    if not REPORT_JSON.exists():
-        raise HTTPException(status_code=404, detail="Benchmark report JSON is missing.")
-    import json
-
-    data = json.loads(REPORT_JSON.read_text(encoding="utf-8"))
-    main_results = [row for row in data["results"] if not row.get("outlier")]
-    ai_completed = sum(1 for row in main_results if row.get("ai") and row["ai"].get("completed"))
-    sabre_completed = sum(1 for row in main_results if row["sabre"].get("completed"))
-    comparable = [
-        row for row in main_results
-        if row.get("ai")
-        and row["ai"].get("completed")
-        and row["sabre"].get("completed")
-        and row["sabre"].get("swaps", 0) > 0
-    ]
-    ratios = [row["ai"]["swaps"] / row["sabre"]["swaps"] for row in comparable]
+    """Return public benchmark and claim boundaries without internal logs."""
+    manifest = load_npqr_evidence_manifest()
     return {
-        "metadata": data["metadata"],
         "summary": {
-            "sabre_completed": sabre_completed,
-            "sabre_total": len(main_results),
-            "ai_completed": ai_completed,
-            "ai_total": len(main_results),
-            "ai_beats_sabre": sum(1 for row in comparable if row["ai"]["swaps"] < row["sabre"]["swaps"]),
-            "comparable_rows": len(comparable),
-            "mean_ai_sabre_ratio": sum(ratios) / len(ratios) if ratios else None,
+            "default_backend": manifest["default_route"]["backend"],
+            "comparison_baseline": manifest["default_route"]["comparison_baseline"],
+            "sabre_fallback": manifest["default_route"]["sabre_fallback"],
+            "final_smoke_swaps": manifest["final_smoke"]["reported_swaps"],
+            "rest_and_mcp_consistent": manifest["final_smoke"]["rest_and_mcp_consistent"],
         },
-        "results": data["results"],
+        "algorithm_components": manifest["algorithm_components"],
+        "claims": manifest["claims"],
     }
 
 
@@ -376,7 +485,7 @@ async def api_npqr_evidence() -> dict:
 
 @app.post("/api/compile", response_model=CompileResponse)
 async def api_compile(req: CompileRequest) -> CompileResponse:
-    """Compile a QASM example with NPQR, SABRE, or the experimental AIRouter."""
+    """Compile a QASM example with NPQR or SABRE."""
     topo_name, coupling_map = _resolve_topology(req.topology)
     circuit = _load_request_circuit(req)
     if circuit.num_qubits > coupling_map.size():
@@ -409,11 +518,17 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
                     "suffix_repair": False,
                     "sabre_fallback": False,
                 },
-                baseline=_sabre_summary(circuit, coupling_map, req.heuristic),
+                baseline=_sabre_summary(circuit, coupling_map),
                 message="NPQR checkpoint file is missing; SABRE baseline is comparison only.",
             )
         try:
-            runtime = _npqr_runtime_for(req.topology, str(DEFAULT_NPQR_MODEL), req.max_steps)
+            runtime = _npqr_runtime_for(
+                req.topology,
+                str(DEFAULT_NPQR_MODEL),
+                req.max_steps,
+                req.npqr_frontier_pruning_policy,
+                req.npqr_frontier_trigger_profile,
+            )
         except ImportError as exc:
             return CompileResponse(
                 status="N/A",
@@ -434,11 +549,16 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
                     "suffix_repair": False,
                     "sabre_fallback": False,
                 },
-                baseline=_sabre_summary(circuit, coupling_map, req.heuristic),
+                baseline=_sabre_summary(circuit, coupling_map),
                 message=f"NPQR dependency is not installed in this REST deployment: {exc.name}.",
             )
         result = runtime.compile(circuit)
-        compiled_qasm = qasm2.dumps(result.compiled_circuit) if result.completed and result.compiled_circuit else None
+        compiled_qasm = (
+            qasm2.dumps(result.compiled_circuit)
+            if req.include_compiled_qasm and result.completed and result.compiled_circuit
+            else None
+        )
+        route_trace = _route_trace_payload(result, circuit) if req.include_route_trace else None
         return CompileResponse(
             status=result.status,
             backend="npqr",
@@ -454,8 +574,8 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
             compiled_qasm=compiled_qasm,
             model_path=str(DEFAULT_NPQR_MODEL.relative_to(PROJECT_ROOT)),
             components=result.components,
-            baseline=_sabre_summary(circuit, coupling_map, req.heuristic),
-            route_trace=_route_trace_payload(result),
+            baseline=_sabre_summary(circuit, coupling_map),
+            route_trace=route_trace,
             trace_len=result.trace_len,
             executed_gates=result.executed_gates,
             initial_mapping=result.initial_mapping,
@@ -465,6 +585,7 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
 
     if req.backend == "sabre":
         compiled = _compile_sabre(circuit, coupling_map, req.heuristic)
+        route_trace, final_mapping = _sabre_trace_payload(compiled, circuit.num_qubits)
         ops = dict(compiled.count_ops())
         return CompileResponse(
             status="OK",
@@ -478,78 +599,16 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
             swaps=ops.get("swap", 0),
             depth=compiled.depth(),
             elapsed_ms=(time.perf_counter() - started) * 1000,
-            compiled_qasm=qasm2.dumps(compiled),
+            compiled_qasm=qasm2.dumps(compiled) if req.include_compiled_qasm else None,
+            route_trace=route_trace if req.include_route_trace else None,
+            trace_len=len(route_trace),
+            executed_gates=sum(1 for event in route_trace if event.kind == "gate"),
+            initial_mapping={logical: logical for logical in range(circuit.num_qubits)},
+            final_mapping=final_mapping,
             message=f"SABRE completed with the {req.heuristic} heuristic.",
         )
 
-    if not DEFAULT_MODEL.exists():
-        return CompileResponse(
-            status="N/A",
-            backend="ai",
-            algorithm="v14_airouter",
-            heuristic=None,
-            topology=topo_name,
-            circuit_name=circuit.name or req.example or "inline_qasm",
-            input_qubits=circuit.num_qubits,
-            input_cx=input_cx,
-            swaps=None,
-            depth=None,
-            elapsed_ms=(time.perf_counter() - started) * 1000,
-            model_path=str(DEFAULT_MODEL.relative_to(PROJECT_ROOT)),
-            message="AI checkpoint file is missing; SABRE remains available.",
-        )
-
-    try:
-        router = _router_for(req.topology, str(DEFAULT_MODEL))
-    except ImportError as exc:
-        return CompileResponse(
-            status="N/A",
-            backend="ai",
-            algorithm="v14_airouter",
-            heuristic=None,
-            topology=topo_name,
-            circuit_name=circuit.name or req.example or "inline_qasm",
-            input_qubits=circuit.num_qubits,
-            input_cx=input_cx,
-            swaps=None,
-            depth=None,
-            elapsed_ms=(time.perf_counter() - started) * 1000,
-            model_path=str(DEFAULT_MODEL.relative_to(PROJECT_ROOT)),
-            message=f"AIRouter dependency is not installed in this REST deployment: {exc.name}.",
-        )
-    if not router._has_model:
-        return CompileResponse(
-            status="N/A",
-            backend="ai",
-            algorithm="v14_airouter",
-            heuristic=None,
-            topology=topo_name,
-            circuit_name=circuit.name or req.example or "inline_qasm",
-            input_qubits=circuit.num_qubits,
-            input_cx=input_cx,
-            swaps=None,
-            depth=None,
-            elapsed_ms=(time.perf_counter() - started) * 1000,
-            model_path=str(DEFAULT_MODEL.relative_to(PROJECT_ROOT)),
-            message=router.model_load_error or "AI checkpoint could not be loaded.",
-        )
-
-    result = router.route_count_only(circuit, max_steps=req.max_steps)
-    return CompileResponse(
-        status="OK" if result["done"] else "INCOMPLETE",
-        backend="ai",
-        algorithm="v14_airouter",
-        heuristic=None,
-        topology=topo_name,
-        circuit_name=circuit.name or req.example or "inline_qasm",
-        input_qubits=circuit.num_qubits,
-        input_cx=input_cx,
-        swaps=result["ai_swaps"],
-        depth=None,
-        elapsed_ms=(time.perf_counter() - started) * 1000,
-        model_path=str(DEFAULT_MODEL.relative_to(PROJECT_ROOT)),
-        message="AIRouter route_count_only ran; incomplete routes are reported honestly.",
-    )
+    raise HTTPException(status_code=400, detail="backend must be npqr or sabre.")
 
 
 @app.get("/api/topology/{name}")

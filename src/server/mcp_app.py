@@ -5,7 +5,6 @@ checked-in evidence, but never starts training jobs or writes GitHub state.
 """
 from __future__ import annotations
 
-import json
 import os
 import time
 from typing import Any, Literal
@@ -23,8 +22,8 @@ from src.server.app import (
     EXAMPLES,
     MAX_INLINE_QASM_CHARS,
     PROJECT_ROOT,
-    REPORT_JSON,
-    _ai_load_status,
+    FrontierPruningPolicy,
+    FrontierTriggerProfile,
     _compile_sabre,
     _load_example,
     _npqr_load_status,
@@ -56,35 +55,6 @@ mcp = FastMCP(
 )
 
 
-def _benchmark_payload() -> dict[str, Any]:
-    data = json.loads(REPORT_JSON.read_text(encoding="utf-8"))
-    main_results = [row for row in data["results"] if not row.get("outlier")]
-    ai_completed = sum(1 for row in main_results if row.get("ai") and row["ai"].get("completed"))
-    sabre_completed = sum(1 for row in main_results if row["sabre"].get("completed"))
-    comparable = [
-        row
-        for row in main_results
-        if row.get("ai")
-        and row["ai"].get("completed")
-        and row["sabre"].get("completed")
-        and row["sabre"].get("swaps", 0) > 0
-    ]
-    ratios = [row["ai"]["swaps"] / row["sabre"]["swaps"] for row in comparable]
-    return {
-        "metadata": data["metadata"],
-        "summary": {
-            "sabre_completed": sabre_completed,
-            "sabre_total": len(main_results),
-            "ai_completed": ai_completed,
-            "ai_total": len(main_results),
-            "ai_beats_sabre": sum(1 for row in comparable if row["ai"]["swaps"] < row["sabre"]["swaps"]),
-            "comparable_rows": len(comparable),
-            "mean_ai_sabre_ratio": sum(ratios) / len(ratios) if ratios else None,
-        },
-        "results": data["results"],
-    }
-
-
 def _coerce_heuristic(heuristic: str) -> Heuristic:
     if heuristic not in VALID_HEURISTICS:
         raise ValueError("heuristic must be one of: basic, lookahead, decay")
@@ -97,6 +67,7 @@ def _compile_sabre_payload(
     circuit_name: str,
     heuristic: str = "lookahead",
     topology: str = "tokyo",
+    include_compiled_qasm: bool = True,
 ) -> dict[str, Any]:
     sabre_heuristic = _coerce_heuristic(heuristic)
     topo_name, coupling_map = _resolve_topology(topology)
@@ -118,7 +89,7 @@ def _compile_sabre_payload(
         "swaps": ops.get("swap", 0),
         "depth": compiled.depth(),
         "elapsed_ms": (time.perf_counter() - started) * 1000,
-        "compiled_qasm": qasm2.dumps(compiled),
+        "compiled_qasm": qasm2.dumps(compiled) if include_compiled_qasm else None,
         "limits": {
             "max_inline_qasm_chars": MAX_INLINE_QASM_CHARS,
             "max_qubits": coupling_map.size(),
@@ -133,6 +104,9 @@ def _compile_npqr_payload(
     heuristic: str = "lookahead",
     topology: str = "tokyo",
     max_steps: int = 45,
+    frontier_pruning_policy: FrontierPruningPolicy | None = None,
+    frontier_trigger_profile: FrontierTriggerProfile | None = None,
+    include_compiled_qasm: bool = True,
 ) -> dict[str, Any]:
     sabre_heuristic = _coerce_heuristic(heuristic)
     topo_name, coupling_map = _resolve_topology(topology)
@@ -163,9 +137,19 @@ def _compile_npqr_payload(
             "baseline": baseline,
             "message": "NPQR checkpoint file is missing; SABRE baseline is comparison only.",
         }
-    runtime = _npqr_runtime_for(topology, str(DEFAULT_NPQR_MODEL), int(max_steps))
+    runtime = _npqr_runtime_for(
+        topology,
+        str(DEFAULT_NPQR_MODEL),
+        int(max_steps),
+        frontier_pruning_policy,
+        frontier_trigger_profile,
+    )
     result = runtime.compile(circuit)
-    compiled_qasm = qasm2.dumps(result.compiled_circuit) if result.completed and result.compiled_circuit else None
+    compiled_qasm = (
+        qasm2.dumps(result.compiled_circuit)
+        if include_compiled_qasm and result.completed and result.compiled_circuit
+        else None
+    )
     return {
         "status": result.status,
         "backend": "npqr",
@@ -196,6 +180,9 @@ def compile_qasm_payload(
     topology: str = "tokyo",
     backend: Literal["npqr", "sabre"] = "npqr",
     max_steps: int = 45,
+    frontier_pruning_policy: FrontierPruningPolicy | None = None,
+    frontier_trigger_profile: FrontierTriggerProfile | None = None,
+    include_compiled_qasm: bool = True,
 ) -> dict[str, Any]:
     """Compile inline OpenQASM 2 text through the bounded public route."""
     if len(qasm) > MAX_INLINE_QASM_CHARS:
@@ -203,7 +190,10 @@ def compile_qasm_payload(
     if not qasm.strip():
         raise ValueError("qasm must not be empty")
     try:
-        circuit = qasm2.loads(qasm)
+        circuit = qasm2.loads(
+            qasm,
+            custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
+        )
     except Exception as exc:  # noqa: BLE001
         raise ValueError(f"Invalid OpenQASM 2 input: {exc}") from exc
     circuit.name = "inline_qasm"
@@ -213,6 +203,7 @@ def compile_qasm_payload(
             circuit_name="inline_qasm",
             heuristic=heuristic,
             topology=topology,
+            include_compiled_qasm=include_compiled_qasm,
         )
     return _compile_npqr_payload(
         circuit=circuit,
@@ -220,6 +211,9 @@ def compile_qasm_payload(
         heuristic=heuristic,
         topology=topology,
         max_steps=max_steps,
+        frontier_pruning_policy=frontier_pruning_policy,
+        frontier_trigger_profile=frontier_trigger_profile,
+        include_compiled_qasm=include_compiled_qasm,
     )
 
 
@@ -238,7 +232,6 @@ async def health(_: Request) -> JSONResponse:
 @mcp.tool()
 def qcompiler_status() -> dict[str, Any]:
     """Return local project status and honest AI boundary."""
-    ai_loadable, ai_message = _ai_load_status()
     npqr_loadable, npqr_message = _npqr_load_status()
     manifest = load_npqr_evidence_manifest()
     return {
@@ -247,16 +240,13 @@ def qcompiler_status() -> dict[str, Any]:
         "default_topology": "tokyo",
         "default_backend": "npqr",
         "default_model": str(DEFAULT_MODEL.relative_to(PROJECT_ROOT)),
-        "model_exists": DEFAULT_MODEL.exists(),
-        "ai_loadable": ai_loadable,
-        "ai_status": ai_message,
-        "npqr_model": str(DEFAULT_NPQR_MODEL.relative_to(PROJECT_ROOT)),
-        "npqr_model_exists": DEFAULT_NPQR_MODEL.exists(),
-        "npqr_loadable": npqr_loadable,
-        "npqr_status": npqr_message,
+        "model": str(DEFAULT_NPQR_MODEL.relative_to(PROJECT_ROOT)),
+        "model_exists": DEFAULT_NPQR_MODEL.exists(),
+        "model_loadable": npqr_loadable,
+        "model_status": npqr_message,
         "mcp_endpoint": "/mcp",
-        "npqr_decision": manifest["stage8"]["decision"],
-        "npqr_boundary": manifest["npqr_boundary"],
+        "algorithm": manifest["project_claim"],
+        "claims": manifest["claims"],
     }
 
 
@@ -290,6 +280,9 @@ def compile_npqr(
     heuristic: str = "lookahead",
     topology: str = "tokyo",
     max_steps: int = 45,
+    frontier_pruning_policy: FrontierPruningPolicy | None = None,
+    frontier_trigger_profile: FrontierTriggerProfile | None = None,
+    include_compiled_qasm: bool = True,
 ) -> dict[str, Any]:
     """Compile a checked-in example with the NPQR neural-assisted route."""
     if example not in EXAMPLES:
@@ -301,6 +294,9 @@ def compile_npqr(
         heuristic=heuristic,
         topology=topology,
         max_steps=max_steps,
+        frontier_pruning_policy=frontier_pruning_policy,
+        frontier_trigger_profile=frontier_trigger_profile,
+        include_compiled_qasm=include_compiled_qasm,
     )
 
 
@@ -311,6 +307,9 @@ def compile_qasm(
     topology: str = "tokyo",
     backend: Literal["npqr", "sabre"] = "npqr",
     max_steps: int = 45,
+    frontier_pruning_policy: FrontierPruningPolicy | None = None,
+    frontier_trigger_profile: FrontierTriggerProfile | None = None,
+    include_compiled_qasm: bool = True,
 ) -> dict[str, Any]:
     """Compile user-provided OpenQASM 2 text and return routed QASM."""
     return compile_qasm_payload(
@@ -319,13 +318,27 @@ def compile_qasm(
         topology=topology,
         backend=backend,
         max_steps=max_steps,
+        frontier_pruning_policy=frontier_pruning_policy,
+        frontier_trigger_profile=frontier_trigger_profile,
+        include_compiled_qasm=include_compiled_qasm,
     )
 
 
 @mcp.tool()
 def get_benchmarks() -> dict[str, Any]:
-    """Return the checked-in V14 P1 benchmark summary."""
-    return _benchmark_payload()
+    """Return public benchmark and claim boundaries."""
+    manifest = load_npqr_evidence_manifest()
+    return {
+        "summary": {
+            "default_backend": manifest["default_route"]["backend"],
+            "comparison_baseline": manifest["default_route"]["comparison_baseline"],
+            "sabre_fallback": manifest["default_route"]["sabre_fallback"],
+            "final_smoke_swaps": manifest["final_smoke"]["reported_swaps"],
+            "rest_and_mcp_consistent": manifest["final_smoke"]["rest_and_mcp_consistent"],
+        },
+        "algorithm_components": manifest["algorithm_components"],
+        "claims": manifest["claims"],
+    }
 
 
 @mcp.tool()
@@ -334,43 +347,17 @@ def get_npqr_boundary() -> dict[str, Any]:
     manifest = load_npqr_evidence_manifest()
     return {
         "project_claim": manifest["project_claim"],
-        "stable_public_default": manifest["stable_public_default"],
-        "npqr_boundary": manifest["npqr_boundary"],
-        "source": str(REPORT_JSON.relative_to(PROJECT_ROOT)),
+        "default_route": manifest["default_route"],
+        "baseline": manifest["baseline"],
+        "claims": manifest["claims"],
     }
 
 
 @mcp.tool()
-def get_npqr_stage7_evidence() -> dict[str, Any]:
-    """Return Stage7 evidence plus route-gated NPQR follow-up evidence."""
+def get_algorithm_evidence() -> dict[str, Any]:
+    """Return public NPQR algorithm evidence and course-report mapping."""
     manifest = load_npqr_evidence_manifest()
-    return {
-        "stage7": manifest["stage7"],
-        "stage8": manifest["stage8"],
-        "stage8_attempts": manifest.get("stage8_attempts", []),
-        "stage9_teacher_scan": manifest.get("stage9_teacher_scan", {}),
-        "stage9_mixed_dataset": manifest.get("stage9_mixed_dataset", {}),
-        "stage9_extension_scan": manifest.get("stage9_extension_scan", {}),
-        "stage9_mapping_probe": manifest.get("stage9_mapping_probe", {}),
-        "stage10_mapping_selector": manifest.get("stage10_mapping_selector", {}),
-        "stage11_selector_runtime": manifest.get("stage11_selector_runtime", {}),
-        "stage12_selector_boundary": manifest.get("stage12_selector_boundary", {}),
-        "stage13_adaptive_selector_boundary": manifest.get("stage13_adaptive_selector_boundary", {}),
-        "stage14_adaptive_dataset": manifest.get("stage14_adaptive_dataset", {}),
-        "stage15_finetune_gate": manifest.get("stage15_finetune_gate", {}),
-        "stage16_hardcase_scout": manifest.get("stage16_hardcase_scout", {}),
-        "stage17_hardcase_dataset": manifest.get("stage17_hardcase_dataset", {}),
-        "stage18_finetune_gate": manifest.get("stage18_finetune_gate", {}),
-        "stage19_training_diagnostics": manifest.get("stage19_training_diagnostics", {}),
-        "stage20_ghz10_stall_diagnostics": manifest.get("stage20_ghz10_stall_diagnostics", {}),
-        "stage21_suffix_repair_gate": manifest.get("stage21_suffix_repair_gate", {}),
-        "stage22_suffix_training_readiness": manifest.get("stage22_suffix_training_readiness", {}),
-        "stage23_gpu_sweep_plan": manifest.get("stage23_gpu_sweep_plan", {}),
-        "stage23_gpu_sweep_summary": manifest.get("stage23_gpu_sweep_summary", {}),
-        "stage24_training_go_no_go": manifest.get("stage24_training_go_no_go", {}),
-        "stage25_post_sweep_decision": manifest.get("stage25_post_sweep_decision", {}),
-        "next_algorithm_focus": manifest.get("next_algorithm_focus", []),
-    }
+    return manifest
 
 
 app = mcp.streamable_http_app()
