@@ -1,0 +1,31 @@
+\begin{tikzpicture}[
+  node distance=0.75cm and 0.7cm,
+  entry/.style={rectangle, rounded corners=2pt, draw=orange!65!black, fill=orange!8,
+    align=center, minimum width=2.6cm, minimum height=0.78cm, font=\small},
+  routeCore/.style={rectangle, rounded corners=2pt, draw=blue!60!black, fill=blue!6,
+    align=center, minimum width=3.0cm, minimum height=0.85cm, font=\small},
+  data/.style={rectangle, rounded corners=2pt, draw=green!45!black, fill=green!7,
+    align=center, minimum width=3.0cm, minimum height=0.85cm, font=\small},
+  arrow/.style={-{Latex[length=2mm]}, thick, draw=gray!70!black}
+]
+  \node[entry] (web) {网页演示};
+  \node[entry, below=of web] (rest) {REST API};
+  \node[entry, below=of rest] (mcp) {MCP 服务};
+  \node[entry, below=of mcp] (cli) {命令行};
+
+  \node[routeCore, right=2.0cm of rest] (request) {统一编译请求\\QASM 或示例};
+  \node[routeCore, right=of request] (runtime) {NPQR 路由运行时};
+  \node[data, above=of runtime] (model) {默认推理模型};
+  \node[data, below=of runtime] (baseline) {SABRE 基线对比};
+  \node[routeCore, right=of runtime] (result) {路由结果\\轨迹与指标};
+
+  \draw[arrow] (web.east) -- (request.west);
+  \draw[arrow] (rest.east) -- (request.west);
+  \draw[arrow] (mcp.east) -- (request.west);
+  \draw[arrow] (cli.east) -- (request.west);
+  \draw[arrow] (request) -- (runtime);
+  \draw[arrow] (model) -- (runtime);
+  \draw[arrow] (runtime) -- (baseline);
+  \draw[arrow] (runtime) -- (result);
+  \draw[arrow] (baseline.east) -| (result.south);
+\end{tikzpicture}

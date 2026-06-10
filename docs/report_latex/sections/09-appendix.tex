@@ -1,0 +1,26 @@
+\appendix
+\section{附录：复现实验命令}
+
+本附录列出报告中使用的公开检查命令，便于复现实验表格和验证接口状态。正文避免
+展开具体源码结构，本附录只保留必要命令。
+
+\subsection{环境检查}
+
+\begin{verbatim}
+qcompiler info
+\end{verbatim}
+
+\subsection{快速基线矩阵}
+
+\begin{verbatim}
+python scripts/experiment_algorithm_matrix.py --quick --json
+\end{verbatim}
+
+\subsection{公开项目检查}
+
+\begin{verbatim}
+python scripts/check_submission_readiness.py
+python -m pytest -q tests/test_public_api.py \
+  tests/test_readme_contract.py \
+  tests/test_submission_readiness.py
+\end{verbatim}

@@ -1,0 +1,58 @@
+\PassOptionsToPackage{quiet}{fontspec}
+\documentclass[UTF8,a4paper,12pt]{ctexart}
+
+\usepackage{thesis}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit}
+
+\graphicspath{{figures/}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!45!black,
+  citecolor=blue!45!black,
+  urlcolor=blue!45!black
+}
+\captionsetup{font=small,labelfont=bf}
+\setlist{nosep}
+\renewcommand{\arraystretch}{1.15}
+\emergencystretch=2em
+\setCJKmainfont{Noto Serif CJK SC}[BoldFont=Noto Serif CJK SC Bold]
+\makepagestyle{}{}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE \textbf{神经辅助量子路由编译器项目报告}}\\[0.5em]
+  {\large 算法设计与智能计算课程项目}
+\end{center}
+
+\begingroup
+\setstretch{1.15}
+\maketoc
+\endgroup
+
+\input{sections/00-abstract}
+\input{sections/01-introduction}
+\input{sections/02-problem-modeling}
+\input{sections/03-algorithm-design}
+\input{sections/04-system-implementation}
+\input{sections/05-experiments-analysis}
+\input{sections/06-complexity-course}
+\input{sections/07-conclusion}
+\input{sections/08-references}
+\input{sections/09-appendix}
+
+\end{document}

@@ -1,0 +1,17 @@
+\begin{table}[H]
+  \centering
+  \caption{NPQR 主要步骤复杂度}
+  \label{tab:complexity}
+  \begin{tabularx}{\linewidth}{lYY}
+    \toprule
+    步骤 & 时间复杂度估计 & 说明 \\
+    \midrule
+    拓扑距离预处理 & $O(n^3)$ 或 $O(n(e+n\log n))$ & 取决于使用 Floyd 或多源最短路；Tokyo 规模较小，开销可控。 \\
+    电路依赖处理 & $O(m)$ & 扫描门序列，维护前沿门和依赖状态。 \\
+    初始映射候选 & $O(K \cdot n^2)$ 量级 & 与候选数和交互评分方式有关。 \\
+    主束搜索 & $O(D \cdot B \cdot A \cdot C_s)$ & $C_s$ 为单次状态评分和更新成本。 \\
+    后缀修复 & $O(A^R)$ 的受限搜索 & 通过小深度 $R$ 限制局部搜索规模。 \\
+    轨迹复放 & $O(m+N_{\mathrm{swap}})$ & 线性验证输出轨迹是否合法。 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
