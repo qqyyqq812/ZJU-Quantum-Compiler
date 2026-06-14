@@ -184,16 +184,16 @@ def check_readiness() -> list[ReadinessItem]:
             "website",
             "Website opens from GitHub Pages with optional HTTPS REST",
             _status(
-                (
-                    "量子编译实验台" in site
-                    or "量子编译控制台 V4" in site
-                )
-                and "GitHub Pages 默认使用内置示例结果" in site
+                "ZJU Quantum Compiler Console" in site
+                and "量子电路编译控制台" in site
+                and "Embedded review data active" in site
                 and 'const PUBLIC_API_BASE = "";' in site
                 and "?api=https://your-api.example" in site
                 and "compileWithBestAvailableBackend(\"npqr\")" in site
                 and "compileWithBestAvailableBackend(\"sabre\")" in site
-                and "MCP `/mcp` 保留给高级客户端和审阅流程" in site
+                and "Service Interfaces" in site
+                and "MCP Server" in site
+                and "POST /mcp" in site
             ),
             "docs/index.html",
         ),

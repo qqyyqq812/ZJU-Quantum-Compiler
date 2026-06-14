@@ -3,4135 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZJU 量子电路编译器 · Quantum Studio</title>
-  <style>
-    :root {
-      --tf-header: #183D4E;
-      --tf-orange: #f59322;
-      --tf-blue: #0877bd;
-      --tf-page: #06091a;
-      --tf-panel: #101833;
-      --tf-line: rgba(125, 154, 190, 0.18);
-      --tf-line-dark: rgba(154, 178, 218, 0.34);
-      --tf-text: #e8f1ff;
-      --tf-muted: #8fa4c4;
-      --tf-faint: rgba(151, 176, 218, 0.18);
-      --tf-code: #0a1024;
-      --tf-error: #c33;
-      --tf-ok: #2b8a3e;
-      --tf-ink: #18212b;
-      --qc-shell: #070b1f;
-      --qc-shell-2: #11183d;
-      --qc-panel: rgba(12, 19, 43, 0.94);
-      --qc-panel-2: rgba(16, 26, 57, 0.9);
-      --qc-editor: #081126;
-      --qc-code: #050b1d;
-      --qc-border: rgba(34, 211, 238, 0.26);
-      --qc-border-strong: rgba(34, 211, 238, 0.45);
-      --qc-void: #070b1f;
-      --qc-space: #11183d;
-      --qc-cyan: #22d3ee;
-      --qc-violet: #7c5cff;
-      --qc-grid: rgba(34, 211, 238, 0.13);
-      --qc-surface: #0b142c;
-      --qc-surface-2: #101b38;
-      --qc-surface-3: #172446;
-      --qc-text-soft: #b9c8e8;
-      --mono: "JetBrains Mono", "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-      --sans: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", Helvetica, Arial, sans-serif;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    [hidden] {
-      display: none !important;
-    }
-
-    html,
-    body {
-      max-width: 100%;
-      overflow-x: clip;
-    }
-
-    body {
-      margin: 0;
-      background:
-        radial-gradient(circle at 18px 18px, rgba(34, 211, 238, 0.16) 1px, transparent 1.5px),
-        radial-gradient(circle at 78% 16%, rgba(124, 92, 255, 0.34), transparent 28%),
-        radial-gradient(circle at 12% 72%, rgba(34, 211, 238, 0.22), transparent 30%),
-        linear-gradient(135deg, var(--qc-shell) 0%, var(--qc-shell-2) 50%, #10162d 100%);
-      background-size: 30px 30px, auto, auto, auto;
-      color: var(--tf-text);
-      font-family: var(--sans);
-      font-size: 14px;
-      line-height: 1.4;
-    }
-
-    button,
-    select,
-    textarea {
-      font: inherit;
-    }
-
-    button:focus-visible,
-    select:focus-visible,
-    textarea:focus-visible,
-    summary:focus-visible,
-    a:focus-visible {
-      outline: 2px solid var(--tf-orange);
-      outline-offset: 2px;
-    }
-
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    header {
-      position: relative;
-      overflow: hidden;
-      background:
-        linear-gradient(90deg, rgba(34, 211, 238, 0.08), transparent 40%, rgba(124, 92, 255, 0.12)),
-        rgba(7, 11, 31, 0.92);
-      color: #fff;
-      border-bottom: 1px solid rgba(34, 211, 238, 0.18);
-      backdrop-filter: blur(12px);
-    }
-
-    header::after {
-      content: "";
-      position: absolute;
-      inset: auto 0 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--qc-cyan), var(--qc-violet), transparent);
-      opacity: 0.65;
-    }
-
-    body::before,
-    body::after {
-      content: "";
-      position: fixed;
-      z-index: -1;
-      width: 150px;
-      height: 150px;
-      opacity: 0.36;
-      pointer-events: none;
-      background-repeat: no-repeat;
-      background-size: contain;
-    }
-
-    body::before {
-      top: 84px;
-      left: 7vw;
-      background-image: url("data:image/svg+xml,%3Csvg width='150' height='150' viewBox='0 0 150 150' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%237c5cff' stroke-width='1.4' opacity='.55'%3E%3Cellipse cx='75' cy='75' rx='52' ry='13' transform='rotate(28 75 75)'/%3E%3Cellipse cx='75' cy='75' rx='52' ry='13' transform='rotate(-28 75 75)'/%3E%3Cellipse cx='75' cy='75' rx='12' ry='52'/%3E%3Ccircle cx='75' cy='75' r='4' fill='%2322d3ee' stroke='none'/%3E%3C/g%3E%3C/svg%3E");
-    }
-
-    body::after {
-      right: 8vw;
-      bottom: 72px;
-      background-image: url("data:image/svg+xml,%3Csvg width='150' height='150' viewBox='0 0 150 150' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%2322d3ee' stroke-width='1.5' opacity='.5'%3E%3Cpath d='M38 75h74M75 38v74M50 50h50v50H50z'/%3E%3Ccircle cx='38' cy='75' r='5'/%3E%3Ccircle cx='112' cy='75' r='5'/%3E%3Ccircle cx='75' cy='38' r='5'/%3E%3Ccircle cx='75' cy='112' r='5'/%3E%3C/g%3E%3C/svg%3E");
-    }
-
-    .page {
-      width: min(100%, 1360px);
-      margin: 0 auto;
-      padding: 0 18px;
-    }
-
-    .topbar {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      min-height: 58px;
-    }
-
-    .brand {
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-      min-width: 0;
-    }
-
-    .brand h1 {
-      margin: 0;
-      font-size: 22px;
-      font-weight: 300;
-      letter-spacing: 0;
-      white-space: nowrap;
-    }
-
-    .brand h1 b {
-      font-weight: 500;
-      color: #9f8cff;
-    }
-
-    .brand .subtitle {
-      color: rgba(255, 255, 255, 0.72);
-      font-size: 13px;
-      white-space: nowrap;
-    }
-
-    .nav {
-      display: flex;
-      gap: 16px;
-      color: rgba(255, 255, 255, 0.78);
-      font-size: 13px;
-      white-space: nowrap;
-    }
-
-    .nav a:hover {
-      color: var(--qc-cyan);
-    }
-
-    #top-controls {
-      border-bottom: 1px solid rgba(34, 211, 238, 0.28);
-      background:
-        linear-gradient(90deg, rgba(34, 211, 238, 0.16), transparent 35%, rgba(245, 147, 34, 0.1)),
-        rgba(8, 13, 31, 0.94);
-      backdrop-filter: blur(14px);
-    }
-
-    .control-row {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 24px;
-      min-height: 64px;
-      overflow-x: auto;
-    }
-
-    .timeline-controls {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding-right: 6px;
-    }
-
-    .icon-button,
-    .play-button {
-      display: inline-grid;
-      place-items: center;
-      grid-template-rows: 1fr auto;
-      gap: 2px;
-      border: 0;
-      background: transparent;
-      color: var(--qc-text-soft);
-      cursor: pointer;
-    }
-
-    .icon-button {
-      width: 44px;
-      height: 50px;
-      padding: 3px 0 5px;
-    }
-
-    .icon-button:hover {
-      color: var(--tf-orange);
-    }
-
-    .command-icon {
-      display: grid;
-      place-items: center;
-      min-height: 25px;
-      font-size: 22px;
-      line-height: 1;
-    }
-
-    .command-label {
-      color: currentColor;
-      font-size: 10px;
-      line-height: 1;
-      white-space: nowrap;
-    }
-
-    .play-button {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--tf-orange) 0%, #ff9f32 54%, var(--qc-cyan) 145%);
-      color: #fff;
-      padding: 7px 0 8px;
-      line-height: 1;
-      box-shadow: 0 0 0 1px rgba(245, 147, 34, 0.28), 0 0 18px rgba(34, 211, 238, 0.22);
-      transition: background 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
-    }
-
-    .play-button .command-icon {
-      min-height: 23px;
-      font-size: 22px;
-    }
-
-    .play-button:hover {
-      background: #e58211;
-      transform: translateY(-1px);
-    }
-
-    .play-button[data-state="running"] {
-      background: var(--tf-ink);
-      box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.34), 0 0 20px rgba(245, 147, 34, 0.18);
-    }
-
-    .play-button[data-state="paused"] {
-      background: var(--qc-surface);
-      color: var(--tf-orange);
-      box-shadow: 0 0 0 1px var(--tf-orange);
-    }
-
-    .control {
-      display: grid;
-      gap: 4px;
-      min-width: 112px;
-    }
-
-    .control label,
-    .control .label,
-    h4 {
-      color: var(--tf-muted);
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .control select {
-      min-width: 116px;
-      height: 30px;
-      border: 1px solid var(--tf-line-dark);
-      border-radius: 0;
-      background: var(--qc-surface);
-      color: var(--tf-text);
-    }
-
-    .backend {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      min-width: 132px;
-      color: var(--tf-muted);
-      font-size: 12px;
-    }
-
-    .backend-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--tf-muted);
-    }
-
-    .backend.ok .backend-dot {
-      background: var(--tf-ok);
-    }
-
-    .backend.loading .backend-dot {
-      background: var(--tf-blue);
-    }
-
-    .backend.error .backend-dot {
-      background: var(--tf-error);
-    }
-
-    #main-part {
-      position: relative;
-      display: grid;
-      grid-template-columns: minmax(250px, 292px) minmax(520px, 1fr) minmax(330px, 382px);
-      grid-template-areas: "data topology output";
-      min-height: 0;
-      background:
-        radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.08), transparent 32%),
-        linear-gradient(180deg, rgba(34, 211, 238, 0.065), transparent 140px),
-        var(--qc-panel);
-      border-left: 1px solid var(--qc-border);
-      border-right: 1px solid var(--qc-border);
-      border-top: 3px solid transparent;
-      border-image: linear-gradient(90deg, var(--qc-cyan), var(--qc-violet), var(--tf-orange)) 1;
-      border-radius: 8px 8px 0 0;
-      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.46), 0 0 0 1px rgba(255, 255, 255, 0.035);
-      overflow: hidden;
-    }
-
-    #main-part::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background:
-        linear-gradient(90deg, rgba(34, 211, 238, 0.08) 0 1px, transparent 1px 100%),
-        linear-gradient(180deg, rgba(124, 92, 255, 0.05) 0 1px, transparent 1px 100%);
-      background-size: 72px 100%, 100% 72px;
-      opacity: 0.42;
-    }
-
-    .column {
-      position: relative;
-      min-width: 0;
-      padding: 18px 18px 20px;
-      border-left: 1px solid var(--tf-line);
-      color: var(--tf-text);
-    }
-
-    .column:first-child {
-      border-left: 0;
-    }
-
-    .column.data {
-      grid-area: data;
-      background:
-        linear-gradient(180deg, rgba(34, 211, 238, 0.055), rgba(10, 16, 36, 0.92)),
-        var(--qc-surface);
-    }
-
-    .column.output {
-      grid-area: output;
-      background:
-        linear-gradient(180deg, rgba(124, 92, 255, 0.07), rgba(10, 16, 36, 0.92)),
-        var(--qc-surface);
-    }
-
-    .column.topology {
-      grid-area: topology;
-      background:
-        linear-gradient(180deg, rgba(34, 211, 238, 0.08), rgba(9, 15, 34, 0.96)),
-        var(--qc-surface);
-    }
-
-    h4 {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 0 0 14px;
-      color: var(--tf-muted);
-    }
-
-    h4 span {
-      color: var(--tf-text);
-    }
-
-    h4::after {
-      content: "";
-      height: 1px;
-      flex: 1;
-      background: var(--tf-line);
-    }
-
-    .section {
-      margin-bottom: 18px;
-    }
-
-    .section > p {
-      margin: 0 0 8px;
-      color: var(--qc-text-soft);
-      font-size: 12px;
-    }
-
-    .dataset-list {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-
-    .dataset {
-      position: relative;
-      height: 50px;
-      border: 2px solid transparent;
-      background: linear-gradient(90deg, transparent 0 3px, rgba(255, 255, 255, 0.035) 3px);
-      color: var(--tf-text);
-      cursor: pointer;
-      text-align: left;
-      transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
-    }
-
-    .dataset:hover,
-    .dataset[aria-pressed="true"] {
-      border-color: var(--tf-orange);
-      background: rgba(245, 147, 34, 0.08);
-    }
-
-    .dataset:hover {
-      transform: translateY(-1px);
-    }
-
-    .dataset[aria-pressed="true"] {
-      background: linear-gradient(90deg, var(--tf-orange) 0 3px, rgba(245, 147, 34, 0.1) 3px);
-    }
-
-    .dataset b {
-      display: block;
-      margin: 7px 8px 1px;
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    .dataset span {
-      display: block;
-      margin: 0 8px;
-      color: var(--tf-muted);
-      font-size: 11px;
-    }
-
-    .baseline-badge {
-      display: inline-flex;
-      align-items: center;
-      min-height: 30px;
-      border: 1px solid var(--tf-line-dark);
-      padding: 0 9px;
-      background: var(--qc-surface);
-      color: var(--tf-text);
-      font-family: var(--mono);
-      font-size: 12px;
-      white-space: nowrap;
-    }
-
-    .input-tabs,
-    .qasm-tabs {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      border: 1px solid var(--tf-line-dark);
-      background: rgba(255, 255, 255, 0.025);
-    }
-
-    .input-tabs button,
-    .qasm-tabs button {
-      min-width: 0;
-      height: 32px;
-      border: 0;
-      border-left: 1px solid var(--tf-line-dark);
-      background: transparent;
-      color: var(--tf-text);
-      cursor: pointer;
-      font-size: 12px;
-    }
-
-    .input-tabs button:first-child,
-    .qasm-tabs button:first-child {
-      border-left: 0;
-    }
-
-    .input-tabs button[aria-pressed="true"],
-    .qasm-tabs button[aria-pressed="true"] {
-      background: linear-gradient(135deg, var(--tf-blue), #075f99);
-      color: #fff;
-    }
-
-    .input-tabs button[aria-pressed="false"],
-    .qasm-tabs button[aria-pressed="false"],
-    .route-tabs button[aria-pressed="false"] {
-      background: rgba(255, 255, 255, 0.035);
-      color: var(--qc-text-soft);
-    }
-
-    .generator-controls {
-      display: grid;
-      grid-template-columns: 1fr 68px 68px;
-      gap: 8px;
-      align-items: end;
-    }
-
-    .generator-controls label {
-      display: grid;
-      gap: 4px;
-      color: var(--tf-muted);
-      font-size: 11px;
-    }
-
-    .generator-controls select,
-    .generator-controls input {
-      min-width: 0;
-      height: 30px;
-      border: 1px solid var(--tf-line-dark);
-      border-radius: 0;
-      background: var(--qc-surface);
-      color: var(--tf-text);
-      padding: 3px 6px;
-      font: inherit;
-    }
-
-    .generator-actions {
-      display: grid;
-      grid-template-columns: 1fr;
-      margin-top: 8px;
-    }
-
-    .generator-actions button {
-      height: 30px;
-      border: 1px solid var(--tf-blue);
-      border-radius: 0;
-      background: rgba(8, 119, 189, 0.12);
-      color: var(--tf-blue);
-      cursor: pointer;
-      font-size: 12px;
-    }
-
-    textarea,
-    pre {
-      width: 100%;
-      margin: 0;
-      border: 1px solid var(--tf-line-dark);
-      border-radius: 6px;
-      background: var(--qc-editor);
-      color: var(--tf-text);
-      font-family: var(--mono);
-      font-size: 12px;
-      line-height: 1.45;
-      white-space: pre;
-    }
-
-    textarea {
-      min-height: 260px;
-      padding: 10px;
-      resize: vertical;
-      transition: border-color 0.16s ease, background 0.16s ease;
-    }
-
-    textarea[readonly] {
-      color: var(--qc-text-soft);
-    }
-
-    textarea[data-mode="custom"] {
-      border-color: var(--tf-orange);
-      background: #130f1a;
-    }
-
-    .input-meta {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 5px;
-      color: var(--tf-muted);
-      font-family: var(--mono);
-      font-size: 11px;
-    }
-
-    .topology-area {
-      display: grid;
-      grid-template-rows: auto auto auto;
-      height: auto;
-      min-height: 0;
-    }
-
-    .route-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 10px;
-    }
-
-    .route-tabs {
-      display: inline-grid;
-      grid-template-columns: repeat(2, minmax(112px, 1fr));
-      border: 1px solid var(--tf-line-dark);
-    }
-
-    .route-tabs button {
-      height: 32px;
-      border: 0;
-      border-left: 1px solid var(--tf-line-dark);
-      background: #fff;
-      color: var(--tf-text);
-      cursor: pointer;
-      font-size: 12px;
-    }
-
-    .route-tabs button:first-child {
-      border-left: 0;
-    }
-
-    .route-tabs button[aria-pressed="true"] {
-      background: linear-gradient(135deg, var(--tf-ink), #102736);
-      color: #fff;
-    }
-
-    .route-count {
-      color: var(--tf-muted);
-      font-family: var(--mono);
-      font-size: 11px;
-      white-space: nowrap;
-    }
-
-    .route-layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      gap: 12px;
-      align-items: start;
-    }
-
-    .topology-head {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 6px;
-    }
-
-    .topology-head .route-status {
-      color: var(--qc-text-soft);
-      font-size: 12px;
-    }
-
-    .topology-stage-wrap {
-      position: relative;
-      aspect-ratio: 16 / 10;
-      min-height: 0;
-      border: 1px solid rgba(34, 211, 238, 0.34);
-      border-radius: 8px;
-      background:
-        radial-gradient(circle at 12px 12px, rgba(34, 211, 238, 0.24) 1px, transparent 1.6px),
-        radial-gradient(circle at 70% 20%, rgba(124, 92, 255, 0.22), transparent 30%),
-        linear-gradient(135deg, #081024, #101b3b 54%, #0b1229);
-      background-size: 24px 24px, auto, auto;
-      overflow: hidden;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045), 0 16px 34px rgba(7, 11, 31, 0.18);
-    }
-
-    .topology-stage-wrap::before {
-      content: "";
-      position: absolute;
-      inset: 12px;
-      pointer-events: none;
-      border: 1px solid rgba(34, 211, 238, 0.18);
-      border-radius: 4px;
-    }
-
-    .topology-stage-wrap::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background:
-        linear-gradient(90deg, transparent 0%, rgba(34, 211, 238, 0.14) 48%, transparent 62%),
-        radial-gradient(circle at 50% 50%, rgba(124, 92, 255, 0.12), transparent 48%);
-      transform: translateX(-110%);
-      animation: chip-scan 3.8s ease-in-out infinite;
-      opacity: 0.78;
-    }
-
-    .topology-stage-wrap[data-phase="replaying"]::after,
-    .topology-stage-wrap[data-phase="done"]::after {
-      opacity: 0;
-      animation: none;
-    }
-
-    .topology-stage {
-      display: block;
-      width: 100%;
-      height: 100%;
-      min-height: 0;
-    }
-
-    .topology-edge {
-      stroke: rgba(120, 151, 190, 0.44);
-      stroke-width: 2;
-      stroke-linecap: round;
-      transition: stroke 0.16s ease, stroke-width 0.16s ease, opacity 0.16s ease;
-    }
-
-    .topology-edge.preview {
-      stroke: var(--qc-cyan);
-      opacity: 0.72;
-      stroke-width: 2.5;
-    }
-
-    .topology-edge.gate-edge {
-      stroke: var(--qc-violet);
-      opacity: 0.74;
-    }
-
-    .topology-edge.swap-edge {
-      stroke: var(--tf-orange);
-      opacity: 0.82;
-    }
-
-    .topology-edge.active {
-      stroke: var(--tf-orange);
-      stroke-width: 4.5;
-      stroke-dasharray: 12 8;
-      animation: route-pulse 0.85s linear infinite;
-    }
-
-    .topology-edge.active.gate-edge {
-      stroke: var(--qc-cyan);
-    }
-
-    .topology-node {
-      fill: #0d1730;
-      stroke: var(--qc-cyan);
-      stroke-width: 2;
-      transition: fill 0.14s ease, stroke 0.14s ease, stroke-width 0.14s ease;
-    }
-
-    .topology-node.mapped {
-      fill: #102b42;
-      stroke: var(--qc-cyan);
-    }
-
-    .topology-node.active {
-      fill: #fff;
-      stroke: var(--tf-orange);
-      stroke-width: 3;
-    }
-
-    .topology-node.single-active {
-      fill: #1a1244;
-      stroke: var(--qc-violet);
-      stroke-width: 4;
-      animation: node-pulse 0.9s ease-in-out infinite alternate;
-    }
-
-    g:hover .topology-node {
-      fill: #15264f;
-      stroke: var(--qc-violet);
-      stroke-width: 3;
-    }
-
-    @keyframes route-pulse {
-      from {
-        stroke-dashoffset: 20;
-      }
-
-      to {
-        stroke-dashoffset: 0;
-      }
-    }
-
-    @keyframes chip-scan {
-      0%, 28% {
-        transform: translateX(-110%);
-      }
-
-      62%, 100% {
-        transform: translateX(110%);
-      }
-    }
-
-    @keyframes node-pulse {
-      from {
-        stroke-opacity: 0.55;
-      }
-
-      to {
-        stroke-opacity: 1;
-      }
-    }
-
-    .node-label {
-      fill: #e9fbff;
-      font-family: var(--mono);
-      font-size: 12px;
-      pointer-events: none;
-      text-anchor: middle;
-      dominant-baseline: central;
-    }
-
-    .node-map-label {
-      fill: var(--qc-cyan);
-      font-family: var(--mono);
-      font-size: 9px;
-      pointer-events: none;
-      text-anchor: middle;
-      dominant-baseline: central;
-    }
-
-    .topology-tooltip {
-      position: absolute;
-      display: none;
-      max-width: 170px;
-      padding: 5px 7px;
-      border: 1px solid rgba(34, 211, 238, 0.32);
-      background: rgba(6, 8, 18, 0.86);
-      color: #fff;
-      font-size: 11px;
-      pointer-events: none;
-    }
-
-    .compiler-flow {
-      margin-top: 12px;
-      border: 1px solid rgba(34, 211, 238, 0.2);
-      border-radius: 6px;
-      background: rgba(5, 11, 29, 0.74);
-      overflow: hidden;
-    }
-
-    .flow-rail {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      border-bottom: 1px solid var(--tf-line);
-    }
-
-    .flow-stage {
-      position: relative;
-      min-height: 44px;
-      padding: 8px 10px 8px 22px;
-      color: var(--tf-muted);
-      font-size: 11px;
-      text-transform: uppercase;
-    }
-
-    .flow-stage::before {
-      content: "";
-      position: absolute;
-      left: 9px;
-      top: 14px;
-      width: 6px;
-      height: 6px;
-      border: 1px solid var(--tf-line-dark);
-      background: var(--qc-surface);
-    }
-
-    .flow-stage::after {
-      content: "";
-      position: absolute;
-      left: 15px;
-      right: 0;
-      top: 17px;
-      height: 1px;
-      background: var(--tf-line);
-    }
-
-    .flow-stage:last-child::after {
-      display: none;
-    }
-
-    .flow-stage b {
-      display: block;
-      color: var(--tf-text);
-      font-size: 12px;
-      font-weight: 500;
-      text-transform: none;
-    }
-
-    .flow-stage.is-done::before {
-      background: var(--qc-cyan);
-      border-color: var(--qc-cyan);
-    }
-
-    .flow-stage.is-active {
-      color: var(--tf-orange);
-      background: rgba(245, 147, 34, 0.045);
-    }
-
-    .flow-stage.is-active::before {
-      background: var(--tf-orange);
-      border-color: var(--tf-orange);
-    }
-
-    .trace-readout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 10px;
-      align-items: center;
-      min-height: 52px;
-      padding: 8px 10px;
-    }
-
-    .trace-op {
-      min-width: 0;
-      color: var(--qc-text-soft);
-      font-family: var(--mono);
-      font-size: 12px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .trace-meta {
-      color: var(--tf-muted);
-      font-family: var(--mono);
-      font-size: 11px;
-      white-space: nowrap;
-    }
-
-    .trace-bar {
-      grid-column: 1 / -1;
-      height: 3px;
-      background: var(--tf-faint);
-    }
-
-    .trace-bar span {
-      display: block;
-      width: 0;
-      height: 100%;
-      background: linear-gradient(90deg, var(--qc-cyan), var(--tf-orange));
-      transition: width 0.18s ease;
-    }
-
-    .route-inspector {
-      display: grid;
-      grid-template-columns: minmax(210px, 0.9fr) minmax(220px, 1fr);
-      gap: 12px;
-      min-width: 0;
-    }
-
-    .timeline-panel {
-      grid-column: 1 / -1;
-    }
-
-    .event-card,
-    .mapping-panel,
-    .timeline-panel {
-      border: 1px solid rgba(34, 211, 238, 0.18);
-      border-radius: 6px;
-      background: rgba(7, 13, 31, 0.82);
-      overflow: hidden;
-    }
-
-    .event-card {
-      border-top: 2px solid var(--tf-orange);
-    }
-
-    .inspector-title {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 8px 10px;
-      border-bottom: 1px solid var(--tf-line);
-      color: var(--tf-text);
-      font-size: 12px;
-      font-weight: 500;
-    }
-
-    .inspector-title small {
-      color: var(--tf-muted);
-      font-family: var(--mono);
-      font-weight: 400;
-    }
-
-    .event-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      border-left: 1px solid var(--tf-line);
-      border-top: 1px solid var(--tf-line);
-      margin: 10px;
-    }
-
-    .event-field {
-      min-width: 0;
-      padding: 7px 8px;
-      border-right: 1px solid var(--tf-line);
-      border-bottom: 1px solid var(--tf-line);
-      background: rgba(255, 255, 255, 0.035);
-    }
-
-    .event-field span {
-      display: block;
-      color: var(--tf-muted);
-      font-size: 10px;
-      text-transform: uppercase;
-    }
-
-    .event-field strong {
-      display: block;
-      margin-top: 4px;
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 500;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .mapping-grid {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 5px;
-      padding: 10px;
-    }
-
-    .mapping-cell {
-      min-height: 38px;
-      border: 1px solid var(--tf-line);
-      background: rgba(255, 255, 255, 0.035);
-      color: var(--tf-muted);
-      font-family: var(--mono);
-      font-size: 10px;
-      padding: 4px;
-    }
-
-    .mapping-cell b,
-    .mapping-cell span {
-      display: block;
-    }
-
-    .mapping-cell b {
-      color: var(--tf-text);
-      font-size: 11px;
-      font-weight: 500;
-    }
-
-    .mapping-cell.is-used {
-      border-color: rgba(34, 211, 238, 0.5);
-      background: rgba(34, 211, 238, 0.09);
-      color: var(--qc-cyan);
-    }
-
-    .mapping-cell.is-active {
-      border-color: var(--tf-orange);
-      background: rgba(245, 147, 34, 0.09);
-      color: var(--tf-orange);
-    }
-
-    .route-timeline {
-      max-height: 210px;
-      overflow: auto;
-    }
-
-    .timeline-row {
-      display: grid;
-      grid-template-columns: 34px 54px minmax(0, 1fr) 70px;
-      gap: 6px;
-      align-items: center;
-      width: 100%;
-      min-height: 30px;
-      border: 0;
-      border-top: 1px solid var(--tf-line);
-      background: rgba(255, 255, 255, 0.025);
-      color: var(--tf-text);
-      cursor: pointer;
-      font-family: var(--mono);
-      font-size: 11px;
-      text-align: left;
-    }
-
-    .timeline-row:first-child {
-      border-top: 0;
-    }
-
-    .timeline-row[aria-current="true"] {
-      background: rgba(245, 147, 34, 0.12);
-      color: var(--tf-text);
-    }
-
-    .timeline-kind {
-      color: var(--tf-orange);
-      text-transform: uppercase;
-    }
-
-    .timeline-row[data-kind="gate"] .timeline-kind {
-      color: var(--tf-blue);
-    }
-
-    .timeline-main {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .timeline-insert {
-      color: var(--tf-muted);
-      text-align: right;
-      padding-right: 8px;
-    }
-
-    .route-legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 10px;
-      color: var(--tf-muted);
-      font-size: 11px;
-    }
-
-    .route-legend span {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .route-legend b {
-      width: 18px;
-      height: 3px;
-      display: inline-block;
-      background: var(--tf-line-dark);
-    }
-
-    .legend-gate {
-      background: var(--qc-cyan) !important;
-    }
-
-    .legend-swap {
-      background: var(--tf-orange) !important;
-    }
-
-    .legend-map {
-      height: 10px !important;
-      border-radius: 50%;
-      background: var(--tf-blue) !important;
-    }
-
-    .comparison-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-
-    .compare-card {
-      border: 1px solid rgba(34, 211, 238, 0.2);
-      border-radius: 6px;
-      background: rgba(7, 13, 31, 0.86);
-      overflow: hidden;
-    }
-
-    .compare-title {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      min-height: 32px;
-      padding: 7px 8px;
-      border-bottom: 1px solid var(--tf-line);
-      background:
-        linear-gradient(90deg, rgba(34, 211, 238, 0.13), transparent 70%),
-        rgba(255, 255, 255, 0.025);
-      color: var(--tf-text);
-      font-weight: 500;
-    }
-
-    .compare-title small {
-      color: var(--tf-muted);
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 400;
-    }
-
-    .compare-metrics {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    .metric {
-      position: relative;
-      min-height: 54px;
-      padding: 7px 9px;
-      border-right: 1px solid var(--tf-line);
-      border-bottom: 1px solid var(--tf-line);
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018));
-    }
-
-    .metric::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 3px;
-      height: 100%;
-      background: transparent;
-    }
-
-    .metric:nth-child(1)::before {
-      background: var(--tf-orange);
-    }
-
-    .metric:nth-child(2)::before {
-      background: var(--qc-cyan);
-    }
-
-    .metric:nth-child(3)::before {
-      background: var(--qc-violet);
-    }
-
-    .metric:nth-child(4)::before {
-      background: var(--tf-blue);
-    }
-
-    .metric span {
-      display: block;
-      color: var(--tf-muted);
-      font-size: 11px;
-      text-transform: uppercase;
-    }
-
-    .metric strong {
-      display: block;
-      margin-top: 3px;
-      font-family: var(--mono);
-      font-size: 20px;
-      font-weight: 500;
-      color: var(--tf-text);
-    }
-
-    .delta-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      margin-top: 10px;
-      border: 1px solid rgba(124, 92, 255, 0.18);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-
-    .delta {
-      min-height: 42px;
-      padding: 8px;
-      border-right: 1px solid var(--tf-line);
-      border-bottom: 1px solid var(--tf-line);
-      background:
-        linear-gradient(180deg, rgba(124, 92, 255, 0.1), rgba(34, 211, 238, 0.045)),
-        rgba(255, 255, 255, 0.025);
-    }
-
-    .delta span {
-      display: block;
-      color: var(--tf-muted);
-      font-size: 10px;
-      text-transform: uppercase;
-    }
-
-    .delta strong {
-      display: block;
-      margin-top: 2px;
-      font-family: var(--mono);
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    .message {
-      min-height: 40px;
-      margin: 14px 0;
-      padding: 8px 10px;
-      border-left: 3px solid var(--qc-cyan);
-      border-radius: 0 6px 6px 0;
-      background: rgba(34, 211, 238, 0.075);
-      color: var(--qc-text-soft);
-      font-size: 12px;
-    }
-
-    .message.error {
-      border-left-color: var(--tf-error);
-      background: rgba(204, 51, 51, 0.055);
-      color: var(--tf-error);
-    }
-
-    .compiled-head {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin: 12px 0 6px;
-    }
-
-    .compiled-head h4 {
-      margin: 0;
-      flex: 1 1 100%;
-    }
-
-    .qasm-tabs {
-      flex: 0 0 174px;
-      width: 174px;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .qasm-tabs button {
-      height: 26px;
-      font-size: 11px;
-    }
-
-    .output-chip {
-      display: inline-flex;
-      align-items: center;
-      min-height: 22px;
-      border: 1px solid var(--tf-line-dark);
-      padding: 0 7px;
-      color: var(--tf-muted);
-      font-size: 11px;
-      white-space: nowrap;
-    }
-
-    .output-chip[data-tone="busy"] {
-      border-color: var(--tf-orange);
-      color: var(--tf-orange);
-    }
-
-    .output-chip[data-tone="ready"] {
-      border-color: var(--qc-cyan);
-      color: var(--tf-blue);
-    }
-
-    .output-chip[data-tone="error"] {
-      border-color: var(--tf-error);
-      color: var(--tf-error);
-    }
-
-    .text-button {
-      min-width: 44px;
-      border: 1px solid var(--tf-line-dark);
-      background: rgba(255, 255, 255, 0.035);
-      color: var(--tf-blue);
-      cursor: pointer;
-      font-size: 12px;
-      text-decoration: none;
-    }
-
-    .text-button:hover {
-      border-color: var(--tf-blue);
-      background: rgba(8, 119, 189, 0.14);
-    }
-
-    .text-button:disabled {
-      border-color: var(--tf-line);
-      color: #aaa;
-      cursor: default;
-      background: rgba(255, 255, 255, 0.025);
-    }
-
-    #compiled-qasm-output {
-      min-height: 108px;
-      max-height: 145px;
-      overflow: auto;
-      padding: 10px;
-      border-color: rgba(34, 211, 238, 0.28);
-      background:
-        linear-gradient(180deg, rgba(34, 211, 238, 0.06), transparent 120px),
-        var(--qc-code);
-      color: #e7f8ff;
-    }
-
-    #compiled-qasm-output code {
-      color: inherit;
-    }
-
-    details {
-      margin: 18px auto 30px;
-      background: rgba(9, 15, 34, 0.92);
-      border: 1px solid var(--tf-line);
-      border-top: 2px solid var(--qc-cyan);
-    }
-
-    summary {
-      padding: 10px 12px;
-      color: var(--tf-text);
-      cursor: pointer;
-      font-weight: 500;
-    }
-
-    .advanced-body {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0;
-      border-top: 1px solid var(--tf-line);
-    }
-
-    .advanced-body section {
-      padding: 14px;
-      border-left: 1px solid var(--tf-line);
-    }
-
-    .advanced-body section:first-child {
-      border-left: 0;
-    }
-
-    .advanced-body p,
-    .advanced-body li {
-      color: var(--qc-text-soft);
-      font-size: 12px;
-    }
-
-    .advanced-body pre {
-      padding: 10px;
-      overflow: auto;
-    }
-
-    .endpoint-label {
-      display: block;
-      margin: 10px 0 5px;
-      color: var(--tf-muted);
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .endpoint-control {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 8px;
-      margin: 0 0 6px;
-    }
-
-    .endpoint-control input {
-      min-width: 0;
-      height: 30px;
-      border: 1px solid var(--tf-line-dark);
-      border-radius: 0;
-      padding: 4px 7px;
-      color: var(--tf-text);
-      background: var(--qc-editor);
-      font-family: var(--mono);
-      font-size: 12px;
-    }
-
-    .endpoint-control button {
-      height: 30px;
-      border: 1px solid var(--tf-blue);
-      border-radius: 0;
-      background: rgba(8, 119, 189, 0.12);
-      color: var(--tf-blue);
-      cursor: pointer;
-      font-size: 12px;
-    }
-
-    .endpoint-note {
-      margin-top: 0;
-      font-family: var(--mono);
-    }
-
-    .tool-list {
-      display: grid;
-      gap: 8px;
-    }
-
-    .tool-list div {
-      display: grid;
-      grid-template-columns: 140px 1fr;
-      gap: 10px;
-      border-top: 1px solid var(--tf-line);
-      padding-top: 8px;
-    }
-
-    .tool-list strong {
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 500;
-    }
-
-    @media (max-width: 1180px) {
-      #main-part {
-        grid-template-columns: minmax(250px, 310px) minmax(0, 1fr);
-        grid-template-areas:
-          "data topology"
-          "output output";
-      }
-
-      .column.output {
-        border-left: 0;
-        border-top: 1px solid var(--tf-line);
-      }
-
-      .route-layout {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
-
-    @media (max-width: 980px) {
-      .topbar,
-      .control-row {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 10px;
-        padding: 12px 0;
-      }
-
-      .brand {
-        display: grid;
-        gap: 2px;
-      }
-
-      .brand h1,
-      .brand .subtitle {
-        white-space: normal;
-      }
-
-      #main-part,
-      .advanced-body {
-        grid-template-columns: 1fr;
-        grid-template-areas:
-          "data"
-          "topology"
-          "output";
-      }
-
-      .route-layout {
-        grid-template-columns: 1fr;
-      }
-
-      .column,
-      .advanced-body section {
-        border-left: 0;
-        border-top: 1px solid var(--tf-line);
-      }
-
-      .column:first-child {
-        border-top: 0;
-      }
-
-      .topology-area,
-      .topology-stage,
-      .topology-stage-wrap {
-        min-height: 0;
-      }
-    }
-
-    @media (max-width: 520px) {
-      .page {
-        padding: 0 10px;
-      }
-
-      .timeline-controls {
-        width: 100%;
-        justify-content: center;
-      }
-
-      .control {
-        width: 100%;
-      }
-
-      .control select {
-        width: 100%;
-      }
-
-      .dataset-list,
-      .comparison-grid,
-      .compare-metrics,
-      .delta-grid,
-      .flow-rail,
-      .event-grid,
-      .tool-list div {
-        grid-template-columns: 1fr;
-      }
-
-      .route-toolbar {
-        align-items: stretch;
-        flex-direction: column;
-      }
-
-      .route-tabs {
-        width: 100%;
-      }
-
-      .column {
-        padding: 16px 10px 18px;
-      }
-
-      .dataset-list {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 6px;
-      }
-
-      .dataset {
-        height: 42px;
-      }
-
-      .dataset b {
-        margin-top: 5px;
-      }
-
-      .input-tabs,
-      .qasm-tabs {
-        grid-template-columns: 1fr;
-      }
-
-      .input-tabs button,
-      .qasm-tabs button {
-        border-left: 0;
-        border-top: 1px solid var(--tf-line-dark);
-      }
-
-      .input-tabs button:first-child,
-      .qasm-tabs button:first-child {
-        border-top: 0;
-      }
-
-      .generator-controls {
-        grid-template-columns: 1fr;
-      }
-
-      textarea {
-        min-height: 220px;
-      }
-    }
-    /* 预览版：浅色科研工作台，保留克制量子动效。 */
-    body.instrument-preview {
-      --sans: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", Helvetica, Arial, sans-serif;
-      --mono: "JetBrains Mono", "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-      --tf-page: #f7f7f7;
-      --tf-panel: #fff;
-      --tf-line: #dedede;
-      --tf-line-dark: #b8b8b8;
-      --tf-text: #333;
-      --tf-muted: #777;
-      --tf-faint: #ececec;
-      --tf-code: #fafafa;
-      --qc-shell: #060812;
-      --qc-shell-2: #0d1230;
-      --qc-panel: #fff;
-      --qc-editor: #fbfbfb;
-      --qc-code: #f8f9fa;
-      --qc-border: rgba(34, 211, 238, 0.24);
-      --qc-cyan: #22d3ee;
-      --qc-violet: #7c5cff;
-      --qc-surface: #fff;
-      --qc-surface-2: #f6f6f6;
-      --qc-surface-3: #eeeeee;
-      --qc-text-soft: #565656;
-      background:
-        radial-gradient(circle at 18px 18px, rgba(34, 211, 238, 0.13) 1px, transparent 1.5px),
-        linear-gradient(135deg, var(--qc-shell) 0%, var(--qc-shell-2) 54%, #09101f 100%);
-      background-size: 32px 32px, auto;
-      color: var(--tf-text);
-    }
-
-    body.instrument-preview::before,
-    body.instrument-preview::after {
-      opacity: 0.12;
-    }
-
-    body.instrument-preview header {
-      background: rgba(6, 8, 18, 0.95);
-      border-bottom-color: rgba(34, 211, 238, 0.2);
-      backdrop-filter: none;
-    }
-
-    body.instrument-preview .topbar {
-      align-items: center !important;
-      flex-direction: row !important;
-      justify-content: space-between;
-      min-height: 48px;
-      padding-top: 0;
-      padding-bottom: 0;
-    }
-
-    body.instrument-preview .brand {
-      display: flex !important;
-      align-items: center;
-      gap: 10px;
-      min-width: 0;
-    }
-
-    body.instrument-preview .brand::before {
-      content: "Q";
-      display: inline-grid;
-      place-items: center;
-      width: 24px;
-      height: 24px;
-      border: 1px solid rgba(34, 211, 238, 0.42);
-      color: var(--qc-cyan);
-      font-family: var(--mono);
-      font-size: 13px;
-      line-height: 1;
-    }
-
-    body.instrument-preview .brand h1 {
-      font-size: 18px;
-      font-weight: 600;
-      line-height: 1;
-      white-space: nowrap;
-    }
-
-    body.instrument-preview .header-meta {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: rgba(255, 255, 255, 0.68);
-      font-family: var(--sans);
-      font-size: 11px;
-      white-space: nowrap;
-    }
-
-    body.instrument-preview .header-meta span {
-      border-left: 1px solid rgba(34, 211, 238, 0.24);
-      padding-left: 8px;
-    }
-
-    body.instrument-preview #top-controls {
-      background:
-        linear-gradient(90deg, rgba(34, 211, 238, 0.035), transparent 34%, rgba(245, 147, 34, 0.035)),
-        rgba(255, 255, 255, 0.98);
-      border-bottom-color: rgba(34, 211, 238, 0.22);
-      backdrop-filter: none;
-    }
-
-    body.instrument-preview .control-row {
-      align-items: center !important;
-      flex-direction: row !important;
-      flex-wrap: wrap;
-      min-height: 62px;
-      gap: 22px;
-      padding-top: 8px;
-      padding-bottom: 8px;
-    }
-
-    body.instrument-preview .icon-button,
-    body.instrument-preview .play-button {
-      color: var(--tf-muted);
-    }
-
-    body.instrument-preview .play-button {
-      color: #fff;
-      box-shadow: 0 0 0 1px rgba(245, 147, 34, 0.28), 0 10px 22px rgba(245, 147, 34, 0.2);
-    }
-
-    body.instrument-preview .control select,
-    body.instrument-preview .baseline-badge,
-    body.instrument-preview .generator-controls select,
-    body.instrument-preview .generator-controls input,
-    body.instrument-preview .endpoint-control input {
-      background: #fff;
-      color: var(--tf-text);
-    }
-
-    body.instrument-preview .control label,
-    body.instrument-preview .control .label,
-    body.instrument-preview h4,
-    body.instrument-preview .endpoint-label {
-      letter-spacing: 0;
-      text-transform: none;
-      font-weight: 600;
-    }
-
-    body.instrument-preview #main-part {
-      background:
-        linear-gradient(180deg, rgba(34, 211, 238, 0.035), transparent 92px),
-        #fff;
-      border-left: 1px solid var(--tf-line);
-      border-right: 1px solid var(--tf-line);
-      border-top: 3px solid transparent;
-      border-image: linear-gradient(90deg, var(--qc-cyan), var(--qc-violet), var(--tf-orange)) 1;
-      border-radius: 0;
-      box-shadow: 0 18px 46px rgba(0, 0, 0, 0.22);
-      overflow: visible;
-    }
-
-    body.instrument-preview #main-part::before {
-      display: none;
-    }
-
-    body.instrument-preview .column,
-    body.instrument-preview .column.data,
-    body.instrument-preview .column.output,
-    body.instrument-preview .column.topology {
-      color: var(--tf-text);
-      background: rgba(255, 255, 255, 0.98);
-      border-left-color: var(--tf-line);
-    }
-
-    body.instrument-preview h4 span,
-    body.instrument-preview .flow-stage b,
-    body.instrument-preview .compare-title,
-    body.instrument-preview .metric strong,
-    body.instrument-preview .inspector-title,
-    body.instrument-preview .event-field strong,
-    body.instrument-preview .mapping-cell b,
-    body.instrument-preview .timeline-row {
-      color: var(--tf-text);
-    }
-
-    body.instrument-preview .section > p,
-    body.instrument-preview .topology-head .route-status,
-    body.instrument-preview .trace-op,
-    body.instrument-preview .advanced-body p,
-    body.instrument-preview .advanced-body li {
-      color: var(--tf-muted);
-    }
-
-    body.instrument-preview .dataset {
-      background: linear-gradient(90deg, transparent 0 3px, #f8f8f8 3px);
-      color: var(--tf-text);
-    }
-
-    body.instrument-preview .input-tabs {
-      display: inline-grid;
-      grid-template-columns: repeat(3, auto);
-      min-width: min(100%, 285px);
-      border-color: #c9c9c9;
-      background: #f7f7f7;
-    }
-
-    body.instrument-preview .input-tabs button {
-      height: 28px;
-      min-width: 88px;
-      padding: 0 14px;
-      border-left-color: #d3d3d3;
-      background: #fff;
-      color: #333;
-      font-size: 12px;
-    }
-
-    body.instrument-preview .input-tabs button[aria-pressed="true"] {
-      background:
-        linear-gradient(180deg, rgba(8, 119, 189, 0.08), rgba(8, 119, 189, 0.02)),
-        #fff !important;
-      box-shadow: inset 0 -2px 0 var(--tf-blue);
-      color: #111;
-    }
-
-    body.instrument-preview textarea,
-    body.instrument-preview pre {
-      background: #fbfbfb;
-      color: #111;
-      border-radius: 0;
-    }
-
-    body.instrument-preview .topology-stage-wrap {
-      border-color: #c7d1d8;
-      border-radius: 0;
-      background:
-        linear-gradient(#eef5f8 1px, transparent 1px),
-        linear-gradient(90deg, #eef5f8 1px, transparent 1px),
-        #fbfcfd;
-      background-size: 32px 32px, 32px 32px, auto;
-      box-shadow: inset 0 0 0 1px #fff;
-    }
-
-    body.instrument-preview .topology-stage-wrap::before {
-      inset: 18px;
-      border-color: rgba(31, 111, 159, 0.16);
-      border-radius: 0;
-    }
-
-    body.instrument-preview .topology-stage-wrap::after {
-      background:
-        linear-gradient(90deg, transparent 0%, rgba(31, 111, 159, 0.08) 48%, transparent 62%);
-      opacity: 0.34;
-    }
-
-    body.instrument-preview .topology-edge {
-      stroke: #aebbc5;
-      stroke-width: 1.55;
-      opacity: 0.95;
-    }
-
-    body.instrument-preview .topology-node {
-      fill: #fff;
-      stroke: #1f6f9f;
-      stroke-width: 1.8;
-    }
-
-    body.instrument-preview .topology-node.mapped {
-      fill: #edf8fc;
-      stroke: #1f6f9f;
-    }
-
-    body.instrument-preview .node-label {
-      fill: #1b2a34;
-      font-size: 11px;
-    }
-
-    body.instrument-preview .compiler-flow,
-    body.instrument-preview .event-card,
-    body.instrument-preview .mapping-panel,
-    body.instrument-preview .timeline-panel,
-    body.instrument-preview .compare-card {
-      background: #fff;
-      border-color: var(--tf-line);
-      border-radius: 0;
-    }
-
-    body.instrument-preview .event-field,
-    body.instrument-preview .mapping-cell,
-    body.instrument-preview .timeline-row,
-    body.instrument-preview .metric,
-    body.instrument-preview .delta {
-      background: #fafafa;
-    }
-
-    body.instrument-preview .comparison-grid {
-      gap: 12px;
-    }
-
-    body.instrument-preview .compare-card {
-      border-color: #d8dde3;
-      box-shadow: inset 0 2px 0 rgba(31, 111, 159, 0.18);
-    }
-
-    body.instrument-preview #npqr-card {
-      box-shadow: inset 0 2px 0 rgba(245, 147, 34, 0.62);
-    }
-
-    body.instrument-preview #sabre-card {
-      box-shadow: inset 0 2px 0 rgba(8, 119, 189, 0.55);
-    }
-
-    body.instrument-preview .compare-title {
-      min-height: 38px;
-      padding: 9px 10px;
-      background: #f8fafb;
-      border-bottom-color: #e1e5e8;
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    body.instrument-preview .compare-title small {
-      font-family: var(--sans);
-      font-size: 11px;
-      color: #777;
-    }
-
-    body.instrument-preview .metric {
-      min-height: 58px;
-      padding: 8px 10px;
-      background: #fff;
-      border-color: #e4e7ea;
-    }
-
-    body.instrument-preview .metric span,
-    body.instrument-preview .delta span,
-    body.instrument-preview .event-field span,
-    body.instrument-preview .timeline-kind,
-    body.instrument-preview .flow-stage {
-      letter-spacing: 0;
-      text-transform: none;
-    }
-
-    body.instrument-preview .metric strong {
-      margin-top: 4px;
-      font-size: 18px;
-      font-weight: 650;
-      color: #1f2a33;
-    }
-
-    body.instrument-preview .metric:first-child strong {
-      font-family: var(--sans);
-      font-size: 14px;
-    }
-
-    body.instrument-preview .delta-grid {
-      border-color: #dbe1e6;
-      border-radius: 0;
-    }
-
-    body.instrument-preview .delta {
-      min-height: 46px;
-      padding: 8px 10px;
-      background: #fbfcfd;
-      border-color: #e4e7ea;
-    }
-
-    body.instrument-preview .delta strong {
-      font-size: 12px;
-      color: #1f2a33;
-    }
-
-    body.instrument-preview .message {
-      background: #f7fbfd;
-      color: #465968;
-      border-left-color: #1f6f9f;
-      border-radius: 0;
-    }
-
-    body.instrument-preview #compiled-qasm-output {
-      background:
-        linear-gradient(180deg, rgba(8, 119, 189, 0.035), transparent 120px),
-        #fbfbfb;
-      color: #111;
-      border-color: var(--tf-line-dark);
-    }
-
-    @media (max-width: 980px) and (min-width: 641px) {
-      body.instrument-preview header {
-        min-height: 44px;
-      }
-
-      body.instrument-preview .topbar {
-        min-height: 44px;
-        padding: 0 16px;
-      }
-
-      body.instrument-preview .brand h1 {
-        font-size: 20px;
-      }
-
-      body.instrument-preview .header-meta {
-        display: none;
-      }
-
-      body.instrument-preview .control-row {
-        gap: 8px 18px;
-        padding: 7px 16px;
-      }
-
-      body.instrument-preview #main-part {
-        grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
-        grid-template-areas:
-          "data topology"
-          "output output";
-      }
-    }
-
-    /* Lab Instrument Playground V2: LabOne / IBM Composer / Nsight inspired. */
-    body.instrument-v2 {
-      --lab-ink: #16212b;
-      --lab-header: #101720;
-      --lab-bg: #e7ebee;
-      --lab-panel: #f5f7f8;
-      --lab-paper: #fff;
-      --lab-line: #c9d1d7;
-      --lab-line-dark: #9faab4;
-      --lab-muted: #5f6c76;
-      --lab-blue: #0b6fa6;
-      --lab-cyan: #16a6c9;
-      --lab-orange: #e88923;
-      --lab-green: #26884f;
-      --lab-red: #b42318;
-      --lab-code: #f6f8f9;
-      --chip-ink: #07111d;
-      --chip-panel: #0c1a2b;
-      --chip-line: #2d465f;
-      --sans: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", Helvetica, Arial, sans-serif;
-      --mono: "JetBrains Mono", "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-      background:
-        linear-gradient(90deg, rgba(13, 20, 29, 0.96), rgba(13, 20, 29, 0.9) 10px, transparent 10px, transparent calc(100% - 10px), rgba(13, 20, 29, 0.9) calc(100% - 10px)),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent 180px),
-        radial-gradient(circle at 16px 16px, rgba(22, 166, 201, 0.1) 1px, transparent 1.5px),
-        var(--lab-bg);
-      background-size: auto, auto, 28px 28px, auto;
-      color: var(--lab-ink);
-      font-family: var(--sans);
-      font-size: 13px;
-      line-height: 1.35;
-    }
-
-    body.instrument-v2::before,
-    body.instrument-v2::after {
-      display: none;
-    }
-
-    body.instrument-v2 .page {
-      width: min(100%, 1360px);
-      padding: 0 14px;
-    }
-
-    body.instrument-v2 header {
-      background:
-        linear-gradient(180deg, #182330 0%, var(--lab-header) 100%);
-      border-bottom: 1px solid #202d38;
-      color: #f7fbff;
-      backdrop-filter: none;
-    }
-
-    body.instrument-v2 header::after {
-      display: block;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(20, 169, 214, 0.5), rgba(239, 143, 26, 0.42), transparent);
-    }
-
-    body.instrument-v2 .topbar {
-      min-height: 38px;
-      align-items: center;
-      gap: 16px;
-    }
-
-    body.instrument-v2 .brand {
-      align-items: center;
-      gap: 8px;
-    }
-
-    body.instrument-v2 .brand::before {
-      content: "";
-      width: 12px;
-      height: 12px;
-      border: 1px solid rgba(22, 166, 201, 0.76);
-      background:
-        linear-gradient(90deg, transparent 5px, rgba(22, 166, 201, 0.72) 5px 6px, transparent 6px),
-        linear-gradient(180deg, transparent 5px, rgba(22, 166, 201, 0.72) 5px 6px, transparent 6px),
-        #142330;
-      box-shadow: 0 0 12px rgba(22, 166, 201, 0.22);
-    }
-
-    body.instrument-v2 .brand h1 {
-      margin: 0;
-      color: #f7fbff;
-      font-size: 16px;
-      font-weight: 650;
-      letter-spacing: 0;
-    }
-
-    body.instrument-v2 .header-meta {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-left: auto;
-      color: #a9b7c4;
-      font-family: var(--sans);
-      font-size: 12px;
-    }
-
-    body.instrument-v2 .tour-button {
-      height: 24px;
-      padding: 0 9px;
-      border: 1px solid rgba(22, 166, 201, 0.42);
-      background: rgba(255, 255, 255, 0.04);
-      color: #dce8f2;
-      border-radius: 0;
-      font-family: var(--sans);
-      font-size: 12px;
-      cursor: pointer;
-    }
-
-    body.instrument-v2 #top-controls {
-      background:
-        linear-gradient(180deg, #fbfcfd 0%, #e9eef2 100%);
-      border-bottom: 1px solid var(--lab-line);
-      backdrop-filter: none;
-    }
-
-    body.instrument-v2 .control-row {
-      min-height: 48px;
-      gap: 18px;
-      overflow: visible;
-    }
-
-    body.instrument-v2 .timeline-controls {
-      gap: 4px;
-      padding-right: 10px;
-      border-right: 1px solid var(--lab-line);
-    }
-
-    body.instrument-v2 .icon-button,
-    body.instrument-v2 .play-button {
-      border-radius: 0;
-      color: var(--lab-ink);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
-    }
-
-    body.instrument-v2 .icon-button {
-      width: 42px;
-      height: 40px;
-      border: 1px solid transparent;
-      background: rgba(255, 255, 255, 0.38);
-      color: #26323d;
-    }
-
-    body.instrument-v2 .icon-button:hover {
-      border-color: var(--lab-line-dark);
-      background: #fff;
-      color: var(--lab-blue);
-    }
-
-    body.instrument-v2 .play-button {
-      width: 52px;
-      height: 40px;
-      border: 1px solid #d17a12;
-      background: linear-gradient(180deg, #ffad40 0%, var(--lab-orange) 100%);
-      color: #111820;
-      font-weight: 700;
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.42),
-        0 0 0 1px rgba(239, 143, 26, 0.22),
-        0 8px 18px rgba(239, 143, 26, 0.18);
-    }
-
-    body.instrument-v2 .play-button:hover {
-      background: #ff9d28;
-      transform: none;
-    }
-
-    body.instrument-v2 .play-button[data-state="running"] {
-      background: #202a34;
-      color: #fff;
-      border-color: #202a34;
-    }
-
-    body.instrument-v2.is-replaying .play-button {
-      border-color: #12a9d6;
-      background: linear-gradient(180deg, #eaffff 0%, #bdeefa 100%);
-      color: #0b3444;
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.8),
-        0 0 0 1px rgba(20, 169, 214, 0.22),
-        0 0 18px rgba(20, 169, 214, 0.24);
-    }
-
-    body.instrument-v2 .command-icon {
-      min-height: 20px;
-      font-size: 16px;
-    }
-
-    body.instrument-v2 .command-label {
-      font-size: 9px;
-    }
-
-    body.instrument-v2 .control {
-      min-width: 92px;
-      gap: 2px;
-    }
-
-    body.instrument-v2 .status-control {
-      min-width: 42px;
-    }
-
-    body.instrument-v2 .control label,
-    body.instrument-v2 .control .label,
-    body.instrument-v2 h4,
-    body.instrument-v2 .endpoint-label {
-      color: var(--lab-muted);
-      font-size: 10px;
-      font-weight: 650;
-      letter-spacing: 0;
-      text-transform: none;
-    }
-
-    body.instrument-v2 .control select,
-    body.instrument-v2 .baseline-badge,
-    body.instrument-v2 .generator-controls select,
-    body.instrument-v2 .generator-controls input,
-    body.instrument-v2 .endpoint-control input {
-      height: 28px;
-      border: 1px solid var(--lab-line-dark);
-      background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
-      color: var(--lab-ink);
-      border-radius: 0;
-      font-size: 12px;
-    }
-
-    body.instrument-v2 .baseline-badge {
-      min-height: 28px;
-      padding: 0 8px;
-      font-family: var(--sans);
-      border-left: 3px solid var(--lab-blue);
-    }
-
-    body.instrument-v2 .backend {
-      min-width: auto;
-      height: 28px;
-      gap: 0;
-    }
-
-    body.instrument-v2 .backend-dot {
-      width: 8px;
-      height: 8px;
-    }
-
-    body.instrument-v2 #main-part {
-      display: grid;
-      grid-template-columns: 286px minmax(560px, 1fr) 352px;
-      grid-template-areas:
-        "data topology output"
-        "inspector inspector inspector";
-      min-height: calc(100vh - 86px);
-      background: var(--lab-paper);
-      border: 1px solid var(--lab-line);
-      border-top: 2px solid var(--lab-orange);
-      border-radius: 0;
-      box-shadow:
-        0 24px 70px rgba(8, 16, 26, 0.18),
-        0 0 0 1px rgba(255, 255, 255, 0.62);
-      overflow: hidden;
-    }
-
-    body.instrument-v2 #main-part::before {
-      display: none;
-    }
-
-    body.instrument-v2 .column {
-      padding: 14px 16px 16px;
-      background: var(--lab-paper);
-      color: var(--lab-ink);
-      border-left: 1px solid var(--lab-line);
-    }
-
-    body.instrument-v2 .column:first-child {
-      border-left: 0;
-    }
-
-    body.instrument-v2 .column.data {
-      grid-area: data;
-      background:
-        linear-gradient(180deg, #fbfcfd 0%, #f2f5f7 100%);
-    }
-
-    body.instrument-v2 .column.topology {
-      grid-area: topology;
-      background:
-        linear-gradient(180deg, #fbfcfd 0%, #f1f5f7 100%);
-    }
-
-    body.instrument-v2 .column.output {
-      grid-area: output;
-      background:
-        linear-gradient(180deg, #fbfcfd 0%, #f4f7f9 100%);
-    }
-
-    body.instrument-v2 h4 {
-      margin: 0 0 12px;
-      color: var(--lab-muted);
-    }
-
-    body.instrument-v2 h4 span {
-      color: var(--lab-ink);
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    body.instrument-v2 h4::after {
-      background: var(--lab-line);
-    }
-
-    body.instrument-v2 .section {
-      margin-bottom: 12px;
-    }
-
-    body.instrument-v2 .section > p {
-      display: none;
-    }
-
-    body.instrument-v2 .input-tabs,
-    body.instrument-v2 .qasm-tabs,
-    body.instrument-v2 .route-tabs {
-      border: 1px solid var(--lab-line-dark);
-      background: linear-gradient(180deg, #fff, #edf2f6);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
-    }
-
-    body.instrument-v2 .input-tabs {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      width: 100%;
-      min-width: 0;
-    }
-
-    body.instrument-v2 .input-tabs button,
-    body.instrument-v2 .qasm-tabs button,
-    body.instrument-v2 .route-tabs button {
-      height: 28px;
-      border-left: 1px solid var(--lab-line);
-      background: transparent;
-      color: var(--lab-ink);
-      font-size: 12px;
-    }
-
-    body.instrument-v2 .input-tabs button:first-child,
-    body.instrument-v2 .qasm-tabs button:first-child,
-    body.instrument-v2 .route-tabs button:first-child {
-      border-left: 0;
-    }
-
-    body.instrument-v2 .input-tabs button[aria-pressed="true"],
-    body.instrument-v2 .qasm-tabs button[aria-pressed="true"],
-    body.instrument-v2 .route-tabs button[aria-pressed="true"] {
-      background: var(--lab-header) !important;
-      color: #fff;
-      box-shadow: inset 0 -2px 0 var(--lab-cyan);
-    }
-
-    body.instrument-v2 .dataset-list {
-      grid-template-columns: 1fr;
-      gap: 0;
-      border: 1px solid var(--lab-line);
-      background: #c8d2d9;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
-    }
-
-    body.instrument-v2 .dataset {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      align-items: center;
-      height: 34px;
-      border: 0;
-      border-top: 1px solid var(--lab-line);
-      background: linear-gradient(180deg, #fff 0%, #f7f9fa 100%);
-      color: var(--lab-ink);
-      transition: background 0.14s ease, color 0.14s ease;
-    }
-
-    body.instrument-v2 .dataset:first-child {
-      border-top: 0;
-    }
-
-    body.instrument-v2 .dataset:hover,
-    body.instrument-v2 .dataset[aria-pressed="true"] {
-      border: 0;
-      border-top: 1px solid var(--lab-line);
-      background: linear-gradient(180deg, #fff8ef 0%, #ffefdc 100%);
-      transform: none;
-    }
-
-    body.instrument-v2 .dataset[aria-pressed="true"] {
-      box-shadow: inset 4px 0 0 var(--lab-orange);
-    }
-
-    body.instrument-v2 .dataset b {
-      margin: 0 9px 0 12px;
-      font-size: 12px;
-      font-weight: 650;
-    }
-
-    body.instrument-v2 .dataset span {
-      margin: 0 10px 0 0;
-      color: var(--lab-muted);
-      font-size: 10px;
-      text-align: right;
-    }
-
-    body.instrument-v2 .generator-controls {
-      grid-template-columns: 1fr 62px 62px;
-      gap: 6px;
-    }
-
-    body.instrument-v2 .generator-actions button,
-    body.instrument-v2 .text-button,
-    body.instrument-v2 .endpoint-control button {
-      height: 28px;
-      border: 1px solid var(--lab-blue);
-      background: #fff;
-      color: var(--lab-blue);
-      border-radius: 0;
-      font-size: 12px;
-    }
-
-    body.instrument-v2 .input-meta {
-      margin-bottom: 4px;
-      color: var(--lab-muted);
-      font-family: var(--sans);
-      font-size: 11px;
-    }
-
-    body.instrument-v2 textarea,
-    body.instrument-v2 pre {
-      border: 1px solid var(--lab-line-dark);
-      background:
-        linear-gradient(180deg, rgba(0, 111, 174, 0.025), transparent 120px),
-        var(--lab-code);
-      color: #101820;
-      border-radius: 0;
-      font-family: var(--mono);
-      font-size: 11px;
-      line-height: 1.45;
-    }
-
-    body.instrument-v2 textarea {
-      min-height: 250px;
-      padding: 9px;
-      resize: vertical;
-    }
-
-    body.instrument-v2 textarea[readonly] {
-      color: #26323d;
-    }
-
-    body.instrument-v2 .validation-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      min-height: 28px;
-      margin-top: 6px;
-      padding: 5px 8px;
-      border: 1px solid var(--lab-line);
-      border-left: 3px solid var(--lab-muted);
-      background: linear-gradient(180deg, #fff, #f7fafc);
-      color: var(--lab-muted);
-      font-size: 11px;
-    }
-
-    body.instrument-v2 .validation-bar[data-status="OK"] {
-      border-left-color: var(--lab-green);
-    }
-
-    body.instrument-v2 .validation-bar[data-status="Invalid"] {
-      border-left-color: var(--lab-red);
-      color: var(--lab-red);
-    }
-
-    body.instrument-v2 .validation-bar strong {
-      color: var(--lab-ink);
-      font-weight: 700;
-    }
-
-    body.instrument-v2 .validation-stats {
-      display: flex;
-      gap: 8px;
-      white-space: nowrap;
-      font-family: var(--mono);
-    }
-
-    body.instrument-v2 .topology-area {
-      display: grid;
-      grid-template-rows: auto auto 1fr;
-    }
-
-    body.instrument-v2 .route-toolbar,
-    body.instrument-v2 .topology-head {
-      margin-bottom: 8px;
-    }
-
-    body.instrument-v2 .route-tabs {
-      grid-template-columns: repeat(2, 112px);
-    }
-
-    body.instrument-v2 .route-count,
-    body.instrument-v2 .topology-head .route-status {
-      color: var(--lab-muted);
-      font-family: var(--mono);
-      font-size: 11px;
-    }
-
-    body.instrument-v2 .topology-head {
-      color: #203040;
-      font-weight: 650;
-    }
-
-    body.instrument-v2 .topology-stage-wrap {
-      aspect-ratio: 16 / 10.4;
-      border: 1px solid #10253a;
-      background:
-        linear-gradient(90deg, rgba(22, 166, 201, 0.16) 1px, transparent 1px),
-        linear-gradient(180deg, rgba(22, 166, 201, 0.1) 1px, transparent 1px),
-        radial-gradient(circle at 20% 16%, rgba(22, 166, 201, 0.16), transparent 23%),
-        radial-gradient(circle at 88% 78%, rgba(232, 137, 35, 0.12), transparent 26%),
-        linear-gradient(135deg, var(--chip-ink) 0%, var(--chip-panel) 52%, #07101c 100%);
-      background-size: 32px 32px, 32px 32px, auto, auto, auto;
-      border-radius: 2px;
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-        inset 0 0 0 8px rgba(3, 9, 18, 0.18),
-        inset 0 0 42px rgba(22, 166, 201, 0.07),
-        0 16px 36px rgba(10, 22, 36, 0.2);
-    }
-
-    body.instrument-v2 .topology-stage-wrap .chip-scale {
-      position: absolute;
-      inset: 18px;
-      pointer-events: none;
-      opacity: 0.52;
-      background:
-        linear-gradient(90deg, rgba(22, 166, 201, 0.42) 0 10px, transparent 10px 100%) left top / 48px 1px repeat-x,
-        linear-gradient(90deg, rgba(22, 166, 201, 0.42) 0 10px, transparent 10px 100%) left bottom / 48px 1px repeat-x,
-        linear-gradient(180deg, rgba(22, 166, 201, 0.42) 0 10px, transparent 10px 100%) left top / 1px 48px repeat-y,
-        linear-gradient(180deg, rgba(22, 166, 201, 0.42) 0 10px, transparent 10px 100%) right top / 1px 48px repeat-y;
-      background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
-    }
-
-    body.instrument-v2 .topology-stage-wrap::before {
-      inset: 16px;
-      border: 1px solid rgba(22, 166, 201, 0.18);
-      border-radius: 0;
-      background:
-        linear-gradient(90deg, rgba(22, 166, 201, 0.14) 0 1px, transparent 1px 100%),
-        linear-gradient(180deg, rgba(124, 92, 255, 0.1) 0 1px, transparent 1px 100%);
-      background-size: 48px 48px;
-      opacity: 0.46;
-    }
-
-    body.instrument-v2 .topology-stage-wrap::after {
-      background:
-        linear-gradient(90deg, transparent 0%, rgba(22, 166, 201, 0.2) 48%, rgba(255, 255, 255, 0.08) 51%, transparent 66%),
-        linear-gradient(180deg, transparent 0%, rgba(124, 92, 255, 0.08), transparent 100%);
-      opacity: 0.34;
-      animation: chip-scan 5.2s ease-in-out infinite;
-    }
-
-    body.instrument-v2.is-compiling .topology-stage-wrap::after {
-      opacity: 0.86;
-      animation-duration: 2.1s;
-    }
-
-    body.instrument-v2.is-replaying .topology-stage-wrap {
-      border-color: rgba(32, 191, 233, 0.62);
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.07),
-        inset 0 0 52px rgba(20, 169, 214, 0.12),
-        0 16px 40px rgba(10, 22, 36, 0.24),
-        0 0 24px rgba(20, 169, 214, 0.12);
-      animation: replay-frame-pulse 1.8s ease-in-out infinite alternate;
-    }
-
-    body.instrument-v2 .topology-edge {
-      stroke: var(--chip-line);
-      stroke-width: 1.25;
-      opacity: 0.82;
-      transition: stroke 0.18s ease, stroke-width 0.18s ease, opacity 0.18s ease;
-    }
-
-    body.instrument-v2 .topology-edge.gate-edge {
-      stroke: #20bfe9;
-      opacity: 0.95;
-    }
-
-    body.instrument-v2 .topology-edge.swap-edge {
-      stroke: #f59b2e;
-      opacity: 1;
-    }
-
-    body.instrument-v2 .topology-edge.active {
-      stroke-width: 4.2;
-      stroke-dasharray: 13 8;
-      stroke-linecap: round;
-      filter: drop-shadow(0 0 7px rgba(245, 155, 46, 0.58));
-      animation: route-pulse 0.72s linear infinite;
-    }
-
-    body.instrument-v2 .topology-edge.active.gate-edge {
-      filter: drop-shadow(0 0 7px rgba(32, 191, 233, 0.52));
-    }
-
-    body.instrument-v2 .topology-runner-track {
-      stroke-width: 7;
-      stroke-linecap: round;
-      opacity: 0.22;
-      pointer-events: none;
-      filter: drop-shadow(0 0 10px rgba(32, 191, 233, 0.42));
-    }
-
-    body.instrument-v2 .topology-runner-track.gate-edge {
-      opacity: 0.34;
-    }
-
-    body.instrument-v2 .topology-runner-track.swap-edge {
-      opacity: 0.38;
-      filter: drop-shadow(0 0 10px rgba(245, 155, 46, 0.5));
-    }
-
-    body.instrument-v2 .topology-trail {
-      stroke-width: 5;
-      stroke-linecap: round;
-      pointer-events: none;
-      opacity: var(--trail-opacity, 0.2);
-      filter: drop-shadow(0 0 6px rgba(32, 191, 233, 0.3));
-    }
-
-    body.instrument-v2 .topology-trail.gate-edge {
-      stroke: #20bfe9;
-    }
-
-    body.instrument-v2 .topology-trail.swap-edge {
-      stroke: #f59b2e;
-      filter: drop-shadow(0 0 6px rgba(245, 155, 46, 0.36));
-    }
-
-    body.instrument-v2 .topology-runner {
-      r: 5.5;
-      fill: #eaffff;
-      stroke: rgba(255, 255, 255, 0.82);
-      stroke-width: 1.4;
-      pointer-events: none;
-      filter: drop-shadow(0 0 8px rgba(32, 191, 233, 0.8));
-      animation: runner-pulse 0.72s ease-in-out infinite alternate;
-    }
-
-    body.instrument-v2 .topology-runner.swap-edge {
-      fill: #fff2dc;
-      filter: drop-shadow(0 0 8px rgba(245, 155, 46, 0.86));
-    }
-
-    body.instrument-v2 .topology-packet {
-      r: 3.8;
-      fill: #c9f8ff;
-      opacity: 0.9;
-      pointer-events: none;
-      filter: drop-shadow(0 0 7px rgba(32, 191, 233, 0.72));
-    }
-
-    body.instrument-v2 .topology-packet.swap-edge {
-      fill: #ffd08a;
-      filter: drop-shadow(0 0 7px rgba(245, 155, 46, 0.74));
-    }
-
-    body.instrument-v2 .topology-packet.reverse {
-      opacity: 0.72;
-    }
-
-    body.instrument-v2 .topology-runner-tail {
-      stroke-width: 3.2;
-      stroke-linecap: round;
-      stroke-dasharray: 16 92;
-      opacity: 0.82;
-      pointer-events: none;
-      animation: runner-tail 0.72s linear infinite;
-    }
-
-    body.instrument-v2 .topology-runner-tail.gate-edge {
-      stroke: #9af3ff;
-      filter: drop-shadow(0 0 8px rgba(32, 191, 233, 0.58));
-    }
-
-    body.instrument-v2 .topology-runner-tail.swap-edge {
-      stroke: #ffd087;
-      filter: drop-shadow(0 0 8px rgba(245, 155, 46, 0.66));
-    }
-
-    body.instrument-v2 .topology-node {
-      fill: #081726;
-      stroke: #44bedb;
-      stroke-width: 1.65;
-      transition: fill 0.18s ease, stroke 0.18s ease, stroke-width 0.18s ease, filter 0.18s ease;
-    }
-
-    body.instrument-v2 .topology-node.mapped {
-      fill: #102f45;
-      stroke: #53d8f5;
-      filter: drop-shadow(0 0 4px rgba(20, 169, 214, 0.26));
-    }
-
-    body.instrument-v2 .topology-node.active {
-      fill: #102132;
-      stroke: #f59b2e;
-      stroke-width: 2.8;
-      filter: drop-shadow(0 0 6px rgba(245, 155, 46, 0.42));
-    }
-
-    body.instrument-v2 .topology-node.pair-active {
-      animation: pair-node-pulse 0.72s ease-in-out infinite alternate;
-    }
-
-    body.instrument-v2 .topology-node.pair-active.gate-active {
-      fill: #102c3a;
-      stroke: #20bfe9;
-      filter: drop-shadow(0 0 7px rgba(32, 191, 233, 0.46));
-    }
-
-    body.instrument-v2 .topology-node.pair-active.swap-active {
-      fill: #2a2214;
-      stroke: #f59b2e;
-      filter: drop-shadow(0 0 7px rgba(245, 155, 46, 0.46));
-    }
-
-    body.instrument-v2 .topology-node-ring {
-      fill: none;
-      stroke-width: 1.4;
-      opacity: 0.7;
-      pointer-events: none;
-      animation: node-ring-pulse 0.72s ease-out infinite;
-    }
-
-    body.instrument-v2 .topology-node-ring.gate-active {
-      stroke: #20bfe9;
-      filter: drop-shadow(0 0 8px rgba(32, 191, 233, 0.48));
-    }
-
-    body.instrument-v2 .topology-node-ring.swap-active {
-      stroke: #f59b2e;
-      filter: drop-shadow(0 0 8px rgba(245, 155, 46, 0.46));
-    }
-
-    body.instrument-v2 .topology-node-ring.single-active {
-      stroke: #9b82ff;
-      filter: drop-shadow(0 0 7px rgba(155, 130, 255, 0.42));
-    }
-
-    body.instrument-v2 .topology-node.single-active {
-      fill: #171538;
-      stroke: #9b82ff;
-      stroke-width: 2.8;
-      filter: drop-shadow(0 0 6px rgba(155, 130, 255, 0.4));
-      animation: node-pulse 0.82s ease-in-out infinite alternate;
-    }
-
-    body.instrument-v2 g:hover .topology-node {
-      fill: #132f55;
-      stroke: #9b82ff;
-      stroke-width: 3;
-    }
-
-    body.instrument-v2 .node-label {
-      fill: #e9f7ff;
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 700;
-    }
-
-    body.instrument-v2 .node-map-label {
-      fill: #a7eaff;
-      font-size: 9px;
-    }
-
-    @keyframes runner-pulse {
-      from {
-        opacity: 0.72;
-        stroke-width: 1.2;
-      }
-
-      to {
-        opacity: 1;
-        stroke-width: 3;
-      }
-    }
-
-    @keyframes runner-tail {
-      from {
-        stroke-dashoffset: 0;
-      }
-
-      to {
-        stroke-dashoffset: -108;
-      }
-    }
-
-    @keyframes pair-node-pulse {
-      from {
-        stroke-width: 2.6;
-        filter: drop-shadow(0 0 5px rgba(245, 155, 46, 0.42));
-      }
-
-      to {
-        stroke-width: 4.2;
-        filter: drop-shadow(0 0 13px rgba(245, 155, 46, 0.78));
-      }
-    }
-
-    @keyframes node-ring-pulse {
-      from {
-        opacity: 0.72;
-      }
-
-      to {
-        opacity: 0;
-      }
-    }
-
-    @keyframes replay-frame-pulse {
-      from {
-        box-shadow:
-          inset 0 0 0 1px rgba(255, 255, 255, 0.07),
-          inset 0 0 42px rgba(20, 169, 214, 0.1),
-          0 16px 34px rgba(10, 22, 36, 0.22),
-          0 0 14px rgba(20, 169, 214, 0.08);
-      }
-
-      to {
-        box-shadow:
-          inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-          inset 0 0 62px rgba(20, 169, 214, 0.16),
-          0 18px 42px rgba(10, 22, 36, 0.26),
-          0 0 28px rgba(20, 169, 214, 0.16);
-      }
-    }
-
-    body.instrument-v2 .compiler-flow,
-    body.instrument-v2 .event-card,
-    body.instrument-v2 .mapping-panel,
-    body.instrument-v2 .timeline-panel {
-      border: 1px solid var(--lab-line);
-      background: linear-gradient(180deg, #fff, #fbfcfd);
-      border-radius: 0;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
-    }
-
-    body.instrument-v2 .compiler-flow {
-      margin-top: 10px;
-      border-top: 2px solid #dbe5ec;
-    }
-
-    body.instrument-v2 .flow-stage {
-      min-height: 38px;
-      padding: 7px 8px 7px 20px;
-      color: var(--lab-muted);
-      font-size: 10px;
-      text-transform: none;
-    }
-
-    body.instrument-v2 .flow-stage b {
-      color: var(--lab-ink);
-      font-size: 11px;
-    }
-
-    body.instrument-v2 .flow-stage.is-active {
-      background: linear-gradient(90deg, #fff6eb, #fff);
-      color: var(--lab-orange);
-      box-shadow: inset 3px 0 0 var(--lab-orange);
-    }
-
-    body.instrument-v2.is-compiling .flow-stage.is-active {
-      background: linear-gradient(90deg, #edfaff, #fff);
-      color: var(--lab-blue);
-      box-shadow: inset 3px 0 0 var(--lab-cyan);
-    }
-
-    body.instrument-v2 .trace-readout {
-      min-height: 40px;
-      padding: 7px 9px;
-    }
-
-    body.instrument-v2 .trace-op {
-      color: var(--lab-muted);
-      font-family: var(--sans);
-      font-size: 12px;
-    }
-
-    body.instrument-v2 .trace-bar span {
-      background: linear-gradient(90deg, #20bfe9, #f59b2e);
-      box-shadow: 0 0 10px rgba(32, 191, 233, 0.24);
-    }
-
-    body.instrument-v2 .route-inspector {
-      grid-area: inspector;
-      display: grid;
-      grid-template-columns: 250px 1fr 1.1fr;
-      gap: 10px;
-      padding: 12px 16px 16px;
-      border-top: 1px solid var(--lab-line);
-      background: #f6f7f8;
-      scroll-margin-top: 92px;
-    }
-
-    body.instrument-v2:not(.has-results) .route-inspector {
-      display: none;
-    }
-
-    body.instrument-v2 .event-card,
-    body.instrument-v2 .mapping-panel,
-    body.instrument-v2 .timeline-panel {
-      overflow: hidden;
-    }
-
-    body.instrument-v2 .timeline-panel {
-      grid-column: auto;
-    }
-
-    body.instrument-v2 .route-timeline {
-      max-height: 158px;
-      overflow: auto;
-      overscroll-behavior: contain;
-      scroll-behavior: auto;
-    }
-
-    body.instrument-v2 .inspector-title {
-      color: var(--lab-ink);
-      border-bottom: 1px solid var(--lab-line);
-      font-size: 12px;
-    }
-
-    body.instrument-v2 .event-field,
-    body.instrument-v2 .mapping-cell,
-    body.instrument-v2 .timeline-row {
-      background: #fff;
-      border-color: var(--lab-line);
-    }
-
-    body.instrument-v2 .event-field span,
-    body.instrument-v2 .timeline-kind,
-    body.instrument-v2 .metric span,
-    body.instrument-v2 .delta span {
-      color: var(--lab-muted);
-      letter-spacing: 0;
-      text-transform: none;
-    }
-
-    body.instrument-v2 .mapping-grid {
-      grid-template-columns: repeat(10, minmax(0, 1fr));
-      gap: 4px;
-    }
-
-    body.instrument-v2 .timeline-row {
-      grid-template-columns: 34px 54px minmax(0, 1fr) 58px;
-      min-height: 24px;
-      color: var(--lab-ink);
-      font-family: var(--mono);
-      font-size: 10px;
-    }
-
-    body.instrument-v2 .timeline-row[aria-current="true"] {
-      background: linear-gradient(90deg, rgba(20, 169, 214, 0.16), #fff 72%);
-      box-shadow: inset 3px 0 0 var(--lab-cyan);
-      color: #102f45;
-    }
-
-    body.instrument-v2 .timeline-row[aria-current="true"][data-kind="swap"] {
-      background: linear-gradient(90deg, rgba(239, 143, 26, 0.18), #fff 72%);
-      box-shadow: inset 3px 0 0 var(--lab-orange);
-    }
-
-    body.instrument-v2 .route-legend {
-      color: var(--lab-muted);
-      font-size: 11px;
-    }
-
-    body.instrument-v2 .comparison-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      border: 1px solid var(--lab-line);
-      background: linear-gradient(180deg, #fff, #fbfcfd);
-      font-size: 12px;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
-    }
-
-    body.instrument-v2 .comparison-table th,
-    body.instrument-v2 .comparison-table td {
-      padding: 7px 8px;
-      border: 0;
-      border-left: 1px solid var(--lab-line);
-      border-top: 1px solid var(--lab-line);
-      text-align: left;
-      white-space: nowrap;
-    }
-
-    body.instrument-v2 .comparison-table thead tr:first-child th {
-      border-top: 0;
-    }
-
-    body.instrument-v2 .comparison-table th:first-child,
-    body.instrument-v2 .comparison-table td:first-child {
-      border-left: 0;
-    }
-
-    body.instrument-v2 .comparison-table thead th {
-      background: linear-gradient(180deg, #eef3f7, #e4ebf0);
-      color: var(--lab-muted);
-      font-size: 11px;
-      font-weight: 650;
-    }
-
-    body.instrument-v2 .comparison-table tbody th {
-      width: 68px;
-      color: var(--lab-ink);
-      font-weight: 700;
-    }
-
-    body.instrument-v2 .comparison-table td {
-      font-family: var(--mono);
-      color: #101820;
-    }
-
-    body.instrument-v2 #npqr-card {
-      box-shadow: inset 3px 0 0 var(--lab-orange), inset 0 1px 0 rgba(239, 143, 26, 0.08);
-    }
-
-    body.instrument-v2 #sabre-card {
-      box-shadow: inset 3px 0 0 var(--lab-blue), inset 0 1px 0 rgba(0, 111, 174, 0.08);
-    }
-
-    body.instrument-v2 .delta-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      margin-top: 10px;
-      border: 1px solid var(--lab-line);
-      border-radius: 0;
-      overflow: hidden;
-    }
-
-    body.instrument-v2 .delta {
-      display: grid;
-      grid-template-columns: 64px minmax(0, 1fr);
-      align-items: baseline;
-      min-height: 30px;
-      padding: 6px 9px;
-      background: linear-gradient(180deg, #fff, #f8fafc);
-      border-top: 1px solid var(--lab-line);
-      border-color: var(--lab-line);
-    }
-
-    body.instrument-v2 .delta:first-child {
-      border-top: 0;
-    }
-
-    body.instrument-v2 .delta strong {
-      margin-top: 0;
-      color: var(--lab-ink);
-      font-family: var(--mono);
-      font-size: 11px;
-      text-align: right;
-    }
-
-    body.instrument-v2 .message {
-      min-height: 30px;
-      margin: 10px 0;
-      padding: 7px 9px;
-      border-left: 2px solid var(--lab-cyan);
-      background: linear-gradient(90deg, #f0fbff 0%, #fbfdfe 100%);
-      color: #40515d;
-      border-radius: 0;
-      font-size: 12px;
-    }
-
-    body.instrument-v2 .message.error {
-      border-left-color: var(--lab-red);
-      background: #fff5f5;
-      color: var(--lab-red);
-    }
-
-    body.instrument-v2 .qasm-details {
-      margin: 10px 0 0;
-      border: 1px solid var(--lab-line);
-      border-top: 0;
-      background: linear-gradient(180deg, #fff, #fbfcfd);
-    }
-
-    body.instrument-v2 .qasm-details summary {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 8px 9px;
-      border-top: 1px solid var(--lab-line);
-      color: var(--lab-ink);
-      font-weight: 650;
-      cursor: pointer;
-      background: linear-gradient(180deg, #f8fafc, #eef3f7);
-    }
-
-    body.instrument-v2 .compiled-head {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto auto;
-      gap: 8px;
-      align-items: center;
-      margin: 8px;
-    }
-
-    body.instrument-v2 .compiled-head h4 {
-      display: none;
-    }
-
-    body.instrument-v2 .qasm-tabs {
-      width: auto;
-      flex: none;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    body.instrument-v2 .output-chip {
-      min-height: 20px;
-      border: 1px solid var(--lab-line-dark);
-      color: var(--lab-muted);
-      font-size: 11px;
-    }
-
-    body.instrument-v2 .output-chip[data-tone="busy"] {
-      border-color: var(--lab-orange);
-      color: #8a4a00;
-    }
-
-    body.instrument-v2 .output-chip[data-tone="ready"] {
-      border-color: var(--lab-green);
-      color: var(--lab-green);
-    }
-
-    body.instrument-v2 .output-chip[data-tone="error"] {
-      border-color: var(--lab-red);
-      color: var(--lab-red);
-    }
-
-    body.instrument-v2 #compiled-qasm-output {
-      min-height: 170px;
-      max-height: 280px;
-      margin: 8px;
-      padding: 9px;
-      background: var(--lab-code);
-      color: #101820;
-      border-color: var(--lab-line-dark);
-    }
-
-    body.instrument-v2 #advanced {
-      margin: 14px auto 28px;
-      background: #fff;
-      border: 1px solid var(--lab-line);
-      border-top: 2px solid var(--lab-header);
-    }
-
-    body.instrument-v2 #advanced summary {
-      color: var(--lab-ink);
-    }
-
-    body.instrument-v2 .advanced-body {
-      border-top: 1px solid var(--lab-line);
-    }
-
-    body.instrument-v2 .advanced-body section {
-      border-left: 1px solid var(--lab-line);
-    }
-
-    body.instrument-v2 .advanced-body p,
-    body.instrument-v2 .advanced-body li {
-      color: var(--lab-muted);
-    }
-
-    body.instrument-v2 .tour-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 30;
-      background: rgba(7, 15, 24, 0.54);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.16s ease;
-    }
-
-    body.instrument-v2.tour-open .tour-overlay {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    body.instrument-v2 .tour-card {
-      position: fixed;
-      z-index: 31;
-      width: min(320px, calc(100vw - 28px));
-      padding: 14px;
-      border: 1px solid var(--lab-line-dark);
-      border-top: 3px solid var(--lab-orange);
-      background: #fff;
-      color: var(--lab-ink);
-      box-shadow: 0 18px 44px rgba(7, 15, 24, 0.22);
-      opacity: 0;
-      pointer-events: none;
-      transform: translateY(6px);
-      transition: opacity 0.16s ease, transform 0.16s ease;
-    }
-
-    body.instrument-v2.tour-open .tour-card {
-      opacity: 1;
-      pointer-events: auto;
-      transform: translateY(0);
-    }
-
-    body.instrument-v2 .tour-card h3 {
-      margin: 0 0 8px;
-      font-size: 14px;
-    }
-
-    body.instrument-v2 .tour-card p {
-      margin: 0;
-      color: var(--lab-muted);
-      font-size: 12px;
-      line-height: 1.55;
-    }
-
-    body.instrument-v2 .tour-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    body.instrument-v2 .tour-actions button {
-      height: 28px;
-      padding: 0 12px;
-      border: 1px solid var(--lab-line-dark);
-      background: #fff;
-      color: var(--lab-ink);
-      border-radius: 0;
-      cursor: pointer;
-    }
-
-    body.instrument-v2 .tour-actions .primary {
-      border-color: var(--lab-blue);
-      background: var(--lab-blue);
-      color: #fff;
-    }
-
-    body.instrument-v2 [data-tour-target="true"] {
-      position: relative;
-      z-index: 32;
-      outline: 2px solid var(--lab-orange);
-      outline-offset: 3px;
-      box-shadow: 0 0 0 9999px rgba(7, 15, 24, 0.18);
-    }
-
-    @media (max-width: 1120px) {
-      body.instrument-v2 #main-part {
-        grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
-        grid-template-areas:
-          "data topology"
-          "output output"
-          "inspector inspector";
-      }
-
-      body.instrument-v2 .column.output {
-        border-left: 0;
-        border-top: 1px solid var(--lab-line);
-      }
-
-      body.instrument-v2 .route-inspector {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 760px) {
-      body.instrument-v2 .page {
-        padding: 0 8px;
-      }
-
-      body.instrument-v2 .topbar,
-      body.instrument-v2 .control-row {
-        align-items: stretch;
-        flex-direction: column;
-        gap: 8px;
-        padding: 8px;
-      }
-
-      body.instrument-v2 .timeline-controls {
-        justify-content: center;
-        border-right: 0;
-        padding-right: 0;
-      }
-
-      body.instrument-v2 #main-part,
-      body.instrument-v2 .advanced-body {
-        grid-template-columns: 1fr;
-        grid-template-areas:
-          "topology"
-          "output"
-          "data"
-          "inspector";
-      }
-
-      body.instrument-v2 .column {
-        border-left: 0;
-        border-top: 1px solid var(--lab-line);
-        padding: 12px 10px;
-      }
-
-      body.instrument-v2 .column:first-child {
-        border-top: 0;
-      }
-
-      body.instrument-v2 .column.topology {
-        border-top: 0;
-      }
-
-      body.instrument-v2 .route-inspector {
-        grid-template-columns: 1fr;
-        padding: 10px;
-      }
-
-      body.instrument-v2 .mapping-grid {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-      }
-
-      body.instrument-v2 .comparison-table {
-        font-size: 11px;
-      }
-
-      body.instrument-v2 .comparison-table th,
-      body.instrument-v2 .comparison-table td {
-        padding: 6px 5px;
-      }
-
-      body.instrument-v2 .delta-grid,
-      body.instrument-v2 .dataset-list,
-      body.instrument-v2 .flow-rail {
-        grid-template-columns: 1fr;
-      }
-
-      body.instrument-v2 .validation-bar {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      body.instrument-v2 textarea {
-        min-height: 132px;
-        max-height: 170px;
-      }
-    }
-
-    /* Quantum Studio preview: IBM Composer + LabOne workbench with Nsight-style route review. */
-    body.quantum-studio-preview {
-      --studio-ink: #17212b;
-      --studio-muted: #697784;
-      --studio-subtle: #8b98a5;
-      --studio-shell: #101821;
-      --studio-bg: #eef2f5;
-      --studio-panel: #fbfcfd;
-      --studio-paper: #ffffff;
-      --studio-line: #d5dde3;
-      --studio-line-strong: #aab8c4;
-      --studio-blue: #116da8;
-      --studio-cyan: #18a8c8;
-      --studio-indigo: #5268d9;
-      --studio-violet: #7964d8;
-      --studio-orange: #e88722;
-      --studio-green: #2c8d5b;
-      --studio-red: #bd382f;
-      --studio-code: #f5f8fa;
-      --sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", Helvetica, Arial, sans-serif;
-      --mono: "JetBrains Mono", "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-      background:
-        radial-gradient(circle at 18px 18px, rgba(17, 109, 168, 0.08) 1px, transparent 1.6px),
-        linear-gradient(180deg, #f7fafc 0%, var(--studio-bg) 42%, #e8edf1 100%);
-      background-size: 30px 30px, auto;
-      color: var(--studio-ink);
-      font-family: var(--sans);
-      font-size: 13px;
-    }
-
-    body.quantum-studio-preview::before,
-    body.quantum-studio-preview::after {
-      display: none;
-    }
-
-    body.quantum-studio-preview .page {
-      width: min(100%, 1420px);
-      padding: 0 18px;
-    }
-
-    body.quantum-studio-preview header {
-      background:
-        linear-gradient(90deg, rgba(24, 168, 200, 0.16), transparent 28%, rgba(82, 104, 217, 0.14)),
-        var(--studio-shell);
-      border-bottom: 1px solid rgba(24, 168, 200, 0.24);
-      color: #f9fcff;
-    }
-
-    body.quantum-studio-preview header::after {
-      display: block;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--studio-cyan), var(--studio-indigo), var(--studio-orange), transparent);
-      opacity: 0.85;
-    }
-
-    body.quantum-studio-preview .topbar {
-      min-height: 44px;
-      align-items: center;
-    }
-
-    body.quantum-studio-preview .brand {
-      gap: 10px;
-    }
-
-    body.quantum-studio-preview .brand::before {
-      width: 14px;
-      height: 14px;
-      border-color: rgba(24, 168, 200, 0.86);
-      background:
-        linear-gradient(90deg, transparent 6px, rgba(24, 168, 200, 0.78) 6px 7px, transparent 7px),
-        linear-gradient(180deg, transparent 6px, rgba(24, 168, 200, 0.78) 6px 7px, transparent 7px),
-        #132434;
-      box-shadow: 0 0 18px rgba(24, 168, 200, 0.28);
-    }
-
-    body.quantum-studio-preview .brand h1 {
-      color: #f9fcff;
-      font-size: 17px;
-      font-weight: 720;
-    }
-
-    body.quantum-studio-preview .header-meta {
-      color: #c9d6e2;
-    }
-
-    body.quantum-studio-preview .tour-button {
-      border-color: rgba(24, 168, 200, 0.44);
-      background: rgba(255, 255, 255, 0.06);
-      color: #eff8ff;
-    }
-
-    body.quantum-studio-preview #top-controls {
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 246, 249, 0.95));
-      border-bottom: 1px solid var(--studio-line);
-    }
-
-    body.quantum-studio-preview .control-row {
-      min-height: 54px;
-      gap: 20px;
-    }
-
-    body.quantum-studio-preview .timeline-controls {
-      gap: 6px;
-      border-right-color: var(--studio-line);
-    }
-
-    body.quantum-studio-preview .icon-button,
-    body.quantum-studio-preview .play-button {
-      border-radius: 3px;
-      box-shadow: none;
-    }
-
-    body.quantum-studio-preview .icon-button {
-      border-color: var(--studio-line);
-      background: #fff;
-      color: #52606d;
-    }
-
-    body.quantum-studio-preview .icon-button:hover {
-      border-color: var(--studio-blue);
-      color: var(--studio-blue);
-      background: #f7fbff;
-    }
-
-    body.quantum-studio-preview .play-button {
-      width: 58px;
-      border-color: #ce7414;
-      background: linear-gradient(180deg, #ffb552, var(--studio-orange));
-      color: #111820;
-      box-shadow: 0 8px 18px rgba(232, 135, 34, 0.22);
-    }
-
-    body.quantum-studio-preview .control select,
-    body.quantum-studio-preview .baseline-badge,
-    body.quantum-studio-preview .generator-controls select,
-    body.quantum-studio-preview .generator-controls input,
-    body.quantum-studio-preview .endpoint-control input {
-      height: 30px;
-      border-color: var(--studio-line-strong);
-      background: #fff;
-      color: var(--studio-ink);
-      border-radius: 3px;
-    }
-
-    body.quantum-studio-preview .control label,
-    body.quantum-studio-preview .control .label,
-    body.quantum-studio-preview h4,
-    body.quantum-studio-preview .endpoint-label {
-      color: var(--studio-muted);
-      font-size: 10px;
-      letter-spacing: 0.04em;
-    }
-
-    body.quantum-studio-preview #main-part {
-      grid-template-columns: 282px minmax(620px, 1fr) 304px;
-      grid-template-rows: minmax(0, 1fr) 236px;
-      grid-template-areas:
-        "data topology output"
-        "data inspector output";
-      height: calc(100vh - 100px);
-      min-height: 700px;
-      background: var(--studio-paper);
-      border: 1px solid rgba(180, 194, 205, 0.72);
-      border-top: 3px solid transparent;
-      border-image: linear-gradient(90deg, var(--studio-cyan), var(--studio-indigo), var(--studio-orange)) 1;
-      border-radius: 0;
-      box-shadow: 0 22px 58px rgba(23, 33, 43, 0.12);
-      overflow: hidden;
-    }
-
-    body.quantum-studio-preview .column {
-      padding: 14px 16px 16px;
-      background: var(--studio-paper);
-      color: var(--studio-ink);
-      border-left: 1px solid rgba(213, 221, 227, 0.72);
-      min-height: 0;
-      overflow: auto;
-    }
-
-    body.quantum-studio-preview .column:first-child {
-      border-left: 0;
-    }
-
-    body.quantum-studio-preview .column.data {
-      background: linear-gradient(180deg, #ffffff 0%, #f6f9fb 100%);
-      overflow: hidden;
-    }
-
-    body.quantum-studio-preview .column.topology {
-      background: linear-gradient(180deg, #fbfdfe 0%, #f3f7fa 100%);
-      overflow: hidden;
-    }
-
-    body.quantum-studio-preview .column.output {
-      background: linear-gradient(180deg, #ffffff 0%, #f6f9fb 100%);
-      overflow: hidden;
-      border-top: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    body.quantum-studio-preview h4 {
-      margin-bottom: 12px;
-    }
-
-    body.quantum-studio-preview h4 span {
-      color: var(--studio-ink);
-      font-size: 13px;
-      font-weight: 760;
-    }
-
-    body.quantum-studio-preview h4::after {
-      background: linear-gradient(90deg, var(--studio-line), transparent);
-    }
-
-    body.quantum-studio-preview .section {
-      border: 0;
-      background: transparent;
-      box-shadow: none;
-      padding: 0;
-    }
-
-    body.quantum-studio-preview .input-tabs,
-    body.quantum-studio-preview .qasm-tabs,
-    body.quantum-studio-preview .route-tabs {
-      border-color: transparent;
-      background: #edf3f7;
-      box-shadow: none;
-      border-radius: 3px;
-    }
-
-    body.quantum-studio-preview .input-tabs button,
-    body.quantum-studio-preview .qasm-tabs button,
-    body.quantum-studio-preview .route-tabs button {
-      color: #344452;
-      border-left-color: var(--studio-line);
-    }
-
-    body.quantum-studio-preview .input-tabs button[aria-pressed="true"],
-    body.quantum-studio-preview .qasm-tabs button[aria-pressed="true"],
-    body.quantum-studio-preview .route-tabs button[aria-pressed="true"] {
-      background: #fff !important;
-      color: var(--studio-blue);
-      box-shadow: inset 0 -2px 0 var(--studio-blue);
-    }
-
-    body.quantum-studio-preview .dataset-list {
-      border-color: rgba(213, 221, 227, 0.72);
-      background: #fff;
-      border-radius: 3px;
-    }
-
-    body.quantum-studio-preview .dataset {
-      background: #fff;
-      border-top-color: var(--studio-line);
-    }
-
-    body.quantum-studio-preview .dataset:hover,
-    body.quantum-studio-preview .dataset[aria-pressed="true"] {
-      background: linear-gradient(90deg, rgba(232, 135, 34, 0.12), #fff 42%);
-      box-shadow: inset 3px 0 0 var(--studio-orange);
-    }
-
-    body.quantum-studio-preview textarea,
-    body.quantum-studio-preview pre {
-      border-color: rgba(170, 184, 196, 0.82);
-      background:
-        linear-gradient(90deg, rgba(17, 109, 168, 0.055) 0 34px, transparent 34px),
-        var(--studio-code);
-      color: #13202b;
-      border-radius: 3px;
-      font-family: var(--mono);
-      font-size: 11px;
-    }
-
-    body.quantum-studio-preview textarea {
-      min-height: 0;
-      height: 248px;
-      resize: none;
-      line-height: 1.38;
-    }
-
-    body.quantum-studio-preview .validation-bar {
-      border-color: var(--studio-line);
-      border-left-color: var(--studio-blue);
-      background: linear-gradient(180deg, #fff, #f7fbfd);
-      min-height: 42px;
-      padding: 6px 8px;
-    }
-
-    body.quantum-studio-preview .topology-stage-wrap {
-      width: 100%;
-      height: min(43vh, 398px);
-      min-height: 340px;
-      border: 1px solid #b9cad6;
-      background:
-        linear-gradient(90deg, rgba(17, 109, 168, 0.055) 1px, transparent 1px),
-        linear-gradient(180deg, rgba(17, 109, 168, 0.045) 1px, transparent 1px),
-        #fbfdff;
-      background-size: 40px 40px, 40px 40px, auto;
-      border-radius: 3px;
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.86),
-        0 12px 24px rgba(45, 68, 88, 0.08);
-    }
-
-    body.quantum-studio-preview .topology-stage {
-      overflow: visible;
-    }
-
-    body.quantum-studio-preview .topology-stage-wrap .chip-scale {
-      inset: 20px;
-      opacity: 0.18;
-      background:
-        linear-gradient(90deg, rgba(17, 109, 168, 0.28) 0 10px, transparent 10px 100%) left top / 48px 1px repeat-x,
-        linear-gradient(90deg, rgba(17, 109, 168, 0.28) 0 10px, transparent 10px 100%) left bottom / 48px 1px repeat-x,
-        linear-gradient(180deg, rgba(17, 109, 168, 0.28) 0 10px, transparent 10px 100%) left top / 1px 48px repeat-y,
-        linear-gradient(180deg, rgba(17, 109, 168, 0.28) 0 10px, transparent 10px 100%) right top / 1px 48px repeat-y;
-    }
-
-    body.quantum-studio-preview .topology-stage-wrap::before {
-      inset: 18px;
-      border: 1px solid rgba(17, 109, 168, 0.09);
-      background:
-        linear-gradient(90deg, rgba(17, 109, 168, 0.04) 0 1px, transparent 1px 100%),
-        linear-gradient(180deg, rgba(17, 109, 168, 0.035) 0 1px, transparent 1px 100%);
-      background-size: 80px 80px;
-      opacity: 0.42;
-    }
-
-    body.quantum-studio-preview .topology-stage-wrap::after {
-      background: linear-gradient(90deg, transparent, rgba(24, 168, 200, 0.13), rgba(255, 255, 255, 0.42), transparent);
-      opacity: 0;
-      animation: quantum-studio-scan 6.2s ease-in-out infinite;
-    }
-
-    body.quantum-studio-preview.is-compiling .topology-stage-wrap::after {
-      opacity: 0.32;
-      animation-duration: 2.2s;
-    }
-
-    body.quantum-studio-preview.is-replaying .topology-stage-wrap {
-      border-color: rgba(24, 168, 200, 0.68);
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.92),
-        0 18px 38px rgba(45, 68, 88, 0.16),
-        0 0 0 2px rgba(24, 168, 200, 0.08);
-    }
-
-    body.quantum-studio-preview .topology-edge {
-      stroke: #a8b8c4;
-      stroke-width: 1.15;
-      opacity: 0.78;
-      filter: none;
-    }
-
-    body.quantum-studio-preview .topology-edge.gate-edge,
-    body.quantum-studio-preview .topology-trail.gate-edge {
-      stroke: var(--studio-blue);
-    }
-
-    body.quantum-studio-preview .topology-edge.swap-edge,
-    body.quantum-studio-preview .topology-trail.swap-edge {
-      stroke: var(--studio-orange);
-    }
-
-    body.quantum-studio-preview .topology-edge.active {
-      stroke-width: 2.7;
-      stroke-dasharray: 8 8;
-      filter: none;
-      animation: quantum-studio-route 0.9s linear infinite;
-    }
-
-    body.quantum-studio-preview .topology-runner-track {
-      stroke-width: 4;
-      opacity: 0.12;
-      filter: none;
-    }
-
-    body.quantum-studio-preview .topology-runner,
-    body.quantum-studio-preview .topology-packet {
-      fill: #fff;
-      stroke: var(--studio-blue);
-      filter: none;
-      opacity: 0.68;
-    }
-
-    body.quantum-studio-preview .topology-runner.swap-edge,
-    body.quantum-studio-preview .topology-packet.swap-edge {
-      stroke: var(--studio-orange);
-      fill: #fff8ed;
-    }
-
-    body.quantum-studio-preview .topology-runner-tail {
-      stroke-width: 2;
-      opacity: 0.36;
-      filter: none;
-    }
-
-    body.quantum-studio-preview .topology-node {
-      fill: #fff;
-      stroke: var(--studio-blue);
-      stroke-width: 1.45;
-      filter: none;
-    }
-
-    body.quantum-studio-preview .topology-node.mapped {
-      fill: #eef9fd;
-      stroke: var(--studio-cyan);
-    }
-
-    body.quantum-studio-preview .topology-node.active,
-    body.quantum-studio-preview .topology-node.pair-active.gate-active {
-      fill: #e9f7ff;
-      stroke: var(--studio-blue);
-      stroke-width: 2.7;
-    }
-
-    body.quantum-studio-preview .topology-node.pair-active.swap-active {
-      fill: #fff3e1;
-      stroke: var(--studio-orange);
-      stroke-width: 2.7;
-    }
-
-    body.quantum-studio-preview .topology-node.single-active {
-      fill: #f1efff;
-      stroke: var(--studio-violet);
-      stroke-width: 2.7;
-    }
-
-    body.quantum-studio-preview .topology-node-ring.gate-active {
-      stroke: var(--studio-blue);
-      filter: none;
-    }
-
-    body.quantum-studio-preview .topology-node-ring.swap-active {
-      stroke: var(--studio-orange);
-      filter: none;
-    }
-
-    body.quantum-studio-preview .topology-node-ring.single-active {
-      stroke: var(--studio-violet);
-      filter: none;
-    }
-
-    body.quantum-studio-preview .node-label {
-      fill: #1a3348;
-      font-weight: 760;
-    }
-
-    body.quantum-studio-preview .node-map-label {
-      fill: var(--studio-muted);
-    }
-
-    body.quantum-studio-preview .compiler-flow,
-    body.quantum-studio-preview .event-card,
-    body.quantum-studio-preview .mapping-panel,
-    body.quantum-studio-preview .timeline-panel {
-      border-color: rgba(213, 221, 227, 0.76);
-      background: #fff;
-      box-shadow: none;
-      border-radius: 3px;
-    }
-
-    body.quantum-studio-preview .compiler-flow {
-      margin-top: 10px;
-    }
-
-    body.quantum-studio-preview .route-inspector {
-      grid-area: inspector;
-      display: grid;
-      grid-template-columns: 230px 330px minmax(360px, 1fr);
-      gap: 10px;
-      min-height: 0;
-      padding: 10px 16px 12px;
-      border-top: 1px solid rgba(213, 221, 227, 0.86);
-      background: #f7fafc;
-      overflow: hidden;
-    }
-
-    body.quantum-studio-preview:not(.has-results) .route-inspector {
-      display: grid;
-    }
-
-    body.quantum-studio-preview .event-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 4px;
-    }
-
-    body.quantum-studio-preview .event-field {
-      min-height: 28px;
-      padding: 4px 6px;
-      color: #253746;
-    }
-
-    body.quantum-studio-preview .event-field strong {
-      color: #17212b;
-      font-size: 11px;
-    }
-
-    body.quantum-studio-preview .mapping-grid {
-      grid-template-columns: repeat(10, minmax(0, 1fr));
-      gap: 4px;
-    }
-
-    body.quantum-studio-preview .mapping-cell {
-      min-height: 34px;
-      padding: 3px;
-      color: #556472;
-      border-color: #c9d5df;
-    }
-
-    body.quantum-studio-preview .mapping-cell b {
-      color: #2a3a48;
-    }
-
-    body.quantum-studio-preview .flow-stage.is-active {
-      border-color: rgba(24, 168, 200, 0.26);
-      background: #f0fbff;
-      box-shadow: inset 3px 0 0 var(--studio-cyan);
-    }
-
-    body.quantum-studio-preview .trace-bar span {
-      background: linear-gradient(90deg, var(--studio-cyan), var(--studio-indigo), var(--studio-orange));
-    }
-
-    body.quantum-studio-preview .comparison-table {
-      border-color: var(--studio-line-strong);
-      background: #fff;
-      box-shadow: none;
-      table-layout: fixed;
-    }
-
-    body.quantum-studio-preview .comparison-table th,
-    body.quantum-studio-preview .comparison-table td {
-      border-color: var(--studio-line);
-      color: var(--studio-ink);
-    }
-
-    body.quantum-studio-preview .comparison-table thead th {
-      background: #eef4f8;
-      color: #5a6976;
-    }
-
-    body.quantum-studio-preview #npqr-card {
-      box-shadow: inset 3px 0 0 var(--studio-orange);
-    }
-
-    body.quantum-studio-preview #sabre-card {
-      box-shadow: inset 3px 0 0 var(--studio-blue);
-    }
-
-    body.quantum-studio-preview .delta-grid,
-    body.quantum-studio-preview .qasm-details {
-      border-color: var(--studio-line);
-    }
-
-    body.quantum-studio-preview .delta,
-    body.quantum-studio-preview .qasm-details summary {
-      background: linear-gradient(180deg, #fff, #f5f8fa);
-      color: var(--studio-ink);
-      border-color: var(--studio-line);
-    }
-
-    body.quantum-studio-preview .message {
-      border-left-color: var(--studio-cyan);
-      background: linear-gradient(90deg, #eefbff, #fff);
-      color: #43525f;
-    }
-
-    body.quantum-studio-preview .route-timeline {
-      border-top: 1px solid var(--studio-line);
-      background:
-        linear-gradient(90deg, rgba(17, 109, 168, 0.06) 0 1px, transparent 1px 100%) 0 0 / 64px 100%,
-        #fff;
-      display: grid;
-      gap: 0;
-      max-height: 168px;
-      overflow: auto;
-      color: #243544;
-    }
-
-    body.quantum-studio-preview .timeline-row {
-      display: grid;
-      grid-template-columns: 30px 48px minmax(0, 1fr) 44px;
-      min-height: 26px;
-      border-left: 3px solid transparent;
-      background: transparent;
-      color: #263948;
-      padding-right: 6px;
-    }
-
-    body.quantum-studio-preview .timeline-main {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    body.quantum-studio-preview .timeline-row[aria-current="true"] {
-      border-left-color: var(--studio-blue);
-      background: #eef8ff;
-    }
-
-    body.quantum-studio-preview .timeline-row[aria-current="true"][data-kind="swap"] {
-      border-left-color: var(--studio-orange);
-      background: #fff6e8;
-    }
-
-    body.quantum-studio-preview .timeline-kind {
-      color: #526473;
-      font-weight: 760;
-    }
-
-    body.quantum-studio-preview .mapping-cell,
-    body.quantum-studio-preview .event-field {
-      border-color: #c9d5df;
-      background: #fbfdfe;
-    }
-
-    body.quantum-studio-preview .qasm-details summary {
-      min-height: 36px;
-      padding: 7px 9px;
-    }
-
-    body.quantum-studio-preview .output-chip {
-      flex: 0 0 auto;
-      max-width: 82px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    body.quantum-studio-preview .tour-card {
-      border-color: var(--studio-line-strong);
-      border-top-color: var(--studio-cyan);
-      border-radius: 4px;
-    }
-
-    body.quantum-studio-preview .delta {
-      min-height: 30px;
-    }
-
-    body.quantum-studio-preview .message {
-      min-height: 30px;
-    }
-
-    body.quantum-studio-preview .qasm-details {
-      margin-top: 0;
-    }
-
-    @keyframes quantum-studio-scan {
-      0%, 100% { transform: translateX(-64%); }
-      50% { transform: translateX(64%); }
-    }
-
-    @keyframes quantum-studio-route {
-      to { stroke-dashoffset: -32; }
-    }
-
-    @media (max-width: 1120px) {
-      body.quantum-studio-preview #main-part {
-        grid-template-columns: minmax(280px, 330px) minmax(0, 1fr);
-        grid-template-rows: auto auto auto;
-        grid-template-areas:
-          "data topology"
-          "inspector inspector"
-          "output output";
-        height: auto;
-        min-height: 0;
-      }
-    }
-
-    @media (max-width: 760px) {
-      body.quantum-studio-preview #main-part {
-        grid-template-columns: 1fr;
-        grid-template-areas:
-          "topology"
-          "output"
-          "data"
-          "inspector";
-      }
-
-      body.quantum-studio-preview .topology-stage-wrap {
-        aspect-ratio: 1 / 1.08;
-        min-height: 320px;
-      }
-
-      body.quantum-studio-preview .route-inspector {
-        grid-template-columns: 1fr;
-      }
-
-      body.quantum-studio-preview .column.output {
-        grid-area: output;
-      }
-    }
-  </style>
+  <title>ZJU Quantum Compiler Console</title>
+  <link rel="stylesheet" href="console.css">
 </head>
-<body class="instrument-v2 quantum-studio-preview">
+<body class="compiler-console">
   <header>
     <div class="page topbar">
       <div class="brand">
-        <h1>量子编译实验台</h1>
+        <div>
+          <h1>ZJU Quantum Compiler Console</h1>
+          <div class="subtitle">量子电路编译控制台 · NPQR / SABRE · IBM Tokyo 20Q</div>
+        </div>
       </div>
-      <div class="header-meta" aria-label="实验台状态">
-        <button class="tour-button" id="tour-button" type="button">教程</button>
-        <span id="backend-copy">检测中</span>
+      <div class="header-meta" aria-label="Console status">
+        <span class="status-token">Embedded Review</span>
+        <span>Tokyo 20Q</span>
+        <span>REST: Optional</span>
       </div>
     </div>
   </header>
 
   <div id="top-controls">
     <div class="page control-row">
-      <div class="timeline-controls" aria-label="运行控制">
-        <button class="icon-button" id="reset-button" type="button" title="重置" aria-label="重置">
-          <span class="command-icon" aria-hidden="true">↺</span>
-          <span class="command-label">重置</span>
+      <div class="timeline-controls" aria-label="Run controls">
+        <button class="icon-button" id="reset-button" type="button" title="Reset" aria-label="Reset">
+          <span class="command-icon" aria-hidden="true">RST</span>
+          <span class="command-label">Reset</span>
         </button>
-        <button class="play-button" id="run-button" type="button" title="运行/暂停" aria-label="运行" data-state="idle">
-          <span class="command-icon" id="run-icon" aria-hidden="true">▶</span>
-          <span class="command-label" id="run-label">运行</span>
+        <button class="play-button" id="run-button" type="button" title="Run / Pause" aria-label="Run" data-state="idle">
+          <span class="command-icon" id="run-icon" aria-hidden="true">&gt;</span>
+          <span class="command-label" id="run-label">Run</span>
         </button>
-        <button class="icon-button" id="step-button" type="button" title="单步" aria-label="单步推进">
-          <span class="command-icon" aria-hidden="true">▸</span>
-          <span class="command-label">单步</span>
+        <button class="icon-button" id="step-button" type="button" title="Step" aria-label="Step trace">
+          <span class="command-icon" aria-hidden="true">1</span>
+          <span class="command-label">Step</span>
         </button>
       </div>
       <div class="control">
-        <label for="example-select">电路</label>
+        <label for="example-select">Circuit</label>
         <select id="example-select">
           <option value="qft5">QFT 5</option>
           <option value="ghz5">GHZ 5</option>
@@ -4140,114 +49,113 @@
           <option value="qaoa10">QAOA 10</option>
           <option value="ghz10">GHZ 10</option>
           <option value="vqe10">VQE 10</option>
-          <option value="custom">自定义</option>
+          <option value="custom">Custom</option>
         </select>
       </div>
       <div class="control">
-        <span class="label">基准</span>
-        <div class="baseline-badge" title="Qiskit basic heuristic">SABRE</div>
+        <span class="label">Baseline</span>
+        <div class="baseline-badge" title="Qiskit SABRE basic heuristic">SABRE basic</div>
       </div>
       <div class="control status-control">
-        <span class="label">在线</span>
+        <span class="label">Backend</span>
         <div class="backend loading" id="backend-status">
           <span class="backend-dot"></span>
+          <span id="backend-copy">Checking</span>
         </div>
       </div>
     </div>
   </div>
 
   <main class="page" id="playground">
-    <div id="main-part" aria-label="一键量子编译 Playground">
+    <div id="main-part" aria-label="Quantum compiler console">
       <section class="column data">
-        <h4><span>输入</span></h4>
-        <div class="section">
-          <div class="input-tabs" aria-label="输入模式">
-            <button type="button" data-input-mode="examples" aria-pressed="true">示例</button>
-            <button type="button" data-input-mode="custom" aria-pressed="false">自定义</button>
-            <button type="button" data-input-mode="generate" aria-pressed="false">生成</button>
-          </div>
+        <h4 data-meta="OpenQASM 2"><span>Input</span></h4>
+        <div class="input-tabs" aria-label="Input mode">
+          <button type="button" data-input-mode="examples" aria-pressed="true">Preset</button>
+          <button type="button" data-input-mode="custom" aria-pressed="false">Custom</button>
+          <button type="button" data-input-mode="generate" aria-pressed="false">Generate</button>
         </div>
 
-        <div class="section" id="examples-panel">
-          <div class="dataset-list" aria-label="OpenQASM 示例">
-            <button class="dataset" type="button" data-example="qft5" aria-pressed="true"><b>QFT 5</b><span>密集相位</span></button>
-            <button class="dataset" type="button" data-example="ghz5" aria-pressed="false"><b>GHZ 5</b><span>纠缠链</span></button>
-            <button class="dataset" type="button" data-example="qaoa5" aria-pressed="false"><b>QAOA 5</b><span>分层耦合</span></button>
-            <button class="dataset" type="button" data-example="qft10" aria-pressed="false"><b>QFT 10</b><span>大电路</span></button>
-            <button class="dataset" type="button" data-example="qaoa10" aria-pressed="false"><b>QAOA 10</b><span>硬样例</span></button>
-            <button class="dataset" type="button" data-example="ghz10" aria-pressed="false"><b>GHZ 10</b><span>长链</span></button>
-            <button class="dataset" type="button" data-example="vqe10" aria-pressed="false"><b>VQE 10</b><span>变分线路</span></button>
-            <button class="dataset" type="button" data-example="custom" aria-pressed="false"><b>自定义</b><span>手写 QASM</span></button>
+        <div id="examples-panel">
+          <div class="dataset-list" aria-label="OpenQASM presets">
+            <button class="dataset" type="button" data-example="qft5" aria-pressed="true"><b>QFT 5</b><span>Dense phase interactions</span></button>
+            <button class="dataset" type="button" data-example="ghz5" aria-pressed="false"><b>GHZ 5</b><span>Entanglement chain</span></button>
+            <button class="dataset" type="button" data-example="qaoa5" aria-pressed="false"><b>QAOA 5</b><span>Layered coupling</span></button>
+            <button class="dataset" type="button" data-example="qft10" aria-pressed="false"><b>QFT 10</b><span>Dense route load</span></button>
+            <button class="dataset" type="button" data-example="qaoa10" aria-pressed="false"><b>QAOA 10</b><span>Hard preset</span></button>
+            <button class="dataset" type="button" data-example="ghz10" aria-pressed="false"><b>GHZ 10</b><span>Long chain</span></button>
+            <button class="dataset" type="button" data-example="vqe10" aria-pressed="false"><b>VQE 10</b><span>Variational circuit</span></button>
+            <button class="dataset" type="button" data-example="custom" aria-pressed="false"><b>Custom</b><span>Editable QASM</span></button>
           </div>
         </div>
 
         <div class="section" id="generator-panel" hidden>
           <div class="generator-controls">
-            <label for="generator-family">类型
+            <label for="generator-family">Family
               <select id="generator-family">
-                <option value="ghz">GHZ 链</option>
-                <option value="qft">近似 QFT</option>
-                <option value="qaoa" selected>QAOA 环</option>
-                <option value="vqe">VQE 变分线路</option>
-                <option value="random">随机 CX 层</option>
+                <option value="ghz">GHZ chain</option>
+                <option value="qft">QFT-like</option>
+                <option value="qaoa" selected>QAOA ring</option>
+                <option value="vqe">VQE ansatz</option>
+                <option value="random">Random CX</option>
               </select>
             </label>
-            <label for="generator-qubits">量子位
+            <label for="generator-qubits">Qubits
               <input id="generator-qubits" type="number" min="2" max="10" value="8">
             </label>
-            <label for="generator-layers">层数
+            <label for="generator-layers">Layers
               <input id="generator-layers" type="number" min="1" max="6" value="2">
             </label>
           </div>
           <div class="generator-actions">
-            <button id="generate-qasm" type="button">生成 OpenQASM</button>
+            <button id="generate-qasm" type="button">Generate OpenQASM</button>
           </div>
         </div>
 
         <div class="section">
           <div class="input-meta">
             <span id="qasm-label">OpenQASM</span>
-            <span id="qasm-count">5 量子位</span>
+            <span id="qasm-count">5 qubits</span>
           </div>
           <textarea id="qasm-input" aria-labelledby="qasm-label" spellcheck="false" readonly></textarea>
           <div class="validation-bar" id="validation-bar" data-status="idle" aria-live="polite">
-            <strong id="validation-status">等待校验</strong>
-            <span id="validation-message">选择示例或输入 OpenQASM。</span>
-            <span class="validation-stats" id="validation-stats">量子位 -- · 门 -- · CX --</span>
+            <strong id="validation-status">Pending</strong>
+            <span id="validation-message">Select a preset or enter OpenQASM.</span>
+            <span class="validation-stats" id="validation-stats">qubits -- ? gates -- ? CX --</span>
           </div>
         </div>
       </section>
 
       <section class="column topology">
-        <h4><span>拓扑</span></h4>
+        <h4 data-meta="Trace"><span>Topology</span></h4>
         <div class="topology-area">
           <div class="route-toolbar">
-            <div class="route-tabs" aria-label="路线可视化">
-              <button id="route-view-npqr" type="button" data-route-view="npqr" aria-pressed="true">NPQR 路线</button>
-              <button id="route-view-sabre" type="button" data-route-view="sabre" aria-pressed="false">SABRE 路线</button>
+            <div class="route-tabs" aria-label="Route view">
+              <button id="route-view-npqr" type="button" data-route-view="npqr" aria-pressed="true">NPQR route</button>
+              <button id="route-view-sabre" type="button" data-route-view="sabre" aria-pressed="false">SABRE route</button>
             </div>
-            <div class="route-count" id="route-count">0 个事件</div>
+            <div class="route-count" id="route-count">0 events</div>
           </div>
           <div class="topology-head">
-            <div>IBM Tokyo 物理拓扑</div>
-            <div class="route-status" id="route-status">待命</div>
+            <div>IBM Tokyo physical topology</div>
+            <div class="route-status" id="route-status">Idle</div>
           </div>
           <div class="route-layout">
             <div>
               <div class="topology-stage-wrap">
                 <div class="chip-scale" aria-hidden="true"></div>
-                <svg class="topology-stage" id="tokyo-topology" viewBox="0 0 640 480" preserveAspectRatio="xMidYMin meet" role="img" aria-label="SVG IBM Tokyo 20Q topology animation"></svg>
+                <svg class="topology-stage" id="tokyo-topology" viewBox="0 0 760 480" preserveAspectRatio="xMidYMin meet" role="img" aria-label="IBM Tokyo 20Q topology animation"></svg>
                 <div class="topology-tooltip" id="topology-tooltip" role="status"></div>
               </div>
-              <div class="compiler-flow" aria-label="路由事件进度">
+              <div class="compiler-flow" aria-label="Route progress">
                 <div class="flow-rail">
-                  <div class="flow-stage is-active" data-stage="0"><b>解析</b>QASM</div>
-                  <div class="flow-stage" data-stage="1"><b>映射</b>逻辑→物理</div>
-                  <div class="flow-stage" data-stage="2"><b>路由</b>门/SWAP</div>
-                  <div class="flow-stage" data-stage="3"><b>输出</b>QASM</div>
+                  <div class="flow-stage is-active" data-stage="0"><b>Parse</b>QASM</div>
+                  <div class="flow-stage" data-stage="1"><b>Map</b>logical to physical</div>
+                  <div class="flow-stage" data-stage="2"><b>Route</b>gates / SWAP</div>
+                  <div class="flow-stage" data-stage="3"><b>Emit</b>QASM</div>
                 </div>
                 <div class="trace-readout">
-                  <div class="trace-op" id="trace-op">待运行</div>
+                  <div class="trace-op" id="trace-op">Idle</div>
                   <div class="trace-meta" id="trace-progress">0/0</div>
                   <div class="trace-bar" aria-hidden="true"><span id="trace-bar"></span></div>
                 </div>
@@ -4255,71 +163,71 @@
             </div>
           </div>
           <div class="route-legend" aria-hidden="true">
-            <span><b class="legend-gate"></b>两比特门</span>
-            <span><b class="legend-swap"></b>插入 SWAP</span>
-            <span><b class="legend-map"></b>已映射物理位</span>
+            <span><b class="legend-gate"></b>two-qubit gate</span>
+            <span><b class="legend-swap"></b>inserted SWAP</span>
+            <span><b class="legend-map"></b>mapped node</span>
           </div>
         </div>
       </section>
 
       <section class="column output">
-        <h4><span>输出</span></h4>
-        <table class="comparison-table" aria-label="NPQR 与 SABRE 对比">
+        <h4 data-meta="NPQR / SABRE"><span>Results</span></h4>
+        <table class="comparison-table" aria-label="NPQR and SABRE comparison">
           <thead>
-            <tr><th>算法</th><th>状态</th><th>SWAP</th><th>深度</th><th>耗时</th></tr>
+            <tr><th>Compiler</th><th>Status</th><th>SWAP</th><th>Depth</th><th>Time</th></tr>
           </thead>
           <tbody>
-            <tr id="npqr-card"><th>NPQR</th><td id="npqr-status">就绪</td><td id="npqr-swaps">--</td><td id="npqr-depth">--</td><td id="npqr-elapsed">--</td></tr>
-            <tr id="sabre-card"><th>SABRE</th><td id="sabre-status">就绪</td><td id="sabre-swaps">--</td><td id="sabre-depth">--</td><td id="sabre-elapsed">--</td></tr>
+            <tr id="npqr-card"><th>NPQR</th><td id="npqr-status">Ready</td><td id="npqr-swaps">--</td><td id="npqr-depth">--</td><td id="npqr-elapsed">--</td></tr>
+            <tr id="sabre-card"><th>SABRE</th><td id="sabre-status">Ready</td><td id="sabre-swaps">--</td><td id="sabre-depth">--</td><td id="sabre-elapsed">--</td></tr>
           </tbody>
         </table>
-        <div class="delta-grid" aria-label="对比差值">
-          <div class="delta"><span>ΔSWAP</span><strong id="delta-swaps">--</strong></div>
-          <div class="delta"><span>Δ深度</span><strong id="delta-depth">--</strong></div>
+        <div class="delta-grid" aria-label="Comparison deltas">
+          <div class="delta"><span>Delta SWAP</span><strong id="delta-swaps">--</strong></div>
+          <div class="delta"><span>Delta Depth</span><strong id="delta-depth">--</strong></div>
         </div>
-        <div class="message" id="result-message">待运行</div>
-        <details class="qasm-details" id="qasm-details">
-          <summary>查看 QASM <span class="output-chip" id="compiled-state" data-tone="idle">等待</span></summary>
+        <div class="message" id="result-message">Ready</div>
+        <details class="qasm-details" id="qasm-details" open>
+          <summary>Compiled QASM <span class="output-chip" id="compiled-state" data-tone="idle">Pending</span></summary>
           <div class="compiled-head">
-            <div class="qasm-tabs" aria-label="编译后 QASM 视图">
-              <button id="qasm-view-npqr" type="button" data-qasm-view="npqr" aria-pressed="true">NPQR QASM</button>
-              <button id="qasm-view-sabre" type="button" data-qasm-view="sabre" aria-pressed="false">SABRE QASM</button>
+            <div class="qasm-tabs" aria-label="Compiled QASM view">
+              <button id="qasm-view-npqr" type="button" data-qasm-view="npqr" aria-pressed="true" aria-label="NPQR QASM">NPQR</button>
+              <button id="qasm-view-sabre" type="button" data-qasm-view="sabre" aria-pressed="false" aria-label="SABRE QASM">SABRE</button>
             </div>
-            <button class="text-button" id="copy-qasm" type="button" disabled>复制</button>
-            <button class="text-button" id="download-qasm" type="button" disabled>下载</button>
+            <button class="text-button" id="copy-qasm" type="button" disabled>Copy</button>
+            <button class="text-button" id="download-qasm" type="button" disabled>Download</button>
           </div>
-          <pre id="compiled-qasm-output" tabindex="0"><code id="compiled-qasm-code">// 等待编译结果</code></pre>
+          <pre id="compiled-qasm-output" tabindex="0"><code id="compiled-qasm-code">// Waiting for compiled QASM</code></pre>
         </details>
       </section>
 
-      <aside class="route-inspector" aria-label="路由事件检查器">
+      <aside class="route-inspector" aria-label="Route event inspector">
         <section class="event-card">
           <div class="inspector-title">
-            <span id="event-title">暂无路由事件</span>
+            <span id="event-title">No route event</span>
             <small id="event-index">--</small>
           </div>
           <div class="event-grid">
-            <div class="event-field"><span>操作</span><strong id="event-op">--</strong></div>
-            <div class="event-field"><span>类型</span><strong id="event-kind">--</strong></div>
-            <div class="event-field"><span>逻辑位</span><strong id="event-logical">--</strong></div>
-            <div class="event-field"><span>物理位</span><strong id="event-physical">--</strong></div>
-            <div class="event-field"><span>插入位置</span><strong id="event-insertion">--</strong></div>
-            <div class="event-field"><span>输出序号</span><strong id="event-compiled">--</strong></div>
+            <div class="event-field"><span>Operation</span><strong id="event-op">--</strong></div>
+            <div class="event-field"><span>Kind</span><strong id="event-kind">--</strong></div>
+            <div class="event-field"><span>Logical</span><strong id="event-logical">--</strong></div>
+            <div class="event-field"><span>Physical</span><strong id="event-physical">--</strong></div>
+            <div class="event-field"><span>Insertion</span><strong id="event-insertion">--</strong></div>
+            <div class="event-field"><span>Compiled</span><strong id="event-compiled">--</strong></div>
           </div>
         </section>
         <section class="mapping-panel">
           <div class="inspector-title">
-            <span>当前逻辑→物理映射</span>
+            <span>Logical to physical map</span>
             <small id="mapping-active">--</small>
           </div>
-          <div class="mapping-grid" id="mapping-grid" aria-label="当前映射表"></div>
+          <div class="mapping-grid" id="mapping-grid" aria-label="Current mapping table"></div>
         </section>
         <section class="timeline-panel">
           <div class="inspector-title">
-            <span>路由时间线</span>
-            <small id="timeline-summary">等待</small>
+            <span>Trace timeline</span>
+            <small id="timeline-summary">Pending</small>
           </div>
-          <div class="route-timeline" id="route-timeline" aria-label="真实路由事件时间线"></div>
+          <div class="route-timeline" id="route-timeline" aria-label="Route event timeline"></div>
         </section>
       </aside>
     </div>
@@ -4327,48 +235,45 @@
 
   <div class="tour-overlay" id="tour-overlay" hidden></div>
   <aside class="tour-card" id="tour-card" aria-live="polite" hidden>
-    <h3 id="tour-title">教程</h3>
-    <p id="tour-copy">从选择电路开始。</p>
+    <h3 id="tour-title">Guide</h3>
+    <p id="tour-copy">Start with a preset circuit.</p>
     <div class="tour-actions">
-      <button id="tour-skip" type="button">跳过</button>
-      <button id="tour-next" class="primary" type="button">下一步</button>
+      <button id="tour-skip" type="button">Skip</button>
+      <button id="tour-next" class="primary" type="button">Next</button>
     </div>
   </aside>
 
-  <details class="page" id="advanced" aria-label="高级 MCP 和部署入口">
-    <summary>高级入口</summary>
+  <details class="page" id="advanced" aria-label="Service interfaces">
+    <summary>Service Interfaces</summary>
     <div class="advanced-body">
       <section>
-        <h4><span>维护者 REST API</span></h4>
-        <p>普通用户不需要部署。GitHub Pages 默认使用内置示例结果，保证老师打开页面后可以直接审阅输入、NPQR/SABRE 指标、Tokyo 映射和路线回放。维护者可用 HTTPS REST API 覆盖为实时编译。</p>
-        <p>网页操作说明见 <a href="playground-user-guide.md">使用说明</a>（Playground user guide）；这里保留部署和调试入口。</p>
-        <label class="endpoint-label" for="api-base-input">REST API</label>
+        <h4><span>REST API</span></h4>
+        <label class="endpoint-label" for="api-base-input">Base URL</label>
         <div class="endpoint-control">
           <input id="api-base-input" type="url" spellcheck="false" aria-describedby="api-base-note">
-          <button id="apply-api-base" type="button">应用</button>
+          <button id="apply-api-base" type="button">Apply</button>
         </div>
-        <p class="endpoint-note" id="api-base-note">当前使用 GitHub Pages 内置示例结果</p>
+        <p class="endpoint-note" id="api-base-note">Embedded review data active</p>
         <pre><code>uvicorn src.server.app:app --host 0.0.0.0 --port $PORT
 ?api=https://your-api.example
 uvicorn src.server.app:app --reload --port 8765
-?api=http://127.0.0.1:8765</code></pre>
-        <p>GitHub Pages 是 HTTPS 页面，默认不会调用普通 HTTP API，避免浏览器混合内容拦截。实时编译请使用 HTTPS 后端；本地调试可直接打开本文件或显式传入本地地址。</p>
+?api=http://127.0.0.1:8765&amp;allowHttpApi=1</code></pre>
+        <a class="reference-link" href="playground-user-guide.md">Playground user guide</a>
       </section>
       <section>
-        <h4><span>MCP 工具</span></h4>
-        <p>MCP `/mcp` 保留给高级客户端和审阅流程，不是第一屏主入口。</p>
+        <h4><span>MCP Server</span></h4>
         <pre><code>qcompiler-mcp-http
 uvicorn src.server.mcp_app:app --host 0.0.0.0 --port $PORT
 POST /mcp</code></pre>
         <div class="tool-list">
-          <div><strong>compile_qasm</strong><p>输入 OpenQASM 2，返回 NPQR 路由后的 QASM。</p></div>
-          <div><strong>compile_npqr</strong><p>用 NPQR 编译项目内置示例。</p></div>
-          <div><strong>compile_sabre</strong><p>用 SABRE 编译项目内置示例。</p></div>
-          <div><strong>list_examples</strong><p>列出可用 QASM 示例。</p></div>
-          <div><strong>qcompiler_status</strong><p>查看项目状态和 NPQR 边界。</p></div>
-          <div><strong>get_benchmarks</strong><p>读取公开基准和声明边界。</p></div>
-          <div><strong>get_npqr_boundary</strong><p>查看 NPQR 能力、基准角色和不声明内容。</p></div>
-          <div><strong>get_algorithm_evidence</strong><p>课程展示用算法组件摘要。</p></div>
+          <div><strong>compile_qasm</strong><p>Compile OpenQASM 2 with NPQR.</p></div>
+          <div><strong>compile_npqr</strong><p>Compile a built-in preset with NPQR.</p></div>
+          <div><strong>compile_sabre</strong><p>Compile a built-in preset with SABRE.</p></div>
+          <div><strong>list_examples</strong><p>List bundled OpenQASM presets.</p></div>
+          <div><strong>qcompiler_status</strong><p>Return runtime and model status.</p></div>
+          <div><strong>get_benchmarks</strong><p>Return public benchmark summaries.</p></div>
+          <div><strong>get_npqr_boundary</strong><p>Return NPQR capability boundaries.</p></div>
+          <div><strong>get_algorithm_evidence</strong><p>Return course-report evidence.</p></div>
         </div>
       </section>
     </div>
@@ -4398,7 +303,7 @@ cx q[4],q[2];
 cx q[3],q[2];
 cx q[2],q[1];
 cx q[1],q[0];
-// 完整示例由后端按名称加载`
+// preset: qft5`
       },
       ghz5: {
         name: "GHZ 5",
@@ -4438,7 +343,7 @@ cx q[9],q[7];
 cx q[8],q[7];
 cx q[7],q[6];
 cx q[6],q[5];
-// 完整示例由后端按名称加载`
+// preset: qft10`
       },
       qaoa10: {
         name: "QAOA 10",
@@ -4607,7 +512,7 @@ cx q[0],q[1];`
       running: false,
       paused: false,
       timer: null,
-      validation: { status: "idle", message: "等待校验", line: null },
+      validation: { status: "idle", message: "Pending validation", line: null },
       validateTimer: null
     };
 
@@ -4685,13 +590,14 @@ cx q[0],q[1];`
 
     let tourIndex = 0;
     const TOUR_STORAGE_KEY = "zju-quantum-playground-v2-tour";
+
     const tourSteps = [
-      { selector: "#examples-panel", title: "选择电路", copy: "先用示例快速跑通，也可以切到自定义或生成 OpenQASM。" },
-      { selector: "#qasm-input", title: "检查输入", copy: "这里是当前电路。校验条会提示 OpenQASM 是否能提交。" },
-      { selector: "#run-button", title: "运行编译", copy: "运行会优先调用 HTTPS REST API；未配置时使用内置示例结果。" },
-      { selector: "#tokyo-topology", title: "审阅拓扑", copy: "编译完成后，单步只回放后端返回的真实路由事件。" },
-      { selector: ".comparison-table", title: "比较结果", copy: "右侧只保留 SWAP、深度和耗时，避免干扰审阅。" },
-      { selector: "#qasm-details", title: "导出 QASM", copy: "展开后可查看、复制或下载 NPQR/SABRE 的编译后 QASM。" }
+      { selector: "#examples-panel", title: "Circuit preset", copy: "Select a bundled OpenQASM circuit." },
+      { selector: "#qasm-input", title: "Input check", copy: "Review the current OpenQASM payload." },
+      { selector: "#run-button", title: "Compile", copy: "Run NPQR and SABRE against Tokyo 20Q." },
+      { selector: "#tokyo-topology", title: "Topology", copy: "Inspect physical route events on IBM Tokyo." },
+      { selector: ".comparison-table", title: "Results", copy: "Compare SWAP count, depth, and elapsed time." },
+      { selector: "#qasm-details", title: "Compiled QASM", copy: "Review and export routed QASM." }
     ];
 
     function normalizeApiBase(value) {
@@ -4742,15 +648,16 @@ cx q[0],q[1];`
       el.backendCopy.textContent = text;
     }
 
+
     function setRunVisual(mode) {
       const running = mode === "running";
       const paused = mode === "paused";
       const replaying = mode === "replaying";
       el.run.dataset.state = mode;
-      el.runIcon.textContent = running ? "Ⅱ" : replaying ? "◆" : "▶";
-      el.runLabel.textContent = paused ? "继续" : running ? "暂停" : replaying ? "回放" : "运行";
-      el.run.title = paused ? "继续运行" : running ? "暂停" : replaying ? "正在回放真实路由" : "运行/暂停";
-      el.run.setAttribute("aria-label", paused ? "继续运行" : running ? "暂停" : replaying ? "正在回放真实路由" : "运行");
+      el.runIcon.textContent = running ? "||" : ">";
+      el.runLabel.textContent = paused ? "Resume" : running ? "Pause" : replaying ? "Replay" : "Run";
+      el.run.title = paused ? "Resume" : running ? "Pause" : replaying ? "Replay trace" : "Run";
+      el.run.setAttribute("aria-label", paused ? "Resume" : running ? "Pause" : replaying ? "Replay trace" : "Run");
     }
 
     function setCompiledState(tone, text, enabled = false) {
@@ -4766,13 +673,14 @@ cx q[0],q[1];`
       document.body.classList.toggle("is-replaying", state.visualPhase === "replaying");
     }
 
+
     function syncApiControls(note) {
       if (!el.apiBaseInput) {
         return;
       }
       el.apiBaseInput.value = apiBase;
-      el.apiBaseNote.textContent = note || (apiBase ? `当前 API: ${apiBase}` : "当前使用 GitHub Pages 内置示例结果。");
-      el.backend.title = apiBase || "GitHub Pages embedded review data";
+      el.apiBaseNote.textContent = note || (apiBase ? `API: ${apiBase}` : "Embedded review data active.");
+      el.backend.title = apiBase || "Embedded review data active";
     }
 
     function apiCandidates() {
@@ -4861,6 +769,7 @@ cx q[0],q[1];`
       return `${lines.join("\n")}\n`;
     }
 
+
     function generateQasmIntoEditor() {
       const qasm = generateCircuitQasm(
         el.generatorFamily.value,
@@ -4876,10 +785,11 @@ cx q[0],q[1];`
       state.activeRouteView = "npqr";
       el.qasm.value = qasm;
       renderInput();
-      clearComparison("待运行");
+      clearComparison("Pending");
       renderFlow();
       renderTopology();
     }
+
 
     function renderInput() {
       const sample = selectedExample();
@@ -4891,11 +801,11 @@ cx q[0],q[1];`
         el.qasm.value = sample.qasm;
       }
       el.qasmLabel.textContent = state.example === "custom"
-        ? state.inputMode === "generate" ? "生成的 OpenQASM 2" : "自定义 OpenQASM 2"
-        : `示例/${state.example}.qasm`;
+        ? state.inputMode === "generate" ? "Generated OpenQASM 2" : "Custom OpenQASM 2"
+        : `Preset/${state.example}.qasm`;
       el.qasmCount.textContent = state.example === "custom"
         ? `${el.qasm.value.length} / ${MAX_INLINE_QASM_CHARS}`
-        : `${sample.qubits} 个量子位`;
+        : `${sample.qubits} qubits`;
       el.exampleSelect.value = state.example;
       setPressed("[data-input-mode]", "inputMode", state.inputMode);
       setPressed("[data-example]", "example", state.example);
@@ -4906,50 +816,53 @@ cx q[0],q[1];`
       return el.qasm.value.trim();
     }
 
+
     function localQasmValidation() {
       const qasm = qasmText();
       if (!qasm) {
-        return { status: "Invalid", message: "OpenQASM 为空。", line: 1 };
+        return { status: "Invalid", message: "OpenQASM is empty.", line: 1 };
       }
       if (qasm.length > MAX_INLINE_QASM_CHARS) {
-        return { status: "Invalid", message: "OpenQASM 过长。", line: null };
+        return { status: "Invalid", message: "OpenQASM exceeds inline limit.", line: null };
       }
       const lines = qasm.split(/\r?\n/);
       if (!lines[0]?.trim().startsWith("OPENQASM 2.0;")) {
-        return { status: "Invalid", message: "第一行需要 OPENQASM 2.0;。", line: 1 };
+        return { status: "Invalid", message: "First line must be OPENQASM 2.0;.", line: 1 };
       }
       const includeLine = lines.findIndex((line) => line.includes('include "qelib1.inc";'));
       if (includeLine < 0) {
-        return { status: "Invalid", message: '需要 include "qelib1.inc";。', line: 2 };
+        return { status: "Invalid", message: 'Missing include "qelib1.inc";.', line: 2 };
       }
       const qregLine = lines.find((line) => /^\s*qreg\s+\w+\[\d+\]\s*;/.test(line));
       if (!qregLine) {
-        return { status: "Invalid", message: "需要声明 qreg。", line: null };
+        return { status: "Invalid", message: "Missing qreg declaration.", line: null };
       }
       const qubits = Number(qregLine.match(/\[(\d+)\]/)?.[1]);
       if (!Number.isFinite(qubits) || qubits < 1) {
-        return { status: "Invalid", message: "qreg 量子位数量无效。", line: null };
+        return { status: "Invalid", message: "Invalid qreg size.", line: null };
       }
       if (qubits > 20) {
-        return { status: "Invalid", message: "IBM Tokyo 最多支持 20 个物理量子位。", line: null };
+        return { status: "Invalid", message: "IBM Tokyo supports up to 20 physical qubits.", line: null };
       }
       const gateCount = lines.filter((line) => /^\s*(h|x|sx|rz|cx|swap|measure|barrier)\b/i.test(line)).length;
       const cxCount = lines.filter((line) => /^\s*cx\b/i.test(line)).length;
-      return { status: "OK", message: "本地格式检查通过。", line: null, input_qubits: qubits, gate_count: gateCount, cx_count: cxCount };
+      return { status: "OK", message: "Local syntax check passed.", line: null, input_qubits: qubits, gate_count: gateCount, cx_count: cxCount };
     }
+
 
     function renderValidation(result = state.validation) {
       state.validation = result;
       el.validationBar.dataset.status = result.status || "idle";
       el.validationStatus.textContent = result.status === "OK"
-        ? "校验通过"
-        : result.status === "Invalid" ? "校验失败" : "等待校验";
-      el.validationMessage.textContent = result.message || "选择示例或输入 OpenQASM。";
+        ? "Valid"
+        : result.status === "Invalid" ? "Invalid" : "Pending";
+      el.validationMessage.textContent = result.message || "Select a preset or enter OpenQASM.";
       const qubits = result.input_qubits ?? "--";
       const gates = result.gate_count ?? "--";
       const cx = result.cx_count ?? "--";
-      el.validationStats.textContent = `量子位 ${qubits} · 门 ${gates} · CX ${cx}`;
+      el.validationStats.textContent = `qubits ${qubits} | gates ${gates} | CX ${cx}`;
     }
+
 
     async function validateWithApi(localResult) {
       if (localResult.status !== "OK" || !hasRemoteApi()) {
@@ -4964,20 +877,20 @@ cx q[0],q[1];`
         });
         renderValidation({
           status: result.status || "OK",
-          message: result.message || "后端校验通过。",
+          message: result.message || "Backend validation passed.",
           line: result.line ?? null,
           input_qubits: result.input_qubits,
           gate_count: result.gate_count,
           cx_count: result.cx_count
         });
       } catch (_) {
-        renderValidation({ ...localResult, message: "本地检查通过；后端校验暂不可用，运行时仍会再次验证。" });
+        renderValidation({ ...localResult, message: "Local check passed; backend validation unavailable." });
       }
     }
 
     function scheduleValidation() {
       window.clearTimeout(state.validateTimer);
-      renderValidation({ status: "idle", message: "等待校验", line: null });
+      renderValidation({ status: "idle", message: "Pending validation", line: null });
       state.validateTimer = window.setTimeout(() => {
         const localResult = localQasmValidation();
         renderValidation(localResult);
@@ -5038,18 +951,19 @@ cx q[0],q[1];`
       return { total: events.length, edges, nodes };
     }
 
+
     function describeTraceEvent(event) {
       if (!event) {
         return state.visualPhase === "compiling"
-          ? "编译中"
-          : "待运行";
+          ? "Compiling"
+          : "Pending";
       }
       const qubits = event.physical_qubits.map((qubit) => `p${qubit}`).join(event.physical_qubits.length > 1 ? "-" : "");
       const logical = formatQubits(event.logical_qubits, "q");
       if (event.kind === "swap") {
-        return `插入 SWAP ${qubits}，位置 ${formatOptional(event.insertion_index)} · 逻辑位 ${logical}`;
+        return `Insert SWAP ${qubits} at g${formatOptional(event.insertion_index)} | logical ${logical}`;
       }
-      return `${event.op || "门"} ${logical} → ${qubits}`;
+      return `${event.op || "gate"} ${logical} -> ${qubits}`;
     }
 
     function formatOptional(value) {
@@ -5063,17 +977,18 @@ cx q[0],q[1];`
       return values.map((value) => value === null || value === undefined ? "--" : `${prefix}${value}`).join("-");
     }
 
+
     function renderFlow() {
       syncBodyState();
       const names = state.visualPhase === "compiling"
-        ? ["后端编译中", "后端编译中", "后端编译中", "后端编译中"]
-        : ["待命", "映射", `${state.activeRouteView.toUpperCase()} 路线`, "输出"];
+        ? ["Compiling", "Compiling", "Compiling", "Compiling"]
+        : ["Idle", "Map", `${state.activeRouteView.toUpperCase()} route`, "Emit"];
       document.querySelectorAll("[data-stage]").forEach((stage) => {
         const index = Number(stage.dataset.stage);
         stage.classList.toggle("is-active", index === state.step);
         stage.classList.toggle("is-done", state.visualPhase !== "compiling" && index < state.step);
       });
-      el.routeStatus.textContent = names[state.step] || "待命";
+      el.routeStatus.textContent = names[state.step] || "Idle";
 
       const event = currentTraceEvent();
       const stats = traceStats();
@@ -5084,8 +999,8 @@ cx q[0],q[1];`
       el.traceProgress.textContent = `${current}/${total}`;
       el.traceBar.style.width = `${ratio}%`;
       el.routeCount.textContent = total
-        ? `${state.activeRouteView.toUpperCase()} · ${total} 个事件 · ${stats.edges} 条边 · ${stats.nodes} 个节点`
-        : state.visualPhase === "compiling" ? "编译中" : "0 个事件";
+        ? `${state.activeRouteView.toUpperCase()} | ${total} events | ${stats.edges} edges | ${stats.nodes} nodes`
+        : state.visualPhase === "compiling" ? "Compiling" : "0 events";
       setPressed("[data-route-view]", "routeView", state.activeRouteView);
     }
 
@@ -5286,27 +1201,29 @@ cx q[0],q[1];`
       renderRouteInspector();
     }
 
+
     function renderRouteInspector() {
       const trace = state.trace;
       const event = currentTraceEvent();
       const view = state.activeRouteView.toUpperCase();
-      el.eventTitle.textContent = event ? `${view} 事件` : "暂无路由事件";
+      el.eventTitle.textContent = event ? `${view} event` : "No route event";
       el.eventIndex.textContent = trace.length ? `${state.traceIndex + 1}/${trace.length}` : "--";
       el.eventOp.textContent = event?.op || "--";
       el.eventKind.textContent = displayEventKind(event?.kind);
       el.eventLogical.textContent = formatQubits(event?.logical_qubits, "q");
       el.eventPhysical.textContent = formatQubits(event?.physical_qubits, "p");
-      el.eventInsertion.textContent = `门 ${formatOptional(event?.insertion_index ?? event?.gate_index)}`;
+      el.eventInsertion.textContent = `g${formatOptional(event?.insertion_index ?? event?.gate_index)}`;
       el.eventCompiled.textContent = formatOptional(event?.compiled_index);
       renderMapping(event);
       renderTimeline();
     }
 
+
     function renderMapping(event) {
       const mapping = event?.mapping_after || event?.mapping || resultMapping();
       const activePhysical = new Set((event?.physical_qubits || []).map((value) => Number(value)));
       const used = new Map(Object.entries(mapping).map(([logical, physical]) => [Number(physical), Number(logical)]));
-      el.mappingActive.textContent = `${used.size} 个逻辑位`;
+      el.mappingActive.textContent = `${used.size} logical`;
       el.mappingGrid.textContent = "";
       topologyNodes.forEach(([physical]) => {
         const cell = document.createElement("div");
@@ -5322,12 +1239,13 @@ cx q[0],q[1];`
       });
     }
 
+
     function timelineText(event) {
       const edge = formatQubits(event.physical_qubits, "p");
       const logical = formatQubits(event.logical_qubits, "q");
       return event.kind === "swap"
         ? `SWAP ${edge} (${logical})`
-        : `${event.op || "门"} ${logical} → ${edge}`;
+        : `${event.op || "gate"} ${logical} -> ${edge}`;
     }
 
     function displayEventKind(kind) {
@@ -5335,10 +1253,10 @@ cx q[0],q[1];`
         return "SWAP";
       }
       if (kind === "gate") {
-        return "门";
+        return "Gate";
       }
       if (kind === "single") {
-        return "单比特门";
+        return "Single";
       }
       return kind || "--";
     }
@@ -5347,12 +1265,12 @@ cx q[0],q[1];`
       const trace = state.trace;
       const swapCount = trace.filter((event) => event.kind === "swap").length;
       const gateCount = trace.filter((event) => event.kind === "gate").length;
-      el.timelineSummary.textContent = trace.length ? `${gateCount} 个门 · ${swapCount} 个 SWAP` : "等待";
+      el.timelineSummary.textContent = trace.length ? `${gateCount} gates | ${swapCount} SWAP` : "Pending";
       el.routeTimeline.textContent = "";
       if (!trace.length) {
         const empty = document.createElement("div");
-        empty.className = "timeline-row";
-        empty.textContent = "运行后加载路由事件。";
+        empty.className = "timeline-empty";
+        empty.textContent = "Run to load route events.";
         el.routeTimeline.appendChild(empty);
         return;
       }
@@ -5520,7 +1438,7 @@ cx q[0],q[1];`
       state.results = { npqr: null, sabre: null };
       setRunVisual("idle");
       renderInput();
-      clearComparison("待运行");
+      clearComparison("Pending");
       renderFlow();
       renderTopology();
     }
@@ -5529,6 +1447,7 @@ cx q[0],q[1];`
       const base = { backend, topology: "tokyo" };
       return state.example === "custom" ? { qasm: el.qasm.value, ...base } : { example: state.example, ...base };
     }
+
 
     function embeddedCompileResult(backend) {
       if (state.example === "custom" || state.inputMode !== "examples") {
@@ -5555,13 +1474,14 @@ cx q[0],q[1];`
           "OPENQASM 2.0;",
           'include "qelib1.inc";',
           "qreg q[20];",
-          `// Embedded GitHub Pages ${backend.toUpperCase()} review result for ${state.example}.`,
+          `// Embedded ${backend.toUpperCase()} review result for ${state.example}.`,
           `// SWAP=${summary.swaps}, depth=${summary.depth}.`,
-          "// Connect an HTTPS REST API with ?api=... to export full routed QASM."
+          "// Use ?api=https://your-api.example for full routed QASM."
         ].join("\n"),
-        message: "GitHub Pages 内置示例结果；连接 HTTPS REST API 可实时编译。"
+        message: "Embedded review data; HTTPS REST API enables live compilation."
       };
     }
+
 
     async function compileWithBestAvailableBackend(backend) {
       if (hasRemoteApi()) {
@@ -5574,8 +1494,8 @@ cx q[0],q[1];`
       const embedded = embeddedCompileResult(backend);
       if (embedded) {
         apiMode = "embedded";
-        setBackend("loading", "内置");
-        syncApiControls("当前使用 GitHub Pages 内置示例结果；维护者可填入 HTTPS REST API。");
+        setBackend("loading", "Embedded");
+        syncApiControls("Embedded review data active; HTTPS REST API enables live compilation.");
         return embedded;
       }
       const error = new Error("Custom or generated circuits require a reachable HTTPS REST API.");
@@ -5614,14 +1534,15 @@ cx q[0],q[1];`
       }
     }
 
+
     async function callApi(path, options = {}) {
       let lastError = null;
       for (const candidate of apiCandidates()) {
         try {
           const data = await callApiAt(candidate, path, options);
           apiBase = candidate;
-          setBackend("ok", "在线");
-          syncApiControls(`当前 API: ${apiBase}`);
+          setBackend("ok", "Online");
+          syncApiControls(`API: ${apiBase}`);
           return data;
         } catch (error) {
           lastError = error;
@@ -5630,73 +1551,77 @@ cx q[0],q[1];`
       throw lastError || new Error("REST API unavailable");
     }
 
+
     async function checkBackend() {
       if (!hasRemoteApi()) {
         apiMode = "embedded";
-        setBackend("loading", "内置");
-        syncApiControls("GitHub Pages 默认使用内置示例结果；维护者可填入 HTTPS REST API。");
+        setBackend("loading", "Embedded");
+        syncApiControls("Embedded review data active; HTTPS REST API enables live compilation.");
         return;
       }
-      setBackend("loading", "检测中");
+      setBackend("loading", "Checking");
       let lastError = null;
       for (const candidate of apiCandidates()) {
         try {
           await callApiAt(candidate, "/api/status", {}, API_STATUS_TIMEOUT_MS);
           apiBase = candidate;
           apiMode = "remote";
-          setBackend("ok", "在线");
-          syncApiControls(`当前 API: ${apiBase}`);
+          setBackend("ok", "Online");
+          syncApiControls(`API: ${apiBase}`);
           return;
         } catch (error) {
           lastError = error;
         }
       }
-      setBackend("error", "离线");
+      setBackend("error", "Offline");
       syncApiControls(formatBackendNote(lastError));
     }
 
+
     function formatBackendNote(error) {
       if (!hasRemoteApi()) {
-        return "GitHub Pages 默认使用内置示例结果；实时编译需填入 HTTPS REST API。";
+        return "Embedded review data active; HTTPS REST API enables live compilation.";
       }
       if (isTimeoutError(error)) {
-        return "REST API 可能仍在计算，请稍后再试。";
+        return "REST API timeout.";
       }
-      const reason = error?.status ? `HTTP ${error.status}` : "网络错误";
-      return `REST API 离线（${reason}）。这不是 MCP 入口。`;
+      const reason = error?.status ? `HTTP ${error.status}` : "Network error";
+      return `REST API offline (${reason}).`;
     }
 
     function isTimeoutError(error) {
       return error?.name === "AbortError";
     }
 
+
     function formatBackendHelp(error) {
       if (error?.embeddedOnly) {
         return [
-          "// 当前是 GitHub Pages 内置示例模式。",
-          "// 内置模式只覆盖页面左侧示例电路。",
-          "// 自定义或生成电路需要连接 HTTPS REST API。",
-          "// 维护者可在高级入口填入地址，或使用 ?api=https://your-api.example。"
+          "// Embedded review data supports bundled presets.",
+          "// Custom circuits require a reachable REST API.",
+          "// Use ?api=https://your-api.example.",
+          "// Service Interfaces lists the REST and MCP endpoints."
         ].join("\n");
       }
       if (isTimeoutError(error)) {
         return [
-          "// 编译超时：浏览器没有在限定时间内收到结果。",
-          "// 服务器可能仍在计算，这不一定代表后端离线。",
-          `// 当前 API: ${apiBase}`,
-          "// 请稍后重试，或选择更小的电路。"
+          "// REST API timeout.",
+          "// Retry or choose a smaller circuit.",
+          `// API: ${apiBase}`,
+          "// Check the REST service status."
         ].join("\n");
       }
-      const reason = error?.status ? `HTTP ${error.status}` : "网络错误或超时";
+      const reason = error?.status ? `HTTP ${error.status}` : "Network error or timeout";
       return [
-        "// 后端暂时不可用：REST API 离线。",
-        "// 暂无编译后 QASM",
-        `// 离线的是 REST API，不是 MCP。最后错误：${reason}。`,
-        `// 当前 API: ${apiBase}`,
-        "// 普通用户需要项目方部署的 REST API 保持在线。",
-        "// 维护者可在高级入口或用 ?api=... 覆盖地址。"
+        "// REST API unavailable.",
+        "// Compiled QASM unavailable.",
+        `// Last error: ${reason}.`,
+        `// API: ${apiBase}`,
+        "// REST API must be deployed separately.",
+        "// Override with ?api=... when needed."
       ].join("\n");
     }
+
 
     function applyApiBase() {
       const next = normalizeApiBase(el.apiBaseInput.value);
@@ -5706,9 +1631,9 @@ cx q[0],q[1];`
         return;
       }
       if (!canUseApiBase(next)) {
-        syncApiControls("请输入 REST API 地址。");
-        setBackend("error", "受限");
-        el.apiBaseNote.textContent = "GitHub Pages 需要 HTTPS REST API；HTTP 地址会被浏览器拦截。";
+        syncApiControls("Enter a REST API base URL.");
+        setBackend("error", "Restricted");
+        el.apiBaseNote.textContent = "HTTPS is required on GitHub Pages; local HTTP requires allowHttpApi=1.";
         return;
       }
       apiBase = next;
@@ -5719,18 +1644,20 @@ cx q[0],q[1];`
       return Number.isFinite(value) ? Number(value).toFixed(digits) : "--";
     }
 
+
     function formatResultError(error) {
       if (!error) {
         return "";
       }
       if (isTimeoutError(error)) {
-        return "超时";
+        return "Timeout";
       }
-      return error.status ? `HTTP ${error.status}` : "错误";
+      return error.status ? `HTTP ${error.status}` : "Error";
     }
 
+
     function setResultMetrics(prefix, result, error = null) {
-      const status = result?.status || (error ? "错误" : "就绪");
+      const status = result?.status || (error ? "Error" : "Ready");
       el[`${prefix}Status`].textContent = displayStatus(status);
       el[`${prefix}Swaps`].textContent = result?.swaps ?? "--";
       el[`${prefix}Depth`].textContent = result?.depth ?? "--";
@@ -5739,18 +1666,20 @@ cx q[0],q[1];`
         : formatResultError(error) || "--";
     }
 
+
     function displayStatus(status) {
       if (status === "OK" || status === "ok") {
-        return "成功";
+        return "Success";
       }
       if (status === "Invalid") {
-        return "无效";
+        return "Invalid";
       }
       if (status === "Error") {
-        return "错误";
+        return "Error";
       }
       return status;
     }
+
 
     function formatDelta(npqrValue, sabreValue, suffix = "") {
       if (!Number.isFinite(npqrValue) || !Number.isFinite(sabreValue)) {
@@ -5758,10 +1687,10 @@ cx q[0],q[1];`
       }
       const delta = Number(npqrValue) - Number(sabreValue);
       if (delta === 0) {
-        return `持平${suffix}`;
+        return `Even${suffix}`;
       }
-      const winner = delta < 0 ? "NPQR 更低" : "SABRE 更低";
-      return `${delta > 0 ? "+" : ""}${delta}${suffix} · ${winner}`;
+      const winner = delta < 0 ? "NPQR lower" : "SABRE lower";
+      return `${delta > 0 ? "+" : ""}${delta}${suffix} | ${winner}`;
     }
 
     function updateDelta(npqr, sabre) {
@@ -5778,14 +1707,15 @@ cx q[0],q[1];`
       updateQasmView();
     }
 
+
     function updateQasmView() {
       const result = currentQasmResult();
       document.querySelectorAll("[data-qasm-view]").forEach((button) => {
         button.setAttribute("aria-pressed", String(button.dataset.qasmView === state.activeQasmView));
       });
       const qasm = result?.compiled_qasm || "";
-      el.compiled.textContent = qasm || `// ${state.activeQasmView.toUpperCase()} 暂无编译结果。`;
-      setCompiledState(qasm ? "ready" : "idle", qasm ? `${state.activeQasmView.toUpperCase()} 已生成` : "等待结果", Boolean(qasm));
+      el.compiled.textContent = qasm || `// ${state.activeQasmView.toUpperCase()} compiled result unavailable.`;
+      setCompiledState(qasm ? "ready" : "idle", qasm ? `${state.activeQasmView.toUpperCase()} ready` : "Pending", Boolean(qasm));
     }
 
     function clearComparison(message) {
@@ -5804,6 +1734,7 @@ cx q[0],q[1];`
       renderFlow();
       renderTopology();
     }
+
 
     function showComparisonResult(npqrResult, sabreResult, npqrError = null, sabreError = null) {
       state.results = {
@@ -5824,19 +1755,20 @@ cx q[0],q[1];`
       const npqrTraceCount = normalizeTrace(npqrResult?.route_trace).length;
       const sabreTraceCount = normalizeTrace(sabreResult?.route_trace).length;
       const traceCopy = (npqrTraceCount || sabreTraceCount)
-        ? ` 路由事件：NPQR ${npqrTraceCount}，SABRE ${sabreTraceCount}。`
+        ? ` Events: NPQR ${npqrTraceCount}, SABRE ${sabreTraceCount}.`
         : "";
       const errorCopy = [
         npqrError ? `NPQR ${formatResultError(npqrError)}` : "",
         sabreError ? `SABRE ${formatResultError(sabreError)}` : ""
-      ].filter(Boolean).join(" · ");
+      ].filter(Boolean).join(" | ");
       renderFlow();
       renderTopology();
       el.message.classList.toggle("error", Boolean(errorCopy && !npqrResult && !sabreResult));
       el.message.textContent = errorCopy
-        ? `${errorCopy}。${traceCopy}`
-        : `完成。${traceCopy}`;
+        ? `${errorCopy}. ${traceCopy}`
+        : `Complete.${traceCopy}`;
     }
+
 
     async function run() {
       if (state.visualPhase === "replaying" && state.trace.length) {
@@ -5858,13 +1790,13 @@ cx q[0],q[1];`
 
       const error = validate();
       if (error) {
-        setResultMetrics("npqr", { status: "无效" });
+        setResultMetrics("npqr", { status: "Invalid" });
         setResultMetrics("sabre", null);
         updateDelta(null, null);
         el.message.classList.add("error");
         el.message.textContent = error;
-        el.compiled.textContent = "// 暂无编译后 QASM";
-        setCompiledState("error", "无效");
+        el.compiled.textContent = "// Compiled QASM unavailable.";
+        setCompiledState("error", "Invalid");
         return;
       }
 
@@ -5880,13 +1812,13 @@ cx q[0],q[1];`
       state.activeQasmView = "npqr";
       state.activeRouteView = "npqr";
       setRunVisual("running");
-      setCompiledState("busy", "生成中");
-      setResultMetrics("npqr", { status: "编译中" });
-      setResultMetrics("sabre", { status: "编译中" });
+      setCompiledState("busy", "Compiling");
+      setResultMetrics("npqr", { status: "Compiling" });
+      setResultMetrics("sabre", { status: "Compiling" });
       updateDelta(null, null);
       el.message.classList.remove("error");
-      el.message.textContent = "编译中";
-      el.compiled.textContent = "// 等待编译结果";
+      el.message.textContent = "Compiling";
+      el.compiled.textContent = "// Waiting for compiled QASM";
       renderFlow();
       renderTopology();
       startAnimation();
@@ -5915,12 +1847,12 @@ cx q[0],q[1];`
         updateDelta(null, null);
         el.message.classList.add("error");
         el.message.textContent = error?.embeddedOnly
-          ? "自定义或生成电路需要连接 HTTPS REST API。"
+          ? "Custom or generated circuits require HTTPS REST API."
           : isTimeoutError(error)
-          ? "这个电路计算时间较长，服务器可能仍在运行，请稍后重试。"
-          : "后端暂时不可用，请稍后重试。";
+          ? "REST API timeout; retry later."
+          : "REST API unavailable.";
         el.compiled.textContent = formatBackendHelp(error);
-        setCompiledState("error", isTimeoutError(error) ? "超时" : "不可用");
+        setCompiledState("error", isTimeoutError(error) ? "Timeout" : "Unavailable");
         state.trace = [];
         state.traceIndex = 0;
         state.visualPhase = "idle";
@@ -5942,16 +1874,17 @@ cx q[0],q[1];`
       }
     }
 
+
     async function copyQasm() {
       if (el.copy.disabled) {
         return;
       }
       try {
         await navigator.clipboard.writeText(currentQasmResult()?.compiled_qasm || el.compiled.textContent);
-        el.copy.textContent = "已复制";
-        window.setTimeout(() => { el.copy.textContent = "复制"; }, 1000);
+        el.copy.textContent = "Copied";
+        window.setTimeout(() => { el.copy.textContent = "Copy"; }, 1000);
       } catch (_) {
-        el.copy.textContent = "选择";
+        el.copy.textContent = "Select";
       }
     }
 
@@ -6010,7 +1943,7 @@ cx q[0],q[1];`
       }
       el.tourTitle.textContent = `${tourIndex + 1}/${tourSteps.length} ${step.title}`;
       el.tourCopy.textContent = step.copy;
-      el.tourNext.textContent = tourIndex >= tourSteps.length - 1 ? "完成" : "下一步";
+      el.tourNext.textContent = tourIndex >= tourSteps.length - 1 ? "Complete" : "Next";
       window.setTimeout(() => placeTourCard(target), 140);
     }
 
@@ -6046,7 +1979,7 @@ cx q[0],q[1];`
         state.activeRouteView = "npqr";
         stopAnimation();
         renderInput();
-        clearComparison("待运行");
+        clearComparison("Pending");
         renderFlow();
         renderTopology();
       });
@@ -6087,7 +2020,7 @@ cx q[0],q[1];`
       state.activeRouteView = "npqr";
       stopAnimation();
       renderInput();
-      clearComparison("待运行");
+      clearComparison("Pending");
       renderFlow();
       renderTopology();
     });
@@ -6113,7 +2046,7 @@ cx q[0],q[1];`
     el.download.addEventListener("click", downloadQasm);
     el.generateQasm.addEventListener("click", generateQasmIntoEditor);
     el.applyApiBase.addEventListener("click", applyApiBase);
-    el.tourButton.addEventListener("click", () => openTour(true));
+    el.tourButton?.addEventListener("click", () => openTour(true));
     el.tourSkip.addEventListener("click", () => closeTour(true));
     el.tourOverlay.addEventListener("click", () => closeTour(true));
     el.tourNext.addEventListener("click", nextTourStep);
@@ -6132,7 +2065,7 @@ cx q[0],q[1];`
     renderFlow();
     renderTopology();
     setRunVisual("idle");
-    setCompiledState("idle", "等待结果");
+    setCompiledState("idle", "Pending");
     syncApiControls();
     checkBackend();
   </script>
