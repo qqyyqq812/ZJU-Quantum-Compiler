@@ -32,6 +32,8 @@ def test_public_site_has_one_formal_entry_page():
     assert "instrument-preview" not in html
     assert "instrument-v2" not in html
     assert "quantum-studio-preview" not in html
+    for phrase in ["tour", "Guide", "Skip", "TOUR_STORAGE_KEY", "data-tour"]:
+        assert phrase not in html
 
 
 def test_public_site_keeps_first_screen_action_focused():
@@ -216,3 +218,25 @@ def test_public_site_removes_explanatory_first_screen_copy():
     for phrase in forbidden:
         assert phrase not in html
         assert phrase not in first_screen
+
+
+def test_public_site_has_no_chinese_code_comments():
+    files = [
+        DOCS / "index.html",
+        DOCS / "console.css",
+    ]
+
+    for path in files:
+        text = path.read_text(encoding="utf-8")
+        for line in text.splitlines():
+            stripped = line.lstrip()
+            is_comment = (
+                stripped.startswith("//")
+                or stripped.startswith("/*")
+                or stripped.startswith("*")
+                or stripped.startswith("<!--")
+            )
+            assert not (is_comment and any("\u4e00" <= char <= "\u9fff" for char in stripped)), (
+                path,
+                line,
+            )

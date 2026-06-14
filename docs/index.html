@@ -233,16 +233,6 @@
     </div>
   </main>
 
-  <div class="tour-overlay" id="tour-overlay" hidden></div>
-  <aside class="tour-card" id="tour-card" aria-live="polite" hidden>
-    <h3 id="tour-title">Guide</h3>
-    <p id="tour-copy">Start with a preset circuit.</p>
-    <div class="tour-actions">
-      <button id="tour-skip" type="button">Skip</button>
-      <button id="tour-next" class="primary" type="button">Next</button>
-    </div>
-  </aside>
-
   <details class="page" id="advanced" aria-label="Service interfaces">
     <summary>Service Interfaces</summary>
     <div class="advanced-body">
@@ -578,27 +568,8 @@ cx q[0],q[1];`
       apiBaseNote: document.getElementById("api-base-note"),
       traceOp: document.getElementById("trace-op"),
       traceProgress: document.getElementById("trace-progress"),
-      traceBar: document.getElementById("trace-bar"),
-      tourButton: document.getElementById("tour-button"),
-      tourOverlay: document.getElementById("tour-overlay"),
-      tourCard: document.getElementById("tour-card"),
-      tourTitle: document.getElementById("tour-title"),
-      tourCopy: document.getElementById("tour-copy"),
-      tourSkip: document.getElementById("tour-skip"),
-      tourNext: document.getElementById("tour-next")
+      traceBar: document.getElementById("trace-bar")
     };
-
-    let tourIndex = 0;
-    const TOUR_STORAGE_KEY = "zju-quantum-playground-v2-tour";
-
-    const tourSteps = [
-      { selector: "#examples-panel", title: "Circuit preset", copy: "Select a bundled OpenQASM circuit." },
-      { selector: "#qasm-input", title: "Input check", copy: "Review the current OpenQASM payload." },
-      { selector: "#run-button", title: "Compile", copy: "Run NPQR and SABRE against Tokyo 20Q." },
-      { selector: "#tokyo-topology", title: "Topology", copy: "Inspect physical route events on IBM Tokyo." },
-      { selector: ".comparison-table", title: "Results", copy: "Compare SWAP count, depth, and elapsed time." },
-      { selector: "#qasm-details", title: "Compiled QASM", copy: "Review and export routed QASM." }
-    ];
 
     function normalizeApiBase(value) {
       return String(value || "").trim().replace(/\/+$/, "");
@@ -1904,69 +1875,6 @@ cx q[0],q[1];`
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
-    function clearTourTarget() {
-      document.querySelectorAll('[data-tour-target="true"]').forEach((node) => {
-        node.removeAttribute("data-tour-target");
-      });
-    }
-
-    function closeTour(remember = false) {
-      clearTourTarget();
-      document.body.classList.remove("tour-open");
-      el.tourOverlay.hidden = true;
-      el.tourCard.hidden = true;
-      if (remember) {
-        window.localStorage.setItem(TOUR_STORAGE_KEY, "done");
-      }
-    }
-
-    function placeTourCard(target) {
-      const rect = target?.getBoundingClientRect();
-      const width = Math.min(320, window.innerWidth - 28);
-      const left = rect
-        ? Math.min(window.innerWidth - width - 14, Math.max(14, rect.left))
-        : 18;
-      const top = rect
-        ? Math.min(window.innerHeight - 180, Math.max(14, rect.bottom + 12))
-        : 18;
-      el.tourCard.style.left = `${left}px`;
-      el.tourCard.style.top = `${top}px`;
-    }
-
-    function renderTourStep() {
-      clearTourTarget();
-      const step = tourSteps[tourIndex];
-      const target = document.querySelector(step.selector);
-      if (target) {
-        target.setAttribute("data-tour-target", "true");
-        target.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
-      }
-      el.tourTitle.textContent = `${tourIndex + 1}/${tourSteps.length} ${step.title}`;
-      el.tourCopy.textContent = step.copy;
-      el.tourNext.textContent = tourIndex >= tourSteps.length - 1 ? "Complete" : "Next";
-      window.setTimeout(() => placeTourCard(target), 140);
-    }
-
-    function openTour(force = false) {
-      if (!force && window.localStorage.getItem(TOUR_STORAGE_KEY) === "done") {
-        return;
-      }
-      tourIndex = 0;
-      el.tourOverlay.hidden = false;
-      el.tourCard.hidden = false;
-      document.body.classList.add("tour-open");
-      renderTourStep();
-    }
-
-    function nextTourStep() {
-      if (tourIndex >= tourSteps.length - 1) {
-        closeTour(true);
-        return;
-      }
-      tourIndex += 1;
-      renderTourStep();
-    }
-
     document.querySelectorAll("[data-example]").forEach((button) => {
       button.addEventListener("click", () => {
         state.example = button.dataset.example;
@@ -2046,15 +1954,6 @@ cx q[0],q[1];`
     el.download.addEventListener("click", downloadQasm);
     el.generateQasm.addEventListener("click", generateQasmIntoEditor);
     el.applyApiBase.addEventListener("click", applyApiBase);
-    el.tourButton?.addEventListener("click", () => openTour(true));
-    el.tourSkip.addEventListener("click", () => closeTour(true));
-    el.tourOverlay.addEventListener("click", () => closeTour(true));
-    el.tourNext.addEventListener("click", nextTourStep);
-    window.addEventListener("resize", () => {
-      if (!el.tourCard.hidden) {
-        renderTourStep();
-      }
-    });
     el.apiBaseInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         applyApiBase();
