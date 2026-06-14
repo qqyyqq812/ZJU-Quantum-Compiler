@@ -20,7 +20,7 @@ def test_submission_readiness_marks_public_release_ready():
         "Public docs hide internal experiment names",
         "Team report guide uses course algorithm language",
         "Detailed Chinese project guide exists",
-        "Website calls REST API without changing the visual shell",
+        "Website opens from GitHub Pages with optional HTTPS REST",
         "Final package script is user-facing",
         "Algorithm matrix remains reproducible",
         "Presentation material exists",

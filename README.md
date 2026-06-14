@@ -195,8 +195,9 @@ python scripts/experiment_algorithm_matrix.py --quick --json
 
 ## 网页和报告材料
 
-`docs/index.html` 是网页入口。页面通过 REST API 调用后端，并展示 NPQR 与
-固定 SABRE 基线的对比结果。
+`docs/index.html` 是唯一网页入口。GitHub Pages 打开后默认使用内置示例结果，
+可以直接展示 NPQR 与固定 SABRE 基线的对比、Tokyo 映射和路线回放。维护者
+可以用 HTTPS REST API 覆盖为实时编译。
 
 `docs/playground-user-guide.md` 说明网页中的 **Run**、**Step**、**Reset**、
 示例电路、自定义 QASM、生成电路、Tokyo 映射、路线轨迹和 `compiled_qasm`
@@ -209,6 +210,25 @@ python scripts/experiment_algorithm_matrix.py --quick --json
 复杂度分析、对比基线、PPT 结构和口播材料展开。
 
 PPT 材料位于 `docs/slides/`。
+
+## 结果摘要
+
+本课程项目把 SABRE basic 作为主要质量基线。最终本地评测显示，NPQR 在
+代表性 10/20 比特电路上全部完成路由，并且 SWAP 数均低于 SABRE basic。
+所有完成结果都不依赖 SABRE 回退路径，并通过轨迹复放验证。
+
+| 规模 | 电路数 | NPQR 完成 | 优于 SABRE basic | 说明 |
+| --- | ---: | ---: | ---: | --- |
+| 10/20 比特代表电路 | 10 | 10 | 10 | 主性能结论。 |
+| 30/50 比特扩展测试 | 4 | 4 | 4 | 展示扩展潜力，但不是全面胜出声明。 |
+| 80/100 比特边界测试 | 4 | 0 | 0 | 用于界定上限，不作为完成能力声明。 |
+
+30/50 比特扩展测试中，NPQR 在 LineGHZ30、Random30-d4、LineGHZ50 和
+RingSparse50 上均完成并优于 SABRE basic。
+80 比特 LineGHZ 在 240 秒 CPU 有界运行内未完成，100 比特没有作为最终能力
+声明。因此，项目可以宣称 NPQR 在代表性 10/20 比特任务上稳定优于 SABRE basic，
+并已证明部分 30/50 比特电路可完成且优于 basic；当前最大已证明完成规模为
+50 比特，不能宣称所有大规模电路都优于 SABRE。
 
 ## 部署
 
@@ -261,3 +281,4 @@ NPQR 是一个可运行的神经辅助量子路由流程。它的核心是神经
 
 项目不声明 NPQR 在所有电路上都优于 SABRE，也不声明默认模型是最先进的量子
 路由模型。SABRE 在这里是强基线和对比对象，不是 NPQR 结果的隐藏完成路径。
+SABRE lookahead 不是本课程项目的主比较目标。

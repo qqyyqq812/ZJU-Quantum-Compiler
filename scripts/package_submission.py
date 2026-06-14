@@ -15,6 +15,8 @@ PACKAGE_MANIFEST = [
     ("README.md", "README.md"),
     ("docs/index.html", "website/index.html"),
     ("docs/项目说明.md", "项目说明.md"),
+    ("docs/final-closure-report.md", "final-closure-report.md"),
+    ("docs/report_latex/main.pdf", "report/npqr-course-report.pdf"),
     ("docs/plans/组员分工.md", "组员分工.md"),
     (
         "docs/slides/quantum-routing-algorithm-showcase-final.pptx",
@@ -54,6 +56,11 @@ NPQR 是一个神经辅助量子路由流程。它使用默认神经网络模型
 
 SABRE 是对比基线。项目使用它进行指标对比和算法说明，不把它作为自研算法，
 也不把它作为 NPQR 的隐藏完成路径。
+
+最终课程报告使用 SABRE basic 作为主要质量基线。NPQR 在代表性 10/20 比特
+电路上 10/10 完成，并且 10/10 的 SWAP 数低于 SABRE basic。30/50 比特扩展
+测试中，NPQR 4/4 完成，并且 4/4 优于 SABRE basic。80 比特 LineGHZ 在
+240 秒 CPU 有界运行内未完成，100 比特没有作为最终能力声明。
 
 报告中可以使用的课程概念包括：
 

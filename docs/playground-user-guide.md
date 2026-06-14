@@ -5,20 +5,23 @@ backend when you compile a circuit. It is written for reviewers, teammates, and
 users who need to run real examples without learning the deployment details
 first.
 
-> **Note:** The Playground is a live compiler interface. It calls the deployed
-> REST API by default. MCP remains an advanced helper for tool clients and is
-> not the path used by the **Run** button.
+> **Note:** The GitHub Pages Playground opens in an embedded review mode by
+> default. It can use an HTTPS REST API for live compilation when a maintainer
+> provides one. MCP remains an advanced helper for tool clients and is not the
+> path used by the **Run** button.
 
 ## Quick start
 
 Use this flow when you want to verify that the page and backend are working.
 
 1. Open `docs/index.html`, or open the deployed GitHub Pages version.
-2. Check the small backend indicator in the top bar. **在线** means the page can
-   reach the FastAPI REST backend.
+2. Check the small backend indicator in the top bar. **内置** means GitHub Pages
+   is using checked-in example results. **在线** means the page can reach an
+   HTTPS FastAPI REST backend.
 3. Select an example such as `qft5`, `ghz5`, or `qaoa5`.
-4. Click **Run**. The page sends the same circuit to NPQR and to the fixed
-   SABRE baseline.
+4. Click **Run**. In embedded mode, the page loads the checked-in review result
+   for the selected example. With an HTTPS REST API, it sends the same circuit
+   to NPQR and to the fixed SABRE baseline.
 5. Review the two result columns. Each column shows status, SWAP count, depth,
    and `elapsed_ms`.
 6. Click **Step** to move through the displayed route trace one event at a time.
@@ -26,9 +29,10 @@ Use this flow when you want to verify that the page and backend are working.
    OpenQASM output for each compiler.
 
 If the backend indicator shows an offline state, the web page loaded correctly
-but the REST API is not reachable from the browser. The public route uses the
-deployed API at `http://1.95.70.10` unless a maintainer overrides it with
-`?api=`.
+but the configured REST API is not reachable from the browser. GitHub Pages is
+served over HTTPS, so a plain HTTP API can be blocked by browser mixed-content
+rules. Maintainers can override the backend with `?api=https://your-api.example`
+or the Advanced input.
 
 ## Input modes
 
@@ -52,8 +56,9 @@ routing work.
 The top control strip mirrors a small experiment bench. Each control has a
 different backend effect.
 
-- **Run** calls `POST /api/compile` twice with the same circuit. One request uses
-  `backend="npqr"`, and the other uses `backend="sabre"`.
+- **Run** uses the embedded example result when no HTTPS REST API is configured.
+  With a REST API, it calls `POST /api/compile` twice with the same circuit.
+  One request uses `backend="npqr"`, and the other uses `backend="sabre"`.
 - **Pause** stops the route animation in the browser. It does not cancel a
   request that has already reached the backend.
 - **Step** advances the currently selected route trace by one event. It does
@@ -125,8 +130,9 @@ for comparison and review, not as a fake NPQR animation.
 
 ## Backend algorithms
 
-The browser calls the REST API served by `src.server.app:app`. The normal user
-path is:
+The browser can call the REST API served by `src.server.app:app`, but the
+GitHub Pages path also works without a live API for the checked-in examples.
+The live backend path is:
 
 ```text
 browser
@@ -160,26 +166,31 @@ SABRE.
 
 REST API and MCP are separate surfaces.
 
-- The **REST API** is the browser path. **Run** calls `/api/compile` on the
-  deployed FastAPI backend. Normal users only need the page and the deployed
-  API.
+- The **REST API** is the live compiler path. **Run** calls `/api/compile` when
+  a reachable HTTPS backend is configured. Normal GitHub Pages review of the
+  bundled examples does not require deployment.
 - MCP is an advanced helper for AI clients, reviewers, and tool workflows.
   It exposes tools such as `compile_qasm`, `compile_npqr`, and `compile_sabre`.
   The public page keeps MCP in the **Advanced** section because it is not needed
   for normal browser use.
 
 Maintainers can override the REST API base with `?api=https://your-api.example`
-or the Advanced input. Do this only when testing a staging backend.
+or the Advanced input. Use HTTPS for GitHub Pages; browser security can block
+plain HTTP requests from the published page.
 
 ## Troubleshooting
 
 Use these checks when a run does not produce the expected output.
 
-- If the backend indicator is offline, the browser cannot reach the REST API.
+- If the backend indicator is **内置**, the page is using embedded example
+  results and remains usable for review.
+- If the backend indicator is offline, the browser cannot reach the configured
+  REST API.
 - If NPQR shows `N/A` but SABRE shows `OK`, the API is running but the NPQR model
   file or dependency is missing in that deployment.
 - If both columns show errors, the API may be down, the request may have timed
-  out, or the QASM may be invalid.
+  out, the QASM may be invalid, or a custom/generated circuit may have been run
+  without a connected HTTPS REST API.
 - If Custom QASM fails immediately, check that the text starts with
   `OPENQASM 2.0;` and uses OpenQASM 2 syntax.
 - If a large generated circuit takes a long time, try fewer qubits or fewer

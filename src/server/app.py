@@ -128,6 +128,23 @@ class ExampleInfo(BaseModel):
     description: str
 
 
+class ValidateRequest(BaseModel):
+    qasm: str = Field(description="Inline OpenQASM 2 source to validate.")
+    topology: str = "tokyo"
+
+
+class ValidateResponse(BaseModel):
+    status: Literal["OK", "Invalid"]
+    message: str
+    line: int | None = None
+    column: int | None = None
+    input_qubits: int | None = None
+    gate_count: int | None = None
+    cx_count: int | None = None
+    supported_gates: list[str]
+    warnings: list[str]
+
+
 class CompileRequest(BaseModel):
     example: str | None = Field(default=None, description="Example id, such as qft5.")
     qasm: str | None = Field(default=None, description="Inline OpenQASM 2 source.")
@@ -158,6 +175,12 @@ class RouteTraceEvent(BaseModel):
     physical_qubits: list[int]
     logical_qubits: list[int | None] | None = None
     op: str | None = None
+    source_line: int | None = None
+    source_column: int | None = None
+    source_text: str | None = None
+    reason: str | None = None
+    blocked_gate_index: int | None = None
+    next_gate_index: int | None = None
     gate_index: int | None = None
     compiled_index: int | None = None
     insertion_index: int | None = None
@@ -209,6 +232,17 @@ def _load_example(example_id: str) -> QuantumCircuit:
     return circuit
 
 
+def _request_qasm_source(req: CompileRequest) -> str | None:
+    if req.qasm:
+        return req.qasm
+    example_id = req.example or "qft5"
+    spec = EXAMPLES.get(example_id)
+    if not spec:
+        return None
+    path = PROJECT_ROOT / spec["path"]
+    return path.read_text(encoding="utf-8") if path.exists() else None
+
+
 def _load_request_circuit(req: CompileRequest) -> QuantumCircuit:
     if req.qasm and req.example:
         raise HTTPException(status_code=400, detail="Provide either qasm or example, not both.")
@@ -228,6 +262,98 @@ def _load_request_circuit(req: CompileRequest) -> QuantumCircuit:
         qc.name = "inline_qasm"
         return qc
     return _load_example(req.example or "qft5")
+
+
+def _qasm_source_lines(qasm: str | None) -> list[str]:
+    return qasm.splitlines() if qasm else []
+
+
+def _gate_source_lookup(qasm: str | None) -> dict[int, tuple[int, int, str]]:
+    lookup: dict[int, tuple[int, int, str]] = {}
+    gate_index = 0
+    for line_number, line in enumerate(_qasm_source_lines(qasm), start=1):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("//"):
+            continue
+        if stripped.startswith(("OPENQASM", "include", "qreg", "creg", "barrier", "measure")):
+            continue
+        lookup[gate_index] = (line_number, line.find(stripped) + 1, stripped)
+        gate_index += 1
+    return lookup
+
+
+def _source_metadata(
+    lookup: dict[int, tuple[int, int, str]],
+    gate_index: int | None,
+) -> tuple[int | None, int | None, str | None]:
+    if gate_index is None or gate_index not in lookup:
+        return None, None, None
+    return lookup[gate_index]
+
+
+def _extract_error_position(message: str) -> tuple[int | None, int | None]:
+    import re
+
+    match = re.search(r"line\s+(\d+)(?:,\s*column\s+(\d+))?", message, flags=re.IGNORECASE)
+    if not match:
+        return None, None
+    line = int(match.group(1))
+    column = int(match.group(2)) if match.group(2) else None
+    return line, column
+
+
+def _validate_qasm_source(qasm: str, topology: str = "tokyo") -> ValidateResponse:
+    warnings: list[str] = []
+    if not qasm.strip():
+        return ValidateResponse(
+            status="Invalid",
+            message="OpenQASM 输入为空。",
+            supported_gates=BASIS_GATES,
+            warnings=[],
+        )
+    if len(qasm) > MAX_INLINE_QASM_CHARS:
+        return ValidateResponse(
+            status="Invalid",
+            message=f"OpenQASM 输入超过 {MAX_INLINE_QASM_CHARS} 字符。",
+            supported_gates=BASIS_GATES,
+            warnings=[],
+        )
+    if not qasm.lstrip().startswith("OPENQASM 2.0;"):
+        warnings.append("建议以 OPENQASM 2.0; 作为第一行。")
+    if 'include "qelib1.inc";' not in qasm:
+        warnings.append('建议包含 include "qelib1.inc"; 以使用标准门。')
+    try:
+        circuit = qasm2.loads(qasm, custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS)
+    except Exception as exc:  # noqa: BLE001
+        line, column = _extract_error_position(str(exc))
+        return ValidateResponse(
+            status="Invalid",
+            message=f"OpenQASM 解析失败：{exc}",
+            line=line,
+            column=column,
+            supported_gates=BASIS_GATES,
+            warnings=warnings,
+        )
+    _, coupling_map = _resolve_topology(topology)
+    if circuit.num_qubits > coupling_map.size():
+        return ValidateResponse(
+            status="Invalid",
+            message=f"电路有 {circuit.num_qubits} 个量子位，IBM Tokyo 只有 {coupling_map.size()} 个物理量子位。",
+            input_qubits=circuit.num_qubits,
+            gate_count=len(circuit.data),
+            cx_count=dict(circuit.count_ops()).get("cx", 0),
+            supported_gates=BASIS_GATES,
+            warnings=warnings,
+        )
+    return ValidateResponse(
+        status="OK",
+        message="OpenQASM 解析通过，可提交编译。",
+        input_qubits=circuit.num_qubits,
+        gate_count=len(circuit.data),
+        cx_count=dict(circuit.count_ops()).get("cx", 0),
+        supported_gates=BASIS_GATES,
+        warnings=warnings,
+    )
 
 
 def _compile_sabre(
@@ -308,9 +434,29 @@ def _next_gate_index(events: list[Any], start: int) -> int | None:
     return None
 
 
-def _route_trace_payload(result: Any, circuit: QuantumCircuit) -> list[RouteTraceEvent]:
+def _swap_reason(
+    physical_qubits: list[int],
+    logical_qubits: list[int | None] | None,
+    next_gate_index: int | None,
+) -> str:
+    edge = "-".join(f"p{qubit}" for qubit in physical_qubits)
+    logical = "-".join("--" if qubit is None else f"q{qubit}" for qubit in (logical_qubits or []))
+    next_gate = "--" if next_gate_index is None else f"g{next_gate_index}"
+    return f"为让后续门 {next_gate} 的逻辑量子位更接近，沿 IBM Tokyo 相邻边 {edge} 交换 {logical}。"
+
+
+def _gate_reason(op: str | None, logical_qubits: list[int] | None, physical_qubits: list[int]) -> str:
+    if len(physical_qubits) == 1:
+        return f"{op or '单比特门'} 作用在已映射的物理量子位 p{physical_qubits[0]}。"
+    logical = "-".join(f"q{qubit}" for qubit in (logical_qubits or []))
+    physical = "-".join(f"p{qubit}" for qubit in physical_qubits)
+    return f"{op or '两比特门'} 的逻辑位 {logical} 当前映射到相邻物理边 {physical}，可直接执行。"
+
+
+def _route_trace_payload(result: Any, circuit: QuantumCircuit, qasm_source: str | None = None) -> list[RouteTraceEvent]:
     if not result.replay:
         return []
+    source_lookup = _gate_source_lookup(qasm_source)
     mapping = {
         int(logical): int(physical)
         for logical, physical in (result.initial_mapping or {}).items()
@@ -322,19 +468,33 @@ def _route_trace_payload(result: Any, circuit: QuantumCircuit) -> list[RouteTrac
         before = dict(mapping)
         op, logical_qubits = _gate_metadata(circuit, event.gate_index)
         insertion_index = event.gate_index
+        next_gate_index = None
         if event.kind == "swap":
             logical_qubits = [_logical_at_physical(before, qubit) for qubit in physical_qubits]
             op = "swap"
-            insertion_index = _next_gate_index(events, index)
+            next_gate_index = _next_gate_index(events, index)
+            insertion_index = next_gate_index
             if len(physical_qubits) == 2:
                 mapping = _swap_mapping(mapping, physical_qubits[0], physical_qubits[1])
         after = dict(mapping)
+        source_gate_index = next_gate_index if event.kind == "swap" else event.gate_index
+        source_line, source_column, source_text = _source_metadata(source_lookup, source_gate_index)
         payload.append(
             RouteTraceEvent(
                 kind=event.kind,
                 physical_qubits=physical_qubits,
                 logical_qubits=logical_qubits,
                 op=op,
+                source_line=source_line,
+                source_column=source_column,
+                source_text=source_text,
+                reason=(
+                    _swap_reason(physical_qubits, logical_qubits, next_gate_index)
+                    if event.kind == "swap"
+                    else _gate_reason(op, logical_qubits, physical_qubits)
+                ),
+                blocked_gate_index=next_gate_index if event.kind == "swap" else None,
+                next_gate_index=next_gate_index,
                 gate_index=event.gate_index,
                 insertion_index=insertion_index,
                 action=event.action,
@@ -370,12 +530,20 @@ def _sabre_trace_payload(
         else:
             two_qubit_index += 1
         after = dict(mapping)
+        reason = (
+            _swap_reason(physical_qubits, logical_qubits, insertion_index)
+            if kind == "swap"
+            else _gate_reason(op, [qubit for qubit in logical_qubits if qubit is not None], physical_qubits)
+        )
         payload.append(
             RouteTraceEvent(
                 kind=kind,
                 physical_qubits=physical_qubits,
                 logical_qubits=logical_qubits,
                 op=op,
+                reason=reason,
+                blocked_gate_index=insertion_index if kind == "swap" else None,
+                next_gate_index=insertion_index if kind == "swap" else None,
                 compiled_index=int(compiled_index),
                 insertion_index=int(insertion_index),
                 mapping_before=before,
@@ -460,6 +628,12 @@ async def api_examples() -> list[ExampleInfo]:
     ]
 
 
+@app.post("/api/validate", response_model=ValidateResponse)
+async def api_validate(req: ValidateRequest) -> ValidateResponse:
+    """Validate inline OpenQASM 2 without running NPQR or SABRE compilation."""
+    return _validate_qasm_source(req.qasm, req.topology)
+
+
 @app.get("/api/benchmarks")
 async def api_benchmarks() -> dict:
     """Return public benchmark and claim boundaries without internal logs."""
@@ -469,8 +643,15 @@ async def api_benchmarks() -> dict:
             "default_backend": manifest["default_route"]["backend"],
             "comparison_baseline": manifest["default_route"]["comparison_baseline"],
             "sabre_fallback": manifest["default_route"]["sabre_fallback"],
-            "final_smoke_swaps": manifest["final_smoke"]["reported_swaps"],
-            "rest_and_mcp_consistent": manifest["final_smoke"]["rest_and_mcp_consistent"],
+            "representative_10_20_basic": manifest["representative_10_20_basic"]["summary"],
+            "scale_smoke_30_50_basic": manifest["scale_smoke_30_50_basic"]["summary"],
+            "known_scale_boundary": manifest["scale_smoke_30_50_basic"]["known_boundary"],
+            "large_scale_boundary": {
+                "max_completed_qubits": manifest["large_scale_boundary"]["max_completed_qubits"],
+                "max_sabre_basic_win_qubits": manifest["large_scale_boundary"][
+                    "max_sabre_basic_win_qubits"
+                ],
+            },
         },
         "algorithm_components": manifest["algorithm_components"],
         "claims": manifest["claims"],
@@ -487,6 +668,7 @@ async def api_npqr_evidence() -> dict:
 async def api_compile(req: CompileRequest) -> CompileResponse:
     """Compile a QASM example with NPQR or SABRE."""
     topo_name, coupling_map = _resolve_topology(req.topology)
+    qasm_source = _request_qasm_source(req)
     circuit = _load_request_circuit(req)
     if circuit.num_qubits > coupling_map.size():
         raise HTTPException(
@@ -558,7 +740,7 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
             if req.include_compiled_qasm and result.completed and result.compiled_circuit
             else None
         )
-        route_trace = _route_trace_payload(result, circuit) if req.include_route_trace else None
+        route_trace = _route_trace_payload(result, circuit, qasm_source) if req.include_route_trace else None
         return CompileResponse(
             status=result.status,
             backend="npqr",

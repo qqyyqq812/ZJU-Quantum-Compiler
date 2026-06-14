@@ -16,6 +16,8 @@ def test_playground_user_guide_exists_and_covers_browser_workflow():
 
     assert "# Quantum Compiler Playground user guide" in guide
     assert "backend indicator" in guide
+    assert "embedded review mode" in guide
+    assert "**内置**" in guide
     assert "**Run**" in guide
     assert "**Step**" in guide
     assert "**Reset**" in guide
@@ -49,6 +51,8 @@ def test_playground_user_guide_documents_backend_boundary():
     assert "REST API" in guide
     assert "src.server.app:app" in guide
     assert "POST /api/compile" in guide
+    assert "HTTPS REST API" in guide
+    assert "mixed-content" in guide
     assert "backend=\"npqr\"" in guide
     assert "backend=\"sabre\"" in guide
     assert "neural-assisted selector, search, and repair runtime" in guide
@@ -65,6 +69,8 @@ def test_readme_and_public_site_link_to_playground_user_guide():
     html = Path("docs/index.html").read_text(encoding="utf-8")
 
     assert "docs/playground-user-guide.md" in readme
+    assert "唯一网页入口" in readme
+    assert "GitHub Pages 打开后默认使用内置示例结果" in readme
     assert "固定 SABRE 基线" in readme
     assert "Tokyo 映射" in readme
     assert 'href="playground-user-guide.md"' in html

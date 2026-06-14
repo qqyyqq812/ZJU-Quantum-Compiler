@@ -57,15 +57,51 @@ def test_api_examples_lists_public_qasm_files():
     assert set(PUBLIC_EXAMPLES) <= ids
 
 
+def test_api_validate_accepts_valid_openqasm2():
+    qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[2];
+h q[0];
+cx q[0],q[1];
+"""
+
+    response = client.post("/api/validate", json={"qasm": qasm, "topology": "tokyo"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "OK"
+    assert body["input_qubits"] == 2
+    assert body["gate_count"] == 2
+    assert body["cx_count"] == 1
+    assert "cx" in body["supported_gates"]
+
+
+def test_api_validate_rejects_invalid_openqasm2():
+    response = client.post("/api/validate", json={"qasm": "qreg q[2];\ncx q[0],q[1];"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "Invalid"
+    assert "OpenQASM" in body["message"]
+
+
 def test_api_benchmarks_returns_public_algorithm_boundary():
     response = client.get("/api/benchmarks")
 
     assert response.status_code == 200
     body = response.json()
     assert body["summary"]["default_backend"] == "npqr"
-    assert body["summary"]["comparison_baseline"] == "qiskit_sabre_swap"
+    assert body["summary"]["comparison_baseline"] == "qiskit_sabre_swap_basic"
     assert body["summary"]["sabre_fallback"] is False
-    assert body["summary"]["final_smoke_swaps"] == 46
+    assert body["summary"]["representative_10_20_basic"]["cases"] == 10
+    assert body["summary"]["representative_10_20_basic"]["npqr_completed"] == 10
+    assert body["summary"]["representative_10_20_basic"]["npqr_beats_sabre_basic"] == 10
+    assert body["summary"]["representative_10_20_basic"]["sabre_fallback_used"] is False
+    assert body["summary"]["scale_smoke_30_50_basic"]["cases"] == 4
+    assert body["summary"]["scale_smoke_30_50_basic"]["npqr_completed"] == 4
+    assert body["summary"]["scale_smoke_30_50_basic"]["npqr_beats_sabre_basic"] == 4
+    assert body["summary"]["large_scale_boundary"]["max_completed_qubits"] == 50
+    assert body["summary"]["large_scale_boundary"]["max_sabre_basic_win_qubits"] == 50
     assert body["algorithm_components"]
     assert "NPQR is not claimed to beat SABRE on every circuit." in body["claims"]["not_claimed"]
 
@@ -80,8 +116,12 @@ def test_api_npqr_evidence_returns_public_manifest():
     assert body["default_route"]["model"] == "models/default/npqr-default.pt"
     assert body["default_route"]["sabre_fallback"] is False
     assert body["baseline"]["name"] == "SABRE"
+    assert body["baseline"]["heuristic"] == "basic"
     assert body["baseline"]["not_our_algorithm"] is True
-    assert body["final_smoke"]["reported_swaps"] == 46
+    assert body["representative_10_20_basic"]["summary"]["npqr_beats_sabre_basic"] == 10
+    assert body["scale_smoke_30_50_basic"]["summary"]["npqr_beats_sabre_basic"] == 4
+    assert body["large_scale_boundary"]["max_completed_qubits"] == 50
+    assert body["scale_smoke_30_50_basic"]["known_boundary"]
     assert "graph modeling" in body["course_algorithm_mapping"]
 
 
@@ -105,6 +145,9 @@ def test_api_compile_defaults_to_npqr_with_sabre_baseline():
     assert body["baseline"]["heuristic"] == "basic"
     assert body["baseline"]["status"] == "OK"
     assert body["model_path"] == "models/default/npqr-default.pt"
+    first_event = body["route_trace"][0]
+    assert "reason" in first_event
+    assert "source_line" in first_event
 
 
 def test_api_compile_npqr_accepts_frontier_pruning_staging_policy():

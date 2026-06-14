@@ -123,7 +123,9 @@ def check_readiness() -> list[ReadinessItem]:
                 "npqr_public_algorithm_evidence_v1" in evidence
                 and "algorithm_components" in evidence
                 and "course_algorithm_mapping" in evidence
-                and "reported_swaps" in evidence
+                and "representative_10_20_basic" in evidence
+                and "scale_smoke_30_50_basic" in evidence
+                and "npqr_beats_sabre_basic" in evidence
                 and "npqr_" + "stage" not in evidence
             ),
             "src/evidence.py",
@@ -180,13 +182,18 @@ def check_readiness() -> list[ReadinessItem]:
         ),
         ReadinessItem(
             "website",
-            "Website calls REST API without changing the visual shell",
+            "Website opens from GitHub Pages with optional HTTPS REST",
             _status(
-                "Quantum <b>Compiler</b> Playground" in site
-                and '"/api/status"' in site
-                and 'callApi("/api/compile"' in site
-                and 'compilePayload("npqr")' in site
-                and 'compilePayload("sabre")' in site
+                (
+                    "量子编译实验台" in site
+                    or "量子编译控制台 V4" in site
+                )
+                and "GitHub Pages 默认使用内置示例结果" in site
+                and 'const PUBLIC_API_BASE = "";' in site
+                and "?api=https://your-api.example" in site
+                and "compileWithBestAvailableBackend(\"npqr\")" in site
+                and "compileWithBestAvailableBackend(\"sabre\")" in site
+                and "MCP `/mcp` 保留给高级客户端和审阅流程" in site
             ),
             "docs/index.html",
         ),

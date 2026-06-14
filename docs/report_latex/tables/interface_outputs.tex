@@ -1,0 +1,18 @@
+\begin{table}[H]
+  \centering
+  \caption{接口返回信息及用途}
+  \label{tab:interface-outputs}
+  \begin{tabularx}{\linewidth}{lY}
+    \toprule
+    返回信息 & 用途 \\
+    \midrule
+    路由后 QASM & 作为可提交给后续量子工具链的编译结果。 \\
+    SWAP 数 & 衡量由于硬件拓扑限制额外插入的交换门数量。 \\
+    电路深度 & 衡量路由后电路执行层数，间接反映噪声暴露时间。 \\
+    运行时间 & 衡量在线调用或课堂演示时的响应成本。 \\
+    路由轨迹 & 展示每一步门执行和 SWAP 插入，便于复放和讲解算法。 \\
+    SABRE 指标 & 作为固定基线对比，帮助解释结果质量边界。 \\
+    完成状态 & 标记当前算法是否完成全部门并通过基本约束检查。 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

@@ -1,0 +1,15 @@
+\begin{table}[H]
+  \centering
+  \caption{30/50 比特扩展测试与 SABRE basic 的对比}
+  \label{tab:scale-smoke}
+  \begin{tabular}{lrrrr}
+    \toprule
+    电路 & 比特数 & NPQR SWAP & SABRE basic SWAP & 差值 \\
+    \midrule
+    LineGHZ30 & 30 & 23 & 43 & -20 \\
+    Random30-d4 & 30 & 61 & 67 & -6 \\
+    LineGHZ50 & 50 & 50 & 79 & -29 \\
+    RingSparse50 & 50 & 98 & 113 & -15 \\
+    \bottomrule
+  \end{tabular}
+\end{table}

@@ -1,0 +1,19 @@
+\begin{table}[H]
+  \centering
+  \caption{NPQR 公开证据摘要}
+  \label{tab:evidence-summary}
+  \begin{tabularx}{\linewidth}{lY}
+    \toprule
+    证据项 & 说明 \\
+    \midrule
+    默认路由 & 默认后端为 NPQR，并加载默认推理模型。 \\
+    算法组件 & 公开证据列出图预处理、映射选择、神经评分、束搜索、剪枝、修复和复放。 \\
+    基线关系 & SABRE basic 作为 Qiskit 基线对比，不参与 NPQR 路线生成。 \\
+    10/20 比特结果 & 代表电路全部完成，NPQR SWAP 数均低于 SABRE basic。 \\
+    30/50 比特扩展 & 扩展测试全部完成，所测样例均优于 SABRE basic。 \\
+    80/100 比特边界 & 80 比特有界 CPU 运行未形成完成能力，100 比特不作为最终声明。 \\
+    接口一致性 & REST API 与 MCP 服务在固定样例上返回一致结果。 \\
+    声明边界 & 不声明所有电路优于 SABRE basic，也不声明默认模型为最先进模型。 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
