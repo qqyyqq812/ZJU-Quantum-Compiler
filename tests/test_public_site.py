@@ -52,6 +52,9 @@ def test_public_site_uses_public_remote_rest_api():
     html = _html()
 
     assert 'const PUBLIC_API_BASE = "http://1.95.70.10";' in html
+    assert 'const PUBLIC_APP_BASE = "http://1.95.70.10/";' in html
+    assert 'window.location.hostname.endsWith("github.io")' in html
+    assert 'window.location.replace(target.toString());' in html
     assert "function apiCandidates()" in html
     assert "return [apiBase].map(normalizeApiBase);" in html
     assert "运行会同时调用 NPQR 和固定 SABRE 基准，结果来自公网 REST API。" in html

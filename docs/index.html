@@ -3678,11 +3678,22 @@ POST /mcp</code></pre>
 
   <script>
     const PUBLIC_API_BASE = "http://1.95.70.10";
+    const PUBLIC_APP_BASE = "http://1.95.70.10/";
     const API_TIMEOUT_MS = 120000;
     const API_STATUS_TIMEOUT_MS = 20000;
     const MAX_INLINE_QASM_CHARS = 8000;
 
     const params = new URLSearchParams(window.location.search);
+    if (
+      window.location.protocol === "https:" &&
+      window.location.hostname.endsWith("github.io") &&
+      !params.get("api")
+    ) {
+      const target = new URL(PUBLIC_APP_BASE);
+      target.search = window.location.search;
+      target.hash = window.location.hash;
+      window.location.replace(target.toString());
+    }
     let apiBase = normalizeApiBase(params.get("api") || PUBLIC_API_BASE);
 
     const examples = {
