@@ -422,6 +422,12 @@ body.is-compiling .topology-stage-wrap::after {
 }
 .topology-edge.gate-edge, .topology-trail.gate-edge { stroke: var(--blue); }
 .topology-edge.swap-edge, .topology-trail.swap-edge { stroke: var(--orange); }
+.topology-edge.preview-edge {
+  stroke: var(--cyan);
+  stroke-width: 2.1;
+  stroke-dasharray: 5 6;
+  opacity: 0.9;
+}
 .topology-edge.active { stroke-width: 3.2; stroke-dasharray: 8 7; animation: route-dash 0.9s linear infinite; }
 .topology-runner-track { stroke-width: 4; opacity: 0.12; }
 .topology-runner-tail { fill: none; stroke: var(--blue); stroke-width: 2; opacity: 0.28; }

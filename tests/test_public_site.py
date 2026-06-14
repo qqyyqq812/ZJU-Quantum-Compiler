@@ -142,8 +142,11 @@ def test_public_site_renders_tokyo_topology_and_trace_review():
     assert 'id="mapping-grid"' in html
     assert 'id="route-timeline"' in html
     assert "mapping_after" in html
-    assert "sample.path" not in html
-    assert "Preview Tokyo edge" not in html
+    assert "previewPath" in html
+    assert "function circuitPreviewTrace" in html
+    assert "function displayTrace" in html
+    assert "Preview | ${stats.edges} circuit edges" in html
+    assert ".topology-edge.preview-edge" in css
     assert ".topology-stage-wrap" in css
 
 

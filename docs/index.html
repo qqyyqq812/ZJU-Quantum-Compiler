@@ -293,7 +293,8 @@ cx q[4],q[2];
 cx q[3],q[2];
 cx q[2],q[1];
 cx q[1],q[0];
-// preset: qft5`
+// preset: qft5`,
+        previewPath: [[4, 9], [3, 8], [8, 13], [13, 18], [18, 19]]
       },
       ghz5: {
         name: "GHZ 5",
@@ -305,7 +306,8 @@ h q[0];
 cx q[0],q[1];
 cx q[1],q[2];
 cx q[2],q[3];
-cx q[3],q[4];`
+cx q[3],q[4];`,
+        previewPath: [[0, 1], [1, 2], [2, 3], [3, 4]]
       },
       qaoa5: {
         name: "QAOA 5",
@@ -318,7 +320,8 @@ sx q[1];
 cx q[0],q[1];
 rz(2.353304971691044) q[1];
 cx q[3],q[4];
-cx q[4],q[0];`
+cx q[4],q[0];`,
+        previewPath: [[4, 9], [9, 14], [14, 19], [18, 19], [13, 18]]
       },
       qft10: {
         name: "QFT 10",
@@ -333,7 +336,8 @@ cx q[9],q[7];
 cx q[8],q[7];
 cx q[7],q[6];
 cx q[6],q[5];
-// preset: qft10`
+// preset: qft10`,
+        previewPath: [[9, 14], [14, 19], [18, 19], [17, 18], [16, 17], [11, 16], [6, 11], [1, 6]]
       },
       qaoa10: {
         name: "QAOA 10",
@@ -346,7 +350,8 @@ sx q[1];
 cx q[0],q[1];
 cx q[1],q[2];
 cx q[5],q[6];
-cx q[8],q[9];`
+cx q[8],q[9];`,
+        previewPath: [[0, 5], [5, 10], [10, 11], [11, 12], [12, 13], [13, 14], [14, 19]]
       },
       ghz10: {
         name: "GHZ 10",
@@ -359,7 +364,8 @@ sx q[0];
 cx q[0],q[1];
 cx q[1],q[2];
 cx q[2],q[3];
-cx q[8],q[9];`
+cx q[8],q[9];`,
+        previewPath: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 9], [9, 14], [14, 19]]
       },
       vqe10: {
         name: "VQE 10",
@@ -372,7 +378,8 @@ sx q[0];
 cx q[0],q[1];
 cx q[1],q[2];
 cx q[6],q[7];
-cx q[8],q[9];`
+cx q[8],q[9];`,
+        previewPath: [[5, 6], [6, 7], [7, 8], [8, 13], [13, 18], [17, 18], [16, 17]]
       },
       custom: {
         name: "Custom",
@@ -381,7 +388,8 @@ cx q[8],q[9];`
 include "qelib1.inc";
 qreg q[2];
 h q[0];
-cx q[0],q[1];`
+cx q[0],q[1];`,
+        previewPath: [[0, 1], [1, 6], [6, 7]]
       }
     };
 
@@ -879,6 +887,33 @@ cx q[0],q[1];`
       return normalizeTrace(state.results[view]?.route_trace);
     }
 
+    function circuitPreviewTrace() {
+      const sample = selectedExample();
+      const mapping = embeddedMappings[state.example] || identityMappings[state.example] || {};
+      return (sample.previewPath || []).map(([a, b], index) => ({
+        kind: "gate",
+        op: index === 0 ? "input" : "cx",
+        logical_qubits: previewLogicalPair(index, mapping),
+        physical_qubits: [a, b],
+        insertion_index: index,
+        compiled_index: index,
+        mapping_after: { ...mapping },
+        preview: true
+      }));
+    }
+
+    function previewLogicalPair(index, mapping) {
+      const logical = Object.keys(mapping).map(Number).sort((a, b) => a - b);
+      if (logical.length >= 2) {
+        return [logical[index % logical.length], logical[(index + 1) % logical.length]];
+      }
+      return [];
+    }
+
+    function displayTrace() {
+      return state.trace.length ? state.trace : circuitPreviewTrace();
+    }
+
     function resultMapping(view = state.activeRouteView) {
       const result = state.results[view] || {};
       const mapping = result.initial_mapping || {};
@@ -962,8 +997,9 @@ cx q[0],q[1];`
       el.routeStatus.textContent = names[state.step] || "Idle";
 
       const event = currentTraceEvent();
-      const stats = traceStats();
-      const total = stats.total;
+      const displayEvents = displayTrace();
+      const stats = traceStats(displayEvents);
+      const total = state.trace.length ? stats.total : 0;
       const current = state.trace.length ? state.traceIndex + 1 : 0;
       const ratio = total ? Math.min(100, Math.max(0, (current / total) * 100)) : 0;
       el.traceOp.textContent = describeTraceEvent(event);
@@ -971,15 +1007,20 @@ cx q[0],q[1];`
       el.traceBar.style.width = `${ratio}%`;
       el.routeCount.textContent = total
         ? `${state.activeRouteView.toUpperCase()} | ${total} events | ${stats.edges} edges | ${stats.nodes} nodes`
-        : state.visualPhase === "compiling" ? "Compiling" : "0 events";
+        : state.visualPhase === "compiling" ? "Compiling" : `Preview | ${stats.edges} circuit edges`;
       setPressed("[data-route-view]", "routeView", state.activeRouteView);
     }
 
     function renderTopology() {
       const svgNS = "http://www.w3.org/2000/svg";
       const nodes = new Map(topologyNodes.map(([id, x, y]) => [id, { x, y }]));
-      const traceEvents = state.trace.slice(0, state.traceIndex + 1).filter(traceEdge);
-      const event = currentTraceEvent();
+      const previewMode = !state.trace.length;
+      const visibleTrace = previewMode ? displayTrace() : state.trace;
+      const visibleIndex = previewMode
+        ? Math.min(visibleTrace.length - 1, Math.max(0, state.step))
+        : state.traceIndex;
+      const traceEvents = visibleTrace.slice(0, visibleIndex + 1).filter(traceEdge);
+      const event = previewMode ? visibleTrace[visibleIndex] || null : currentTraceEvent();
       const eventEdge = traceEdge(event);
       const active = eventEdge;
       const activeKey = active ? edgeKey(active) : "";
@@ -992,9 +1033,10 @@ cx q[0],q[1];`
       const logicalByPhysical = new Map(
         Object.entries(eventMapping).map(([logical, physical]) => [Number(physical), Number(logical)])
       );
+      const previewKeys = new Set(displayTrace().map(traceEdge).filter(Boolean).map(edgeKey));
 
       el.svg.textContent = "";
-      el.svg.parentElement.dataset.phase = state.visualPhase;
+      el.svg.parentElement.dataset.phase = previewMode ? "preview" : state.visualPhase;
       const defs = document.createElementNS(svgNS, "defs");
       ["gate", "swap"].forEach((kind) => {
         const marker = document.createElementNS(svgNS, "marker");
@@ -1031,6 +1073,9 @@ cx q[0],q[1];`
         line.setAttribute("x2", to.x);
         line.setAttribute("y2", to.y);
         line.classList.add("topology-edge");
+        if (previewMode && previewKeys.has(edgeKey([a, b]))) {
+          line.classList.add("preview-edge");
+        }
         if (edgeKey([a, b]) === activeKey) {
           const activeBeam = defs.querySelector(activeKind === "gate" ? "#gate-beam" : "#swap-beam");
           activeBeam?.setAttribute("x1", from.x);
@@ -1043,7 +1088,7 @@ cx q[0],q[1];`
             line.setAttribute("marker-start", "url(#swap-arrow)");
           }
         }
-        line.addEventListener("mousemove", (event) => showTooltip(event, `${state.activeRouteView.toUpperCase()} 耦合边 p${a}-p${b}`));
+        line.addEventListener("mousemove", (event) => showTooltip(event, `${previewMode ? "Circuit preview" : state.activeRouteView.toUpperCase()} edge p${a}-p${b}`));
         line.addEventListener("mouseleave", hideTooltip);
         el.svg.appendChild(line);
       });
@@ -1169,16 +1214,14 @@ cx q[0],q[1];`
         group.addEventListener("mouseleave", hideTooltip);
         el.svg.appendChild(group);
       });
-      renderRouteInspector();
+      renderRouteInspector(event, visibleTrace, visibleIndex, previewMode);
     }
 
 
-    function renderRouteInspector() {
-      const trace = state.trace;
-      const event = currentTraceEvent();
-      const view = state.activeRouteView.toUpperCase();
+    function renderRouteInspector(event = currentTraceEvent(), trace = state.trace, index = state.traceIndex, previewMode = false) {
+      const view = previewMode ? "Preview" : state.activeRouteView.toUpperCase();
       el.eventTitle.textContent = event ? `${view} event` : "No route event";
-      el.eventIndex.textContent = trace.length ? `${state.traceIndex + 1}/${trace.length}` : "--";
+      el.eventIndex.textContent = trace.length ? `${index + 1}/${trace.length}` : "--";
       el.eventOp.textContent = event?.op || "--";
       el.eventKind.textContent = displayEventKind(event?.kind);
       el.eventLogical.textContent = formatQubits(event?.logical_qubits, "q");
@@ -1186,7 +1229,7 @@ cx q[0],q[1];`
       el.eventInsertion.textContent = `g${formatOptional(event?.insertion_index ?? event?.gate_index)}`;
       el.eventCompiled.textContent = formatOptional(event?.compiled_index);
       renderMapping(event);
-      renderTimeline();
+      renderTimeline(trace, index, previewMode);
     }
 
 
@@ -1214,6 +1257,9 @@ cx q[0],q[1];`
     function timelineText(event) {
       const edge = formatQubits(event.physical_qubits, "p");
       const logical = formatQubits(event.logical_qubits, "q");
+      if (event.preview) {
+        return `${event.op || "cx"} ${logical} -> ${edge}`;
+      }
       return event.kind === "swap"
         ? `SWAP ${edge} (${logical})`
         : `${event.op || "gate"} ${logical} -> ${edge}`;
@@ -1232,16 +1278,17 @@ cx q[0],q[1];`
       return kind || "--";
     }
 
-    function renderTimeline() {
-      const trace = state.trace;
+    function renderTimeline(trace = state.trace, activeIndex = state.traceIndex, previewMode = false) {
       const swapCount = trace.filter((event) => event.kind === "swap").length;
       const gateCount = trace.filter((event) => event.kind === "gate").length;
-      el.timelineSummary.textContent = trace.length ? `${gateCount} gates | ${swapCount} SWAP` : "Pending";
+      el.timelineSummary.textContent = trace.length
+        ? previewMode ? `${gateCount} circuit edges` : `${gateCount} gates | ${swapCount} SWAP`
+        : "Pending";
       el.routeTimeline.textContent = "";
       if (!trace.length) {
         const empty = document.createElement("div");
         empty.className = "timeline-empty";
-        empty.textContent = "Run to load route events.";
+        empty.textContent = "Select a circuit to preview topology.";
         el.routeTimeline.appendChild(empty);
         return;
       }
@@ -1250,7 +1297,7 @@ cx q[0],q[1];`
         row.type = "button";
         row.className = "timeline-row";
         row.dataset.kind = event.kind;
-        row.setAttribute("aria-current", String(index === state.traceIndex));
+        row.setAttribute("aria-current", String(index === activeIndex));
         row.innerHTML = [
           `<span>${index + 1}</span>`,
           `<span class="timeline-kind">${displayEventKind(event.kind)}</span>`,
@@ -1258,6 +1305,12 @@ cx q[0],q[1];`
           `<span class="timeline-insert">g${formatOptional(event.insertion_index)}</span>`
         ].join("");
         row.addEventListener("click", () => {
+          if (previewMode) {
+            state.step = index;
+            renderFlow();
+            renderTopology();
+            return;
+          }
           state.traceIndex = index;
           state.step = index >= trace.length - 1 ? 3 : 2;
           pauseTraceReplay();
