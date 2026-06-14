@@ -12,7 +12,7 @@ def _html() -> str:
 
 
 def _first_screen(html: str) -> str:
-    body = html.split('<body class="instrument-v2 quantum-studio-preview">', 1)[1]
+    body = html.split('<body class="instrument-v2">', 1)[1]
     return body.split('<details class="page" id="advanced"', 1)[0]
 
 
@@ -21,12 +21,13 @@ def test_public_site_has_one_formal_entry_page():
     extra_pages = sorted(path.name for path in DOCS.glob("index-*.html"))
 
     assert extra_pages == []
-    assert "<title>ZJU 量子电路编译器 · Quantum Studio</title>" in html
-    assert '<body class="instrument-v2 quantum-studio-preview">' in html
+    assert "<title>ZJU 量子电路编译器 · Lab Instrument V2</title>" in html
+    assert '<body class="instrument-v2">' in html
     assert "量子编译实验台" in html
-    assert "--studio-bg: #eef2f5" in html
-    assert "grid-template-columns: 282px minmax(620px, 1fr) 304px" in html
-    assert '"data topology output"\n        "data inspector output";' in html
+    assert "Lab Instrument Playground V2" in html
+    assert "Quantum Studio" not in html
+    assert "grid-template-columns: 286px minmax(560px, 1fr) 352px" in html
+    assert 'grid-template-areas: "data topology output";' in html
 
 
 def test_public_site_keeps_first_screen_action_focused():
@@ -47,34 +48,34 @@ def test_public_site_keeps_first_screen_action_focused():
     assert "注册" not in first_screen
 
 
-def test_public_site_is_safe_for_https_github_pages():
+def test_public_site_uses_public_remote_rest_api():
     html = _html()
 
-    assert 'const PUBLIC_API_BASE = "";' in html
-    assert 'let apiMode = apiBase ? "remote" : "embedded";' in html
-    assert 'window.location.protocol === "https:"' in html
-    assert 'params.get("allowHttpApi") !== "1"' in html
-    assert "GitHub Pages 默认使用内置示例结果" in html
-    assert "GitHub Pages 需要 HTTPS REST API" in html
-    assert "避免浏览器混合内容拦截" in html
+    assert 'const PUBLIC_API_BASE = "http://1.95.70.10";' in html
+    assert "function apiCandidates()" in html
+    assert "return [apiBase].map(normalizeApiBase);" in html
+    assert "运行会同时调用 NPQR 和固定 SABRE 基准，结果来自公网 REST API。" in html
+    assert "API 不可用时，页面只显示简短错误" in html
     assert "?api=https://your-api.example" in html
+    assert "?api=http://127.0.0.1:8765" in html
     assert "http://localhost:8765/api/compile" not in html
     assert "http://127.0.0.1:8765/api/compile" not in html
+    assert "GitHub Pages 默认使用内置示例结果" not in html
 
 
-def test_public_site_runs_embedded_examples_without_second_display_mode():
+def test_public_site_runs_remote_compile_without_embedded_fallback():
     html = _html()
 
-    assert "const embeddedResults = {" in html
-    assert "function embeddedCompileResult" in html
-    assert "function compileWithBestAvailableBackend" in html
-    assert "makeEmbeddedTrace" in html
-    assert "当前使用 GitHub Pages 内置示例结果" in html
-    assert "自定义或生成电路需要连接 HTTPS REST API" in html
-    assert "return callApi(\"/api/compile\"" in html
-    assert "compileWithBestAvailableBackend(\"npqr\")" in html
-    assert "compileWithBestAvailableBackend(\"sabre\")" in html
+    assert "const embeddedResults = {" not in html
+    assert "function embeddedCompileResult" not in html
+    assert "function compileWithBestAvailableBackend" not in html
+    assert "makeEmbeddedTrace" not in html
+    assert html.count('callApi("/api/compile"') == 2
+    assert 'body: JSON.stringify(compilePayload("npqr"))' in html
+    assert 'body: JSON.stringify(compilePayload("sabre"))' in html
     assert "Promise.allSettled" in html
+    assert "startTraceReplay();" in html
+    assert "REST API 可能仍在计算，请稍后再试。" in html
 
     for example in ["qft5", "ghz5", "qaoa5", "qft10", "qaoa10", "ghz10", "vqe10", "custom"]:
         assert f'data-example="{example}"' in html

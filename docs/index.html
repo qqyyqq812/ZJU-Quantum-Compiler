@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZJU 量子电路编译器 · Quantum Studio</title>
+  <title>ZJU 量子电路编译器 · Lab Instrument V2</title>
   <style>
     :root {
       --tf-header: #183D4E;
@@ -1667,7 +1667,7 @@
       background:
         radial-gradient(circle at 18px 18px, rgba(34, 211, 238, 0.13) 1px, transparent 1.5px),
         linear-gradient(135deg, var(--qc-shell) 0%, var(--qc-shell-2) 54%, #09101f 100%);
-      background-size: 32px 32px, auto;
+      background-size: 30px 30px, auto;
       color: var(--tf-text);
     }
 
@@ -3400,708 +3400,9 @@
         max-height: 170px;
       }
     }
-
-    /* Quantum Studio preview: IBM Composer + LabOne workbench with Nsight-style route review. */
-    body.quantum-studio-preview {
-      --studio-ink: #17212b;
-      --studio-muted: #697784;
-      --studio-subtle: #8b98a5;
-      --studio-shell: #101821;
-      --studio-bg: #eef2f5;
-      --studio-panel: #fbfcfd;
-      --studio-paper: #ffffff;
-      --studio-line: #d5dde3;
-      --studio-line-strong: #aab8c4;
-      --studio-blue: #116da8;
-      --studio-cyan: #18a8c8;
-      --studio-indigo: #5268d9;
-      --studio-violet: #7964d8;
-      --studio-orange: #e88722;
-      --studio-green: #2c8d5b;
-      --studio-red: #bd382f;
-      --studio-code: #f5f8fa;
-      --sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", Helvetica, Arial, sans-serif;
-      --mono: "JetBrains Mono", "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-      background:
-        radial-gradient(circle at 18px 18px, rgba(17, 109, 168, 0.08) 1px, transparent 1.6px),
-        linear-gradient(180deg, #f7fafc 0%, var(--studio-bg) 42%, #e8edf1 100%);
-      background-size: 30px 30px, auto;
-      color: var(--studio-ink);
-      font-family: var(--sans);
-      font-size: 13px;
-    }
-
-    body.quantum-studio-preview::before,
-    body.quantum-studio-preview::after {
-      display: none;
-    }
-
-    body.quantum-studio-preview .page {
-      width: min(100%, 1420px);
-      padding: 0 18px;
-    }
-
-    body.quantum-studio-preview header {
-      background:
-        linear-gradient(90deg, rgba(24, 168, 200, 0.16), transparent 28%, rgba(82, 104, 217, 0.14)),
-        var(--studio-shell);
-      border-bottom: 1px solid rgba(24, 168, 200, 0.24);
-      color: #f9fcff;
-    }
-
-    body.quantum-studio-preview header::after {
-      display: block;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--studio-cyan), var(--studio-indigo), var(--studio-orange), transparent);
-      opacity: 0.85;
-    }
-
-    body.quantum-studio-preview .topbar {
-      min-height: 44px;
-      align-items: center;
-    }
-
-    body.quantum-studio-preview .brand {
-      gap: 10px;
-    }
-
-    body.quantum-studio-preview .brand::before {
-      width: 14px;
-      height: 14px;
-      border-color: rgba(24, 168, 200, 0.86);
-      background:
-        linear-gradient(90deg, transparent 6px, rgba(24, 168, 200, 0.78) 6px 7px, transparent 7px),
-        linear-gradient(180deg, transparent 6px, rgba(24, 168, 200, 0.78) 6px 7px, transparent 7px),
-        #132434;
-      box-shadow: 0 0 18px rgba(24, 168, 200, 0.28);
-    }
-
-    body.quantum-studio-preview .brand h1 {
-      color: #f9fcff;
-      font-size: 17px;
-      font-weight: 720;
-    }
-
-    body.quantum-studio-preview .header-meta {
-      color: #c9d6e2;
-    }
-
-    body.quantum-studio-preview .tour-button {
-      border-color: rgba(24, 168, 200, 0.44);
-      background: rgba(255, 255, 255, 0.06);
-      color: #eff8ff;
-    }
-
-    body.quantum-studio-preview #top-controls {
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 246, 249, 0.95));
-      border-bottom: 1px solid var(--studio-line);
-    }
-
-    body.quantum-studio-preview .control-row {
-      min-height: 54px;
-      gap: 20px;
-    }
-
-    body.quantum-studio-preview .timeline-controls {
-      gap: 6px;
-      border-right-color: var(--studio-line);
-    }
-
-    body.quantum-studio-preview .icon-button,
-    body.quantum-studio-preview .play-button {
-      border-radius: 3px;
-      box-shadow: none;
-    }
-
-    body.quantum-studio-preview .icon-button {
-      border-color: var(--studio-line);
-      background: #fff;
-      color: #52606d;
-    }
-
-    body.quantum-studio-preview .icon-button:hover {
-      border-color: var(--studio-blue);
-      color: var(--studio-blue);
-      background: #f7fbff;
-    }
-
-    body.quantum-studio-preview .play-button {
-      width: 58px;
-      border-color: #ce7414;
-      background: linear-gradient(180deg, #ffb552, var(--studio-orange));
-      color: #111820;
-      box-shadow: 0 8px 18px rgba(232, 135, 34, 0.22);
-    }
-
-    body.quantum-studio-preview .control select,
-    body.quantum-studio-preview .baseline-badge,
-    body.quantum-studio-preview .generator-controls select,
-    body.quantum-studio-preview .generator-controls input,
-    body.quantum-studio-preview .endpoint-control input {
-      height: 30px;
-      border-color: var(--studio-line-strong);
-      background: #fff;
-      color: var(--studio-ink);
-      border-radius: 3px;
-    }
-
-    body.quantum-studio-preview .control label,
-    body.quantum-studio-preview .control .label,
-    body.quantum-studio-preview h4,
-    body.quantum-studio-preview .endpoint-label {
-      color: var(--studio-muted);
-      font-size: 10px;
-      letter-spacing: 0.04em;
-    }
-
-    body.quantum-studio-preview #main-part {
-      grid-template-columns: 282px minmax(620px, 1fr) 304px;
-      grid-template-rows: minmax(0, 1fr) 236px;
-      grid-template-areas:
-        "data topology output"
-        "data inspector output";
-      height: calc(100vh - 100px);
-      min-height: 700px;
-      background: var(--studio-paper);
-      border: 1px solid rgba(180, 194, 205, 0.72);
-      border-top: 3px solid transparent;
-      border-image: linear-gradient(90deg, var(--studio-cyan), var(--studio-indigo), var(--studio-orange)) 1;
-      border-radius: 0;
-      box-shadow: 0 22px 58px rgba(23, 33, 43, 0.12);
-      overflow: hidden;
-    }
-
-    body.quantum-studio-preview .column {
-      padding: 14px 16px 16px;
-      background: var(--studio-paper);
-      color: var(--studio-ink);
-      border-left: 1px solid rgba(213, 221, 227, 0.72);
-      min-height: 0;
-      overflow: auto;
-    }
-
-    body.quantum-studio-preview .column:first-child {
-      border-left: 0;
-    }
-
-    body.quantum-studio-preview .column.data {
-      background: linear-gradient(180deg, #ffffff 0%, #f6f9fb 100%);
-      overflow: hidden;
-    }
-
-    body.quantum-studio-preview .column.topology {
-      background: linear-gradient(180deg, #fbfdfe 0%, #f3f7fa 100%);
-      overflow: hidden;
-    }
-
-    body.quantum-studio-preview .column.output {
-      background: linear-gradient(180deg, #ffffff 0%, #f6f9fb 100%);
-      overflow: hidden;
-      border-top: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    body.quantum-studio-preview h4 {
-      margin-bottom: 12px;
-    }
-
-    body.quantum-studio-preview h4 span {
-      color: var(--studio-ink);
-      font-size: 13px;
-      font-weight: 760;
-    }
-
-    body.quantum-studio-preview h4::after {
-      background: linear-gradient(90deg, var(--studio-line), transparent);
-    }
-
-    body.quantum-studio-preview .section {
-      border: 0;
-      background: transparent;
-      box-shadow: none;
-      padding: 0;
-    }
-
-    body.quantum-studio-preview .input-tabs,
-    body.quantum-studio-preview .qasm-tabs,
-    body.quantum-studio-preview .route-tabs {
-      border-color: transparent;
-      background: #edf3f7;
-      box-shadow: none;
-      border-radius: 3px;
-    }
-
-    body.quantum-studio-preview .input-tabs button,
-    body.quantum-studio-preview .qasm-tabs button,
-    body.quantum-studio-preview .route-tabs button {
-      color: #344452;
-      border-left-color: var(--studio-line);
-    }
-
-    body.quantum-studio-preview .input-tabs button[aria-pressed="true"],
-    body.quantum-studio-preview .qasm-tabs button[aria-pressed="true"],
-    body.quantum-studio-preview .route-tabs button[aria-pressed="true"] {
-      background: #fff !important;
-      color: var(--studio-blue);
-      box-shadow: inset 0 -2px 0 var(--studio-blue);
-    }
-
-    body.quantum-studio-preview .dataset-list {
-      border-color: rgba(213, 221, 227, 0.72);
-      background: #fff;
-      border-radius: 3px;
-    }
-
-    body.quantum-studio-preview .dataset {
-      background: #fff;
-      border-top-color: var(--studio-line);
-    }
-
-    body.quantum-studio-preview .dataset:hover,
-    body.quantum-studio-preview .dataset[aria-pressed="true"] {
-      background: linear-gradient(90deg, rgba(232, 135, 34, 0.12), #fff 42%);
-      box-shadow: inset 3px 0 0 var(--studio-orange);
-    }
-
-    body.quantum-studio-preview textarea,
-    body.quantum-studio-preview pre {
-      border-color: rgba(170, 184, 196, 0.82);
-      background:
-        linear-gradient(90deg, rgba(17, 109, 168, 0.055) 0 34px, transparent 34px),
-        var(--studio-code);
-      color: #13202b;
-      border-radius: 3px;
-      font-family: var(--mono);
-      font-size: 11px;
-    }
-
-    body.quantum-studio-preview textarea {
-      min-height: 0;
-      height: 248px;
-      resize: none;
-      line-height: 1.38;
-    }
-
-    body.quantum-studio-preview .validation-bar {
-      border-color: var(--studio-line);
-      border-left-color: var(--studio-blue);
-      background: linear-gradient(180deg, #fff, #f7fbfd);
-      min-height: 42px;
-      padding: 6px 8px;
-    }
-
-    body.quantum-studio-preview .topology-stage-wrap {
-      width: 100%;
-      height: min(43vh, 398px);
-      min-height: 340px;
-      border: 1px solid #b9cad6;
-      background:
-        linear-gradient(90deg, rgba(17, 109, 168, 0.055) 1px, transparent 1px),
-        linear-gradient(180deg, rgba(17, 109, 168, 0.045) 1px, transparent 1px),
-        #fbfdff;
-      background-size: 40px 40px, 40px 40px, auto;
-      border-radius: 3px;
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.86),
-        0 12px 24px rgba(45, 68, 88, 0.08);
-    }
-
-    body.quantum-studio-preview .topology-stage {
-      overflow: visible;
-    }
-
-    body.quantum-studio-preview .topology-stage-wrap .chip-scale {
-      inset: 20px;
-      opacity: 0.18;
-      background:
-        linear-gradient(90deg, rgba(17, 109, 168, 0.28) 0 10px, transparent 10px 100%) left top / 48px 1px repeat-x,
-        linear-gradient(90deg, rgba(17, 109, 168, 0.28) 0 10px, transparent 10px 100%) left bottom / 48px 1px repeat-x,
-        linear-gradient(180deg, rgba(17, 109, 168, 0.28) 0 10px, transparent 10px 100%) left top / 1px 48px repeat-y,
-        linear-gradient(180deg, rgba(17, 109, 168, 0.28) 0 10px, transparent 10px 100%) right top / 1px 48px repeat-y;
-    }
-
-    body.quantum-studio-preview .topology-stage-wrap::before {
-      inset: 18px;
-      border: 1px solid rgba(17, 109, 168, 0.09);
-      background:
-        linear-gradient(90deg, rgba(17, 109, 168, 0.04) 0 1px, transparent 1px 100%),
-        linear-gradient(180deg, rgba(17, 109, 168, 0.035) 0 1px, transparent 1px 100%);
-      background-size: 80px 80px;
-      opacity: 0.42;
-    }
-
-    body.quantum-studio-preview .topology-stage-wrap::after {
-      background: linear-gradient(90deg, transparent, rgba(24, 168, 200, 0.13), rgba(255, 255, 255, 0.42), transparent);
-      opacity: 0;
-      animation: quantum-studio-scan 6.2s ease-in-out infinite;
-    }
-
-    body.quantum-studio-preview.is-compiling .topology-stage-wrap::after {
-      opacity: 0.32;
-      animation-duration: 2.2s;
-    }
-
-    body.quantum-studio-preview.is-replaying .topology-stage-wrap {
-      border-color: rgba(24, 168, 200, 0.68);
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.92),
-        0 18px 38px rgba(45, 68, 88, 0.16),
-        0 0 0 2px rgba(24, 168, 200, 0.08);
-    }
-
-    body.quantum-studio-preview .topology-edge {
-      stroke: #a8b8c4;
-      stroke-width: 1.15;
-      opacity: 0.78;
-      filter: none;
-    }
-
-    body.quantum-studio-preview .topology-edge.gate-edge,
-    body.quantum-studio-preview .topology-trail.gate-edge {
-      stroke: var(--studio-blue);
-    }
-
-    body.quantum-studio-preview .topology-edge.swap-edge,
-    body.quantum-studio-preview .topology-trail.swap-edge {
-      stroke: var(--studio-orange);
-    }
-
-    body.quantum-studio-preview .topology-edge.active {
-      stroke-width: 2.7;
-      stroke-dasharray: 8 8;
-      filter: none;
-      animation: quantum-studio-route 0.9s linear infinite;
-    }
-
-    body.quantum-studio-preview .topology-runner-track {
-      stroke-width: 4;
-      opacity: 0.12;
-      filter: none;
-    }
-
-    body.quantum-studio-preview .topology-runner,
-    body.quantum-studio-preview .topology-packet {
-      fill: #fff;
-      stroke: var(--studio-blue);
-      filter: none;
-      opacity: 0.68;
-    }
-
-    body.quantum-studio-preview .topology-runner.swap-edge,
-    body.quantum-studio-preview .topology-packet.swap-edge {
-      stroke: var(--studio-orange);
-      fill: #fff8ed;
-    }
-
-    body.quantum-studio-preview .topology-runner-tail {
-      stroke-width: 2;
-      opacity: 0.36;
-      filter: none;
-    }
-
-    body.quantum-studio-preview .topology-node {
-      fill: #fff;
-      stroke: var(--studio-blue);
-      stroke-width: 1.45;
-      filter: none;
-    }
-
-    body.quantum-studio-preview .topology-node.mapped {
-      fill: #eef9fd;
-      stroke: var(--studio-cyan);
-    }
-
-    body.quantum-studio-preview .topology-node.active,
-    body.quantum-studio-preview .topology-node.pair-active.gate-active {
-      fill: #e9f7ff;
-      stroke: var(--studio-blue);
-      stroke-width: 2.7;
-    }
-
-    body.quantum-studio-preview .topology-node.pair-active.swap-active {
-      fill: #fff3e1;
-      stroke: var(--studio-orange);
-      stroke-width: 2.7;
-    }
-
-    body.quantum-studio-preview .topology-node.single-active {
-      fill: #f1efff;
-      stroke: var(--studio-violet);
-      stroke-width: 2.7;
-    }
-
-    body.quantum-studio-preview .topology-node-ring.gate-active {
-      stroke: var(--studio-blue);
-      filter: none;
-    }
-
-    body.quantum-studio-preview .topology-node-ring.swap-active {
-      stroke: var(--studio-orange);
-      filter: none;
-    }
-
-    body.quantum-studio-preview .topology-node-ring.single-active {
-      stroke: var(--studio-violet);
-      filter: none;
-    }
-
-    body.quantum-studio-preview .node-label {
-      fill: #1a3348;
-      font-weight: 760;
-    }
-
-    body.quantum-studio-preview .node-map-label {
-      fill: var(--studio-muted);
-    }
-
-    body.quantum-studio-preview .compiler-flow,
-    body.quantum-studio-preview .event-card,
-    body.quantum-studio-preview .mapping-panel,
-    body.quantum-studio-preview .timeline-panel {
-      border-color: rgba(213, 221, 227, 0.76);
-      background: #fff;
-      box-shadow: none;
-      border-radius: 3px;
-    }
-
-    body.quantum-studio-preview .compiler-flow {
-      margin-top: 10px;
-    }
-
-    body.quantum-studio-preview .route-inspector {
-      grid-area: inspector;
-      display: grid;
-      grid-template-columns: 230px 330px minmax(360px, 1fr);
-      gap: 10px;
-      min-height: 0;
-      padding: 10px 16px 12px;
-      border-top: 1px solid rgba(213, 221, 227, 0.86);
-      background: #f7fafc;
-      overflow: hidden;
-    }
-
-    body.quantum-studio-preview:not(.has-results) .route-inspector {
-      display: grid;
-    }
-
-    body.quantum-studio-preview .event-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 4px;
-    }
-
-    body.quantum-studio-preview .event-field {
-      min-height: 28px;
-      padding: 4px 6px;
-      color: #253746;
-    }
-
-    body.quantum-studio-preview .event-field strong {
-      color: #17212b;
-      font-size: 11px;
-    }
-
-    body.quantum-studio-preview .mapping-grid {
-      grid-template-columns: repeat(10, minmax(0, 1fr));
-      gap: 4px;
-    }
-
-    body.quantum-studio-preview .mapping-cell {
-      min-height: 34px;
-      padding: 3px;
-      color: #556472;
-      border-color: #c9d5df;
-    }
-
-    body.quantum-studio-preview .mapping-cell b {
-      color: #2a3a48;
-    }
-
-    body.quantum-studio-preview .flow-stage.is-active {
-      border-color: rgba(24, 168, 200, 0.26);
-      background: #f0fbff;
-      box-shadow: inset 3px 0 0 var(--studio-cyan);
-    }
-
-    body.quantum-studio-preview .trace-bar span {
-      background: linear-gradient(90deg, var(--studio-cyan), var(--studio-indigo), var(--studio-orange));
-    }
-
-    body.quantum-studio-preview .comparison-table {
-      border-color: var(--studio-line-strong);
-      background: #fff;
-      box-shadow: none;
-      table-layout: fixed;
-    }
-
-    body.quantum-studio-preview .comparison-table th,
-    body.quantum-studio-preview .comparison-table td {
-      border-color: var(--studio-line);
-      color: var(--studio-ink);
-    }
-
-    body.quantum-studio-preview .comparison-table thead th {
-      background: #eef4f8;
-      color: #5a6976;
-    }
-
-    body.quantum-studio-preview #npqr-card {
-      box-shadow: inset 3px 0 0 var(--studio-orange);
-    }
-
-    body.quantum-studio-preview #sabre-card {
-      box-shadow: inset 3px 0 0 var(--studio-blue);
-    }
-
-    body.quantum-studio-preview .delta-grid,
-    body.quantum-studio-preview .qasm-details {
-      border-color: var(--studio-line);
-    }
-
-    body.quantum-studio-preview .delta,
-    body.quantum-studio-preview .qasm-details summary {
-      background: linear-gradient(180deg, #fff, #f5f8fa);
-      color: var(--studio-ink);
-      border-color: var(--studio-line);
-    }
-
-    body.quantum-studio-preview .message {
-      border-left-color: var(--studio-cyan);
-      background: linear-gradient(90deg, #eefbff, #fff);
-      color: #43525f;
-    }
-
-    body.quantum-studio-preview .route-timeline {
-      border-top: 1px solid var(--studio-line);
-      background:
-        linear-gradient(90deg, rgba(17, 109, 168, 0.06) 0 1px, transparent 1px 100%) 0 0 / 64px 100%,
-        #fff;
-      display: grid;
-      gap: 0;
-      max-height: 168px;
-      overflow: auto;
-      color: #243544;
-    }
-
-    body.quantum-studio-preview .timeline-row {
-      display: grid;
-      grid-template-columns: 30px 48px minmax(0, 1fr) 44px;
-      min-height: 26px;
-      border-left: 3px solid transparent;
-      background: transparent;
-      color: #263948;
-      padding-right: 6px;
-    }
-
-    body.quantum-studio-preview .timeline-main {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    body.quantum-studio-preview .timeline-row[aria-current="true"] {
-      border-left-color: var(--studio-blue);
-      background: #eef8ff;
-    }
-
-    body.quantum-studio-preview .timeline-row[aria-current="true"][data-kind="swap"] {
-      border-left-color: var(--studio-orange);
-      background: #fff6e8;
-    }
-
-    body.quantum-studio-preview .timeline-kind {
-      color: #526473;
-      font-weight: 760;
-    }
-
-    body.quantum-studio-preview .mapping-cell,
-    body.quantum-studio-preview .event-field {
-      border-color: #c9d5df;
-      background: #fbfdfe;
-    }
-
-    body.quantum-studio-preview .qasm-details summary {
-      min-height: 36px;
-      padding: 7px 9px;
-    }
-
-    body.quantum-studio-preview .output-chip {
-      flex: 0 0 auto;
-      max-width: 82px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    body.quantum-studio-preview .tour-card {
-      border-color: var(--studio-line-strong);
-      border-top-color: var(--studio-cyan);
-      border-radius: 4px;
-    }
-
-    body.quantum-studio-preview .delta {
-      min-height: 30px;
-    }
-
-    body.quantum-studio-preview .message {
-      min-height: 30px;
-    }
-
-    body.quantum-studio-preview .qasm-details {
-      margin-top: 0;
-    }
-
-    @keyframes quantum-studio-scan {
-      0%, 100% { transform: translateX(-64%); }
-      50% { transform: translateX(64%); }
-    }
-
-    @keyframes quantum-studio-route {
-      to { stroke-dashoffset: -32; }
-    }
-
-    @media (max-width: 1120px) {
-      body.quantum-studio-preview #main-part {
-        grid-template-columns: minmax(280px, 330px) minmax(0, 1fr);
-        grid-template-rows: auto auto auto;
-        grid-template-areas:
-          "data topology"
-          "inspector inspector"
-          "output output";
-        height: auto;
-        min-height: 0;
-      }
-    }
-
-    @media (max-width: 760px) {
-      body.quantum-studio-preview #main-part {
-        grid-template-columns: 1fr;
-        grid-template-areas:
-          "topology"
-          "output"
-          "data"
-          "inspector";
-      }
-
-      body.quantum-studio-preview .topology-stage-wrap {
-        aspect-ratio: 1 / 1.08;
-        min-height: 320px;
-      }
-
-      body.quantum-studio-preview .route-inspector {
-        grid-template-columns: 1fr;
-      }
-
-      body.quantum-studio-preview .column.output {
-        grid-area: output;
-      }
-    }
   </style>
 </head>
-<body class="instrument-v2 quantum-studio-preview">
+<body class="instrument-v2">
   <header>
     <div class="page topbar">
       <div class="brand">
@@ -4276,6 +3577,7 @@
         <div class="delta-grid" aria-label="对比差值">
           <div class="delta"><span>ΔSWAP</span><strong id="delta-swaps">--</strong></div>
           <div class="delta"><span>Δ深度</span><strong id="delta-depth">--</strong></div>
+          <div class="delta"><span>耗时比</span><strong id="delta-time">--</strong></div>
         </div>
         <div class="message" id="result-message">待运行</div>
         <details class="qasm-details" id="qasm-details">
@@ -4340,19 +3642,19 @@
     <div class="advanced-body">
       <section>
         <h4><span>维护者 REST API</span></h4>
-        <p>普通用户不需要部署。GitHub Pages 默认使用内置示例结果，保证老师打开页面后可以直接审阅输入、NPQR/SABRE 指标、Tokyo 映射和路线回放。维护者可用 HTTPS REST API 覆盖为实时编译。</p>
+        <p>普通用户不需要部署。页面默认调用项目方部署的 FastAPI REST 后端；维护者可用 URL 参数覆盖。网页里的 SABRE 基准固定为 Qiskit 默认 basic；高级 REST 直连仍兼容显式 heuristic 参数。</p>
         <p>网页操作说明见 <a href="playground-user-guide.md">使用说明</a>（Playground user guide）；这里保留部署和调试入口。</p>
         <label class="endpoint-label" for="api-base-input">REST API</label>
         <div class="endpoint-control">
           <input id="api-base-input" type="url" spellcheck="false" aria-describedby="api-base-note">
           <button id="apply-api-base" type="button">应用</button>
         </div>
-        <p class="endpoint-note" id="api-base-note">当前使用 GitHub Pages 内置示例结果</p>
+        <p class="endpoint-note" id="api-base-note">当前地址</p>
         <pre><code>uvicorn src.server.app:app --host 0.0.0.0 --port $PORT
 ?api=https://your-api.example
 uvicorn src.server.app:app --reload --port 8765
 ?api=http://127.0.0.1:8765</code></pre>
-        <p>GitHub Pages 是 HTTPS 页面，默认不会调用普通 HTTP API，避免浏览器混合内容拦截。实时编译请使用 HTTPS 后端；本地调试可直接打开本文件或显式传入本地地址。</p>
+        <p>API 不可用时，页面只显示简短错误；公开页面不会自动探测访问者电脑上的本地服务。</p>
       </section>
       <section>
         <h4><span>MCP 工具</span></h4>
@@ -4375,14 +3677,13 @@ POST /mcp</code></pre>
   </details>
 
   <script>
-    const PUBLIC_API_BASE = "";
+    const PUBLIC_API_BASE = "http://1.95.70.10";
     const API_TIMEOUT_MS = 120000;
     const API_STATUS_TIMEOUT_MS = 20000;
     const MAX_INLINE_QASM_CHARS = 8000;
 
     const params = new URLSearchParams(window.location.search);
     let apiBase = normalizeApiBase(params.get("api") || PUBLIC_API_BASE);
-    let apiMode = apiBase ? "remote" : "embedded";
 
     const examples = {
       qft5: {
@@ -4490,37 +3791,6 @@ cx q[0],q[1];`
       }
     };
 
-    const embeddedResults = {
-      qft5: {
-        npqr: { status: "OK", backend: "npqr", swaps: 2, depth: 46, elapsed_ms: 0, trace_len: 3, executed_gates: 71 },
-        sabre: { status: "OK", backend: "sabre", heuristic: "basic", swaps: 8, depth: 53, elapsed_ms: 0, trace_len: 34, executed_gates: 26 }
-      },
-      ghz5: {
-        npqr: { status: "OK", backend: "npqr", swaps: 0, depth: 4, elapsed_ms: 0, trace_len: 1, executed_gates: 5 },
-        sabre: { status: "OK", backend: "sabre", heuristic: "basic", swaps: 0, depth: 7, elapsed_ms: 0, trace_len: 4, executed_gates: 4 }
-      },
-      qaoa5: {
-        npqr: { status: "OK", backend: "npqr", swaps: 1, depth: 28, elapsed_ms: 0, trace_len: 2, executed_gates: 55 },
-        sabre: { status: "OK", backend: "sabre", heuristic: "basic", swaps: 3, depth: 25, elapsed_ms: 0, trace_len: 13, executed_gates: 10 }
-      },
-      qft10: {
-        npqr: { status: "OK", backend: "npqr", swaps: 19, depth: 160, elapsed_ms: 0, trace_len: 20, executed_gates: 270 },
-        sabre: { status: "OK", backend: "sabre", heuristic: "basic", swaps: 42, depth: 168, elapsed_ms: 0, trace_len: 147, executed_gates: 105 }
-      },
-      qaoa10: {
-        npqr: { status: "OK", backend: "npqr", swaps: 0, depth: 37, elapsed_ms: 0, trace_len: 1, executed_gates: 110 },
-        sabre: { status: "OK", backend: "sabre", heuristic: "basic", swaps: 7, depth: 42, elapsed_ms: 0, trace_len: 27, executed_gates: 20 }
-      },
-      ghz10: {
-        npqr: { status: "OK", backend: "npqr", swaps: 2, depth: 11, elapsed_ms: 0, trace_len: 3, executed_gates: 12 },
-        sabre: { status: "OK", backend: "sabre", heuristic: "basic", swaps: 4, depth: 14, elapsed_ms: 0, trace_len: 13, executed_gates: 9 }
-      },
-      vqe10: {
-        npqr: { status: "OK", backend: "npqr", swaps: 2, depth: 23, elapsed_ms: 0, trace_len: 3, executed_gates: 109 },
-        sabre: { status: "OK", backend: "sabre", heuristic: "basic", swaps: 4, depth: 21, elapsed_ms: 0, trace_len: 13, executed_gates: 9 }
-      }
-    };
-
     const topologyNodes = [
       [0, 70, 58], [1, 195, 58], [2, 320, 58], [3, 445, 58], [4, 570, 58],
       [5, 70, 178], [6, 195, 178], [7, 320, 178], [8, 445, 178], [9, 570, 178],
@@ -4536,59 +3806,6 @@ cx q[0],q[1];`
       [12, 13], [12, 16], [12, 17], [13, 14], [13, 18], [13, 19], [14, 18],
       [14, 19], [15, 16], [16, 17], [17, 18], [18, 19]
     ];
-
-    const embeddedMappings = {
-      qft5: { "0": 3, "1": 8, "2": 2, "3": 9, "4": 4 },
-      ghz5: { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4 },
-      qaoa5: { "0": 9, "1": 4, "2": 3, "3": 2, "4": 8 },
-      qft10: { "0": 3, "1": 8, "2": 2, "3": 12, "4": 14, "5": 1, "6": 13, "7": 7, "8": 9, "9": 4 },
-      qaoa10: { "0": 4, "1": 3, "2": 2, "3": 1, "4": 0, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9 },
-      ghz10: { "0": 3, "1": 4, "2": 8, "3": 1, "4": 2, "5": 7, "6": 12, "7": 13, "8": 14, "9": 9 },
-      vqe10: { "0": 3, "1": 4, "2": 8, "3": 1, "4": 2, "5": 7, "6": 12, "7": 13, "8": 14, "9": 9 }
-    };
-
-    const identityMappings = {
-      qft5: { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4 },
-      ghz5: { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4 },
-      qaoa5: { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4 },
-      qft10: { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9 },
-      qaoa10: { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9 },
-      ghz10: { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9 },
-      vqe10: { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9 }
-    };
-
-    function makeEmbeddedTrace(example, backend) {
-      const npqr = backend === "npqr";
-      const mapping = npqr ? embeddedMappings[example] : identityMappings[example];
-      const events = example.includes("10")
-        ? [[0, 1], [1, 2], [2, 3], [8, 9]]
-        : [[0, 1], [1, 2], [2, 3], [3, 4]];
-      const physicalPairs = events
-        .map(([a, b]) => [Number(mapping[String(a)]), Number(mapping[String(b)])])
-        .filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b));
-      const trace = physicalPairs.slice(0, 6).map(([a, b], index) => ({
-        kind: "gate",
-        op: "cx",
-        logical_qubits: events[index],
-        physical_qubits: [a, b],
-        insertion_index: index,
-        compiled_index: index,
-        mapping_after: { ...mapping }
-      }));
-      if (!npqr && (embeddedResults[example]?.sabre?.swaps || 0) > 0 && physicalPairs.length) {
-        const [a, b] = physicalPairs[Math.min(1, physicalPairs.length - 1)];
-        trace.splice(1, 0, {
-          kind: "swap",
-          op: "swap",
-          logical_qubits: events[Math.min(1, events.length - 1)],
-          physical_qubits: [a, b],
-          insertion_index: 1,
-          compiled_index: 1,
-          mapping_after: { ...mapping }
-        });
-      }
-      return trace;
-    }
 
     const state = {
       example: "qft5",
@@ -4646,6 +3863,7 @@ cx q[0],q[1];`
       sabreElapsed: document.getElementById("sabre-elapsed"),
       deltaSwaps: document.getElementById("delta-swaps"),
       deltaDepth: document.getElementById("delta-depth"),
+      deltaTime: document.getElementById("delta-time"),
       message: document.getElementById("result-message"),
       compiled: document.getElementById("compiled-qasm-code"),
       compiledState: document.getElementById("compiled-state"),
@@ -4688,7 +3906,7 @@ cx q[0],q[1];`
     const tourSteps = [
       { selector: "#examples-panel", title: "选择电路", copy: "先用示例快速跑通，也可以切到自定义或生成 OpenQASM。" },
       { selector: "#qasm-input", title: "检查输入", copy: "这里是当前电路。校验条会提示 OpenQASM 是否能提交。" },
-      { selector: "#run-button", title: "运行编译", copy: "运行会优先调用 HTTPS REST API；未配置时使用内置示例结果。" },
+      { selector: "#run-button", title: "运行编译", copy: "运行会同时调用 NPQR 和固定 SABRE 基准，结果来自公网 REST API。" },
       { selector: "#tokyo-topology", title: "审阅拓扑", copy: "编译完成后，单步只回放后端返回的真实路由事件。" },
       { selector: ".comparison-table", title: "比较结果", copy: "右侧只保留 SWAP、深度和耗时，避免干扰审阅。" },
       { selector: "#qasm-details", title: "导出 QASM", copy: "展开后可查看、复制或下载 NPQR/SABRE 的编译后 QASM。" }
@@ -4696,37 +3914,6 @@ cx q[0],q[1];`
 
     function normalizeApiBase(value) {
       return String(value || "").trim().replace(/\/+$/, "");
-    }
-
-    function isHttpsPage() {
-      return window.location.protocol === "https:";
-    }
-
-    function apiProtocol(value) {
-      try {
-        return new URL(value).protocol;
-      } catch (_) {
-        return "";
-      }
-    }
-
-    function canUseApiBase(value) {
-      const base = normalizeApiBase(value);
-      if (!base) {
-        return false;
-      }
-      const protocol = apiProtocol(base);
-      if (!protocol) {
-        return false;
-      }
-      if (isHttpsPage() && protocol === "http:" && params.get("allowHttpApi") !== "1") {
-        return false;
-      }
-      return protocol === "https:" || protocol === "http:";
-    }
-
-    function hasRemoteApi() {
-      return apiCandidates().length > 0;
     }
 
     function edgeKey(edge) {
@@ -4771,12 +3958,12 @@ cx q[0],q[1];`
         return;
       }
       el.apiBaseInput.value = apiBase;
-      el.apiBaseNote.textContent = note || (apiBase ? `当前 API: ${apiBase}` : "当前使用 GitHub Pages 内置示例结果。");
-      el.backend.title = apiBase || "GitHub Pages embedded review data";
+      el.apiBaseNote.textContent = note || `当前 API: ${apiBase}`;
+      el.backend.title = apiBase;
     }
 
     function apiCandidates() {
-      return [apiBase].map(normalizeApiBase).filter(canUseApiBase);
+      return [apiBase].map(normalizeApiBase);
     }
 
     function setPressed(selector, key, value) {
@@ -4952,7 +4139,7 @@ cx q[0],q[1];`
     }
 
     async function validateWithApi(localResult) {
-      if (localResult.status !== "OK" || !hasRemoteApi()) {
+      if (localResult.status !== "OK" || !apiBase) {
         renderValidation(localResult);
         return;
       }
@@ -5530,59 +4717,6 @@ cx q[0],q[1];`
       return state.example === "custom" ? { qasm: el.qasm.value, ...base } : { example: state.example, ...base };
     }
 
-    function embeddedCompileResult(backend) {
-      if (state.example === "custom" || state.inputMode !== "examples") {
-        return null;
-      }
-      const summary = embeddedResults[state.example]?.[backend];
-      if (!summary) {
-        return null;
-      }
-      const trace = makeEmbeddedTrace(state.example, backend);
-      const mapping = backend === "npqr"
-        ? embeddedMappings[state.example]
-        : identityMappings[state.example];
-      return {
-        ...summary,
-        circuit_name: state.example,
-        topology: "tokyo",
-        algorithm: backend === "npqr" ? "npqr_neural_selector_suffix_v1" : undefined,
-        model_path: backend === "npqr" ? "models/default/npqr-default.pt" : undefined,
-        initial_mapping: { ...mapping },
-        route_trace: trace,
-        trace_len: summary.trace_len ?? trace.length,
-        compiled_qasm: [
-          "OPENQASM 2.0;",
-          'include "qelib1.inc";',
-          "qreg q[20];",
-          `// Embedded GitHub Pages ${backend.toUpperCase()} review result for ${state.example}.`,
-          `// SWAP=${summary.swaps}, depth=${summary.depth}.`,
-          "// Connect an HTTPS REST API with ?api=... to export full routed QASM."
-        ].join("\n"),
-        message: "GitHub Pages 内置示例结果；连接 HTTPS REST API 可实时编译。"
-      };
-    }
-
-    async function compileWithBestAvailableBackend(backend) {
-      if (hasRemoteApi()) {
-        return callApi("/api/compile", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(compilePayload(backend))
-        });
-      }
-      const embedded = embeddedCompileResult(backend);
-      if (embedded) {
-        apiMode = "embedded";
-        setBackend("loading", "内置");
-        syncApiControls("当前使用 GitHub Pages 内置示例结果；维护者可填入 HTTPS REST API。");
-        return embedded;
-      }
-      const error = new Error("Custom or generated circuits require a reachable HTTPS REST API.");
-      error.embeddedOnly = true;
-      throw error;
-    }
-
     function validate() {
       const result = localQasmValidation();
       renderValidation(result);
@@ -5631,19 +4765,12 @@ cx q[0],q[1];`
     }
 
     async function checkBackend() {
-      if (!hasRemoteApi()) {
-        apiMode = "embedded";
-        setBackend("loading", "内置");
-        syncApiControls("GitHub Pages 默认使用内置示例结果；维护者可填入 HTTPS REST API。");
-        return;
-      }
       setBackend("loading", "检测中");
       let lastError = null;
       for (const candidate of apiCandidates()) {
         try {
           await callApiAt(candidate, "/api/status", {}, API_STATUS_TIMEOUT_MS);
           apiBase = candidate;
-          apiMode = "remote";
           setBackend("ok", "在线");
           syncApiControls(`当前 API: ${apiBase}`);
           return;
@@ -5656,9 +4783,6 @@ cx q[0],q[1];`
     }
 
     function formatBackendNote(error) {
-      if (!hasRemoteApi()) {
-        return "GitHub Pages 默认使用内置示例结果；实时编译需填入 HTTPS REST API。";
-      }
       if (isTimeoutError(error)) {
         return "REST API 可能仍在计算，请稍后再试。";
       }
@@ -5671,14 +4795,6 @@ cx q[0],q[1];`
     }
 
     function formatBackendHelp(error) {
-      if (error?.embeddedOnly) {
-        return [
-          "// 当前是 GitHub Pages 内置示例模式。",
-          "// 内置模式只覆盖页面左侧示例电路。",
-          "// 自定义或生成电路需要连接 HTTPS REST API。",
-          "// 维护者可在高级入口填入地址，或使用 ?api=https://your-api.example。"
-        ].join("\n");
-      }
       if (isTimeoutError(error)) {
         return [
           "// 编译超时：浏览器没有在限定时间内收到结果。",
@@ -5701,14 +4817,7 @@ cx q[0],q[1];`
     function applyApiBase() {
       const next = normalizeApiBase(el.apiBaseInput.value);
       if (!next) {
-        apiBase = "";
-        checkBackend();
-        return;
-      }
-      if (!canUseApiBase(next)) {
         syncApiControls("请输入 REST API 地址。");
-        setBackend("error", "受限");
-        el.apiBaseNote.textContent = "GitHub Pages 需要 HTTPS REST API；HTTP 地址会被浏览器拦截。";
         return;
       }
       apiBase = next;
@@ -5767,6 +4876,11 @@ cx q[0],q[1];`
     function updateDelta(npqr, sabre) {
       el.deltaSwaps.textContent = formatDelta(npqr?.swaps, sabre?.swaps);
       el.deltaDepth.textContent = formatDelta(npqr?.depth, sabre?.depth);
+      if (npqr && sabre && Number.isFinite(npqr.elapsed_ms) && Number.isFinite(sabre.elapsed_ms) && sabre.elapsed_ms > 0) {
+        el.deltaTime.textContent = `${(npqr.elapsed_ms / sabre.elapsed_ms).toFixed(1)}x`;
+      } else {
+        el.deltaTime.textContent = "--";
+      }
     }
 
     function currentQasmResult() {
@@ -5894,8 +5008,16 @@ cx q[0],q[1];`
       let shouldReplay = false;
       try {
         const [npqrSettled, sabreSettled] = await Promise.allSettled([
-          compileWithBestAvailableBackend("npqr"),
-          compileWithBestAvailableBackend("sabre")
+          callApi("/api/compile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(compilePayload("npqr"))
+          }),
+          callApi("/api/compile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(compilePayload("sabre"))
+          })
         ]);
         if (runId !== state.runId) {
           return;
@@ -5914,9 +5036,7 @@ cx q[0],q[1];`
         setResultMetrics("sabre", null, error);
         updateDelta(null, null);
         el.message.classList.add("error");
-        el.message.textContent = error?.embeddedOnly
-          ? "自定义或生成电路需要连接 HTTPS REST API。"
-          : isTimeoutError(error)
+        el.message.textContent = isTimeoutError(error)
           ? "这个电路计算时间较长，服务器可能仍在运行，请稍后重试。"
           : "后端暂时不可用，请稍后重试。";
         el.compiled.textContent = formatBackendHelp(error);
