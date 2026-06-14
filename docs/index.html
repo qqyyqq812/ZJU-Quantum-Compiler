@@ -233,6 +233,16 @@
     </div>
   </main>
 
+  <div class="tour-overlay" id="tour-overlay" hidden></div>
+  <aside class="tour-card" id="tour-card" aria-live="polite" hidden>
+    <h3 id="tour-title">Guide</h3>
+    <p id="tour-copy">Start with a preset circuit.</p>
+    <div class="tour-actions">
+      <button id="tour-skip" type="button">Skip</button>
+      <button id="tour-next" class="primary" type="button">Next</button>
+    </div>
+  </aside>
+
   <details class="page" id="advanced" aria-label="Service interfaces">
     <summary>Service Interfaces</summary>
     <div class="advanced-body">
@@ -424,18 +434,16 @@ cx q[0],q[1];`
     ];
 
     const topologyEdges = [
-      [0, 1], [1, 2], [2, 3], [3, 4],
-      [5, 6], [6, 7], [7, 8], [8, 9],
-      [10, 11], [11, 12], [12, 13], [13, 14],
-      [15, 16], [16, 17], [17, 18], [18, 19],
-      [0, 5], [1, 6], [2, 7], [3, 8], [4, 9],
-      [5, 10], [6, 11], [7, 12], [8, 13], [9, 14],
-      [10, 15], [11, 16], [12, 17], [13, 18], [14, 19]
+      [0, 1], [0, 5], [1, 2], [1, 6], [1, 7], [2, 3], [2, 6], [2, 7],
+      [3, 4], [3, 8], [3, 9], [4, 8], [4, 9], [5, 6], [5, 10], [5, 11],
+      [6, 7], [6, 10], [6, 11], [7, 8], [7, 12], [7, 13], [8, 9], [8, 12],
+      [8, 13], [9, 14], [10, 11], [10, 15], [11, 12], [11, 16], [11, 17],
+      [12, 13], [12, 16], [12, 17], [13, 14], [13, 18], [13, 19], [14, 18],
+      [14, 19], [15, 16], [16, 17], [17, 18], [18, 19]
     ];
-    const topologyEdgeKeys = new Set(topologyEdges.map((edge) => edgeKey(edge)));
 
     const embeddedMappings = {
-      qft5: { "0": 3, "1": 6, "2": 2, "3": 1, "4": 4 },
+      qft5: { "0": 3, "1": 8, "2": 2, "3": 9, "4": 4 },
       ghz5: { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4 },
       qaoa5: { "0": 9, "1": 4, "2": 3, "3": 2, "4": 8 },
       qft10: { "0": 3, "1": 8, "2": 2, "3": 12, "4": 14, "5": 1, "6": 13, "7": 7, "8": 9, "9": 4 },
@@ -454,53 +462,15 @@ cx q[0],q[1];`
       vqe10: { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9 }
     };
 
-    const qft5NpqrTracePlan = [
-      ["gate", "cx", [3, 2], [1, 2]],
-      ["gate", "cx", [2, 0], [2, 3]],
-      ["swap", "swap", [0, 4], [3, 4]],
-      ["gate", "cx", [3, 1], [1, 6]],
-      ["gate", "cx", [3, 2], [1, 2]],
-      ["gate", "cx", [2, 0], [2, 3]],
-      ["gate", "cx", [0, 4], [3, 4]]
-    ];
-
-    const qft5SabreTracePlan = Array.from({ length: 34 }, (_, index) => {
-      const route = [[0, 1], [1, 2], [2, 3], [3, 4]][index % 4];
-      return [index % 5 === 2 ? "swap" : "gate", index % 5 === 2 ? "swap" : "cx", route, route];
-    });
-
-    const embeddedTracePlans = {
-      qft5: {
-        npqr: qft5NpqrTracePlan,
-        sabre: qft5SabreTracePlan
-      }
-    };
-
-    function traceFromPlan(plan, mapping) {
-      return plan.map(([kind, op, logical, physical], index) => ({
-        kind,
-        op,
-        logical_qubits: logical,
-        physical_qubits: physical,
-        insertion_index: index,
-        compiled_index: index,
-        mapping_after: { ...mapping }
-      }));
-    }
-
     function makeEmbeddedTrace(example, backend) {
       const npqr = backend === "npqr";
       const mapping = npqr ? embeddedMappings[example] : identityMappings[example];
-      const plan = embeddedTracePlans[example]?.[backend];
-      if (plan) {
-        return traceFromPlan(plan, mapping);
-      }
       const events = example.includes("10")
         ? [[0, 1], [1, 2], [2, 3], [8, 9]]
         : [[0, 1], [1, 2], [2, 3], [3, 4]];
       const physicalPairs = events
         .map(([a, b]) => [Number(mapping[String(a)]), Number(mapping[String(b)])])
-        .filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b) && topologyEdgeKeys.has(edgeKey([a, b])));
+        .filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b));
       const trace = physicalPairs.slice(0, 6).map(([a, b], index) => ({
         kind: "gate",
         op: "cx",
@@ -608,8 +578,27 @@ cx q[0],q[1];`
       apiBaseNote: document.getElementById("api-base-note"),
       traceOp: document.getElementById("trace-op"),
       traceProgress: document.getElementById("trace-progress"),
-      traceBar: document.getElementById("trace-bar")
+      traceBar: document.getElementById("trace-bar"),
+      tourButton: document.getElementById("tour-button"),
+      tourOverlay: document.getElementById("tour-overlay"),
+      tourCard: document.getElementById("tour-card"),
+      tourTitle: document.getElementById("tour-title"),
+      tourCopy: document.getElementById("tour-copy"),
+      tourSkip: document.getElementById("tour-skip"),
+      tourNext: document.getElementById("tour-next")
     };
+
+    let tourIndex = 0;
+    const TOUR_STORAGE_KEY = "zju-quantum-playground-v2-tour";
+
+    const tourSteps = [
+      { selector: "#examples-panel", title: "Circuit preset", copy: "Select a bundled OpenQASM circuit." },
+      { selector: "#qasm-input", title: "Input check", copy: "Review the current OpenQASM payload." },
+      { selector: "#run-button", title: "Compile", copy: "Run NPQR and SABRE against Tokyo 20Q." },
+      { selector: "#tokyo-topology", title: "Topology", copy: "Inspect physical route events on IBM Tokyo." },
+      { selector: ".comparison-table", title: "Results", copy: "Compare SWAP count, depth, and elapsed time." },
+      { selector: "#qasm-details", title: "Compiled QASM", copy: "Review and export routed QASM." }
+    ];
 
     function normalizeApiBase(value) {
       return String(value || "").trim().replace(/\/+$/, "");
@@ -1018,16 +1007,17 @@ cx q[0],q[1];`
     function renderTopology() {
       const svgNS = "http://www.w3.org/2000/svg";
       const nodes = new Map(topologyNodes.map(([id, x, y]) => [id, { x, y }]));
+      const traceEvents = state.trace.slice(0, state.traceIndex + 1).filter(traceEdge);
       const event = currentTraceEvent();
       const eventEdge = traceEdge(event);
       const active = eventEdge;
-      const activeIsVisible = active ? topologyEdgeKeys.has(edgeKey(active)) : false;
-      const activeKey = activeIsVisible ? edgeKey(active) : "";
+      const activeKey = active ? edgeKey(active) : "";
       const activeKind = event?.kind || "idle";
       const eventMapping = event?.mapping_after || event?.mapping || resultMapping();
       const activeNode = traceNode(event);
       const activeNodes = new Set(event?.physical_qubits?.map((qubit) => Number(qubit)) || []);
       const mapped = new Set(Object.values(eventMapping).map((value) => Number(value)));
+      const trailEvents = traceEvents.slice(-8);
       const logicalByPhysical = new Map(
         Object.entries(eventMapping).map(([logical, physical]) => [Number(physical), Number(logical)])
       );
@@ -1087,7 +1077,21 @@ cx q[0],q[1];`
         el.svg.appendChild(line);
       });
 
-      if (active && activeIsVisible) {
+      trailEvents.forEach((trailEvent, index) => {
+        const edge = traceEdge(trailEvent);
+        const from = nodes.get(edge[0]);
+        const to = nodes.get(edge[1]);
+        const trail = document.createElementNS(svgNS, "line");
+        trail.setAttribute("x1", from.x);
+        trail.setAttribute("y1", from.y);
+        trail.setAttribute("x2", to.x);
+        trail.setAttribute("y2", to.y);
+        trail.style.setProperty("--trail-opacity", String(0.08 + ((index + 1) / trailEvents.length) * 0.28));
+        trail.classList.add("topology-trail", trailEvent.kind === "swap" ? "swap-edge" : "gate-edge");
+        el.svg.appendChild(trail);
+      });
+
+      if (active) {
         const from = nodes.get(active[0]);
         const to = nodes.get(active[1]);
         const runnerKind = activeKind === "gate" ? "gate-edge" : "swap-edge";
@@ -1900,6 +1904,69 @@ cx q[0],q[1];`
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
+    function clearTourTarget() {
+      document.querySelectorAll('[data-tour-target="true"]').forEach((node) => {
+        node.removeAttribute("data-tour-target");
+      });
+    }
+
+    function closeTour(remember = false) {
+      clearTourTarget();
+      document.body.classList.remove("tour-open");
+      el.tourOverlay.hidden = true;
+      el.tourCard.hidden = true;
+      if (remember) {
+        window.localStorage.setItem(TOUR_STORAGE_KEY, "done");
+      }
+    }
+
+    function placeTourCard(target) {
+      const rect = target?.getBoundingClientRect();
+      const width = Math.min(320, window.innerWidth - 28);
+      const left = rect
+        ? Math.min(window.innerWidth - width - 14, Math.max(14, rect.left))
+        : 18;
+      const top = rect
+        ? Math.min(window.innerHeight - 180, Math.max(14, rect.bottom + 12))
+        : 18;
+      el.tourCard.style.left = `${left}px`;
+      el.tourCard.style.top = `${top}px`;
+    }
+
+    function renderTourStep() {
+      clearTourTarget();
+      const step = tourSteps[tourIndex];
+      const target = document.querySelector(step.selector);
+      if (target) {
+        target.setAttribute("data-tour-target", "true");
+        target.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+      }
+      el.tourTitle.textContent = `${tourIndex + 1}/${tourSteps.length} ${step.title}`;
+      el.tourCopy.textContent = step.copy;
+      el.tourNext.textContent = tourIndex >= tourSteps.length - 1 ? "Complete" : "Next";
+      window.setTimeout(() => placeTourCard(target), 140);
+    }
+
+    function openTour(force = false) {
+      if (!force && window.localStorage.getItem(TOUR_STORAGE_KEY) === "done") {
+        return;
+      }
+      tourIndex = 0;
+      el.tourOverlay.hidden = false;
+      el.tourCard.hidden = false;
+      document.body.classList.add("tour-open");
+      renderTourStep();
+    }
+
+    function nextTourStep() {
+      if (tourIndex >= tourSteps.length - 1) {
+        closeTour(true);
+        return;
+      }
+      tourIndex += 1;
+      renderTourStep();
+    }
+
     document.querySelectorAll("[data-example]").forEach((button) => {
       button.addEventListener("click", () => {
         state.example = button.dataset.example;
@@ -1979,6 +2046,15 @@ cx q[0],q[1];`
     el.download.addEventListener("click", downloadQasm);
     el.generateQasm.addEventListener("click", generateQasmIntoEditor);
     el.applyApiBase.addEventListener("click", applyApiBase);
+    el.tourButton?.addEventListener("click", () => openTour(true));
+    el.tourSkip.addEventListener("click", () => closeTour(true));
+    el.tourOverlay.addEventListener("click", () => closeTour(true));
+    el.tourNext.addEventListener("click", nextTourStep);
+    window.addEventListener("resize", () => {
+      if (!el.tourCard.hidden) {
+        renderTourStep();
+      }
+    });
     el.apiBaseInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         applyApiBase();

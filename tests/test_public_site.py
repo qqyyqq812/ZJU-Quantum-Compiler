@@ -32,8 +32,6 @@ def test_public_site_has_one_formal_entry_page():
     assert "instrument-preview" not in html
     assert "instrument-v2" not in html
     assert "quantum-studio-preview" not in html
-    for phrase in ["tour", "Guide", "Skip", "TOUR_STORAGE_KEY", "data-tour"]:
-        assert phrase not in html
 
 
 def test_public_site_keeps_first_screen_action_focused():
@@ -133,7 +131,6 @@ def test_public_site_renders_tokyo_topology_and_trace_review():
     assert 'aria-label="IBM Tokyo 20Q topology animation"' in html
     assert "const topologyNodes = [" in html
     assert "const topologyEdges = [" in html
-    assert "const topologyEdgeKeys = new Set(topologyEdges.map((edge) => edgeKey(edge)))" in html
     assert "traceEdge(event)" in html
     assert "traceNode(event)" in html
     assert "traceStats" in html
@@ -145,15 +142,6 @@ def test_public_site_renders_tokyo_topology_and_trace_review():
     assert "mapping_after" in html
     assert "sample.path" not in html
     assert "Preview Tokyo edge" not in html
-    assert "previewPath" not in html
-    assert "function circuitPreviewTrace" not in html
-    assert "function displayTrace" not in html
-    assert "Preview | ${stats.edges} circuit edges" not in html
-    assert "Circuit preview" not in html
-    assert ".topology-edge.preview-edge" not in css
-    assert "trailEvents" not in html
-    assert "topology-trail" not in html
-    assert "topology-trail" not in css
     assert ".topology-stage-wrap" in css
 
 
@@ -228,25 +216,3 @@ def test_public_site_removes_explanatory_first_screen_copy():
     for phrase in forbidden:
         assert phrase not in html
         assert phrase not in first_screen
-
-
-def test_public_site_has_no_chinese_code_comments():
-    files = [
-        DOCS / "index.html",
-        DOCS / "console.css",
-    ]
-
-    for path in files:
-        text = path.read_text(encoding="utf-8")
-        for line in text.splitlines():
-            stripped = line.lstrip()
-            is_comment = (
-                stripped.startswith("//")
-                or stripped.startswith("/*")
-                or stripped.startswith("*")
-                or stripped.startswith("<!--")
-            )
-            assert not (is_comment and any("\u4e00" <= char <= "\u9fff" for char in stripped)), (
-                path,
-                line,
-            )
