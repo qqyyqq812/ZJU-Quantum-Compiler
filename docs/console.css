@@ -420,21 +420,14 @@ body.is-compiling .topology-stage-wrap::after {
   opacity: 0.86;
   transition: stroke 0.16s ease, stroke-width 0.16s ease, opacity 0.16s ease;
 }
-.topology-edge.gate-edge, .topology-trail.gate-edge { stroke: var(--blue); }
-.topology-edge.swap-edge, .topology-trail.swap-edge { stroke: var(--orange); }
-.topology-edge.preview-edge {
-  stroke: var(--cyan);
-  stroke-width: 2.1;
-  stroke-dasharray: 5 6;
-  opacity: 0.9;
-}
+.topology-edge.gate-edge { stroke: var(--blue); }
+.topology-edge.swap-edge { stroke: var(--orange); }
 .topology-edge.active { stroke-width: 3.2; stroke-dasharray: 8 7; animation: route-dash 0.9s linear infinite; }
 .topology-runner-track { stroke-width: 4; opacity: 0.12; }
 .topology-runner-tail { fill: none; stroke: var(--blue); stroke-width: 2; opacity: 0.28; }
 .topology-runner-tail.swap-edge { stroke: var(--orange); }
 .topology-runner, .topology-packet { r: 4; fill: #fff; stroke: var(--blue); stroke-width: 2; }
 .topology-runner.swap-edge, .topology-packet.swap-edge { stroke: var(--orange); fill: #fff5e8; }
-.topology-trail { stroke-width: 3; opacity: var(--trail-opacity, 0.2); }
 .topology-node {
   fill: #fff;
   stroke: var(--blue);

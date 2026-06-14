@@ -133,6 +133,7 @@ def test_public_site_renders_tokyo_topology_and_trace_review():
     assert 'aria-label="IBM Tokyo 20Q topology animation"' in html
     assert "const topologyNodes = [" in html
     assert "const topologyEdges = [" in html
+    assert "const topologyEdgeKeys = new Set(topologyEdges.map((edge) => edgeKey(edge)))" in html
     assert "traceEdge(event)" in html
     assert "traceNode(event)" in html
     assert "traceStats" in html
@@ -142,11 +143,17 @@ def test_public_site_renders_tokyo_topology_and_trace_review():
     assert 'id="mapping-grid"' in html
     assert 'id="route-timeline"' in html
     assert "mapping_after" in html
-    assert "previewPath" in html
-    assert "function circuitPreviewTrace" in html
-    assert "function displayTrace" in html
-    assert "Preview | ${stats.edges} circuit edges" in html
-    assert ".topology-edge.preview-edge" in css
+    assert "sample.path" not in html
+    assert "Preview Tokyo edge" not in html
+    assert "previewPath" not in html
+    assert "function circuitPreviewTrace" not in html
+    assert "function displayTrace" not in html
+    assert "Preview | ${stats.edges} circuit edges" not in html
+    assert "Circuit preview" not in html
+    assert ".topology-edge.preview-edge" not in css
+    assert "trailEvents" not in html
+    assert "topology-trail" not in html
+    assert "topology-trail" not in css
     assert ".topology-stage-wrap" in css
 
 

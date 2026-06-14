@@ -293,8 +293,7 @@ cx q[4],q[2];
 cx q[3],q[2];
 cx q[2],q[1];
 cx q[1],q[0];
-// preset: qft5`,
-        previewPath: [[4, 9], [3, 8], [8, 13], [13, 18], [18, 19]]
+// preset: qft5`
       },
       ghz5: {
         name: "GHZ 5",
@@ -306,8 +305,7 @@ h q[0];
 cx q[0],q[1];
 cx q[1],q[2];
 cx q[2],q[3];
-cx q[3],q[4];`,
-        previewPath: [[0, 1], [1, 2], [2, 3], [3, 4]]
+cx q[3],q[4];`
       },
       qaoa5: {
         name: "QAOA 5",
@@ -320,8 +318,7 @@ sx q[1];
 cx q[0],q[1];
 rz(2.353304971691044) q[1];
 cx q[3],q[4];
-cx q[4],q[0];`,
-        previewPath: [[4, 9], [9, 14], [14, 19], [18, 19], [13, 18]]
+cx q[4],q[0];`
       },
       qft10: {
         name: "QFT 10",
@@ -336,8 +333,7 @@ cx q[9],q[7];
 cx q[8],q[7];
 cx q[7],q[6];
 cx q[6],q[5];
-// preset: qft10`,
-        previewPath: [[9, 14], [14, 19], [18, 19], [17, 18], [16, 17], [11, 16], [6, 11], [1, 6]]
+// preset: qft10`
       },
       qaoa10: {
         name: "QAOA 10",
@@ -350,8 +346,7 @@ sx q[1];
 cx q[0],q[1];
 cx q[1],q[2];
 cx q[5],q[6];
-cx q[8],q[9];`,
-        previewPath: [[0, 5], [5, 10], [10, 11], [11, 12], [12, 13], [13, 14], [14, 19]]
+cx q[8],q[9];`
       },
       ghz10: {
         name: "GHZ 10",
@@ -364,8 +359,7 @@ sx q[0];
 cx q[0],q[1];
 cx q[1],q[2];
 cx q[2],q[3];
-cx q[8],q[9];`,
-        previewPath: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 9], [9, 14], [14, 19]]
+cx q[8],q[9];`
       },
       vqe10: {
         name: "VQE 10",
@@ -378,8 +372,7 @@ sx q[0];
 cx q[0],q[1];
 cx q[1],q[2];
 cx q[6],q[7];
-cx q[8],q[9];`,
-        previewPath: [[5, 6], [6, 7], [7, 8], [8, 13], [13, 18], [17, 18], [16, 17]]
+cx q[8],q[9];`
       },
       custom: {
         name: "Custom",
@@ -388,8 +381,7 @@ cx q[8],q[9];`,
 include "qelib1.inc";
 qreg q[2];
 h q[0];
-cx q[0],q[1];`,
-        previewPath: [[0, 1], [1, 6], [6, 7]]
+cx q[0],q[1];`
       }
     };
 
@@ -432,16 +424,18 @@ cx q[0],q[1];`,
     ];
 
     const topologyEdges = [
-      [0, 1], [0, 5], [1, 2], [1, 6], [1, 7], [2, 3], [2, 6], [2, 7],
-      [3, 4], [3, 8], [3, 9], [4, 8], [4, 9], [5, 6], [5, 10], [5, 11],
-      [6, 7], [6, 10], [6, 11], [7, 8], [7, 12], [7, 13], [8, 9], [8, 12],
-      [8, 13], [9, 14], [10, 11], [10, 15], [11, 12], [11, 16], [11, 17],
-      [12, 13], [12, 16], [12, 17], [13, 14], [13, 18], [13, 19], [14, 18],
-      [14, 19], [15, 16], [16, 17], [17, 18], [18, 19]
+      [0, 1], [1, 2], [2, 3], [3, 4],
+      [5, 6], [6, 7], [7, 8], [8, 9],
+      [10, 11], [11, 12], [12, 13], [13, 14],
+      [15, 16], [16, 17], [17, 18], [18, 19],
+      [0, 5], [1, 6], [2, 7], [3, 8], [4, 9],
+      [5, 10], [6, 11], [7, 12], [8, 13], [9, 14],
+      [10, 15], [11, 16], [12, 17], [13, 18], [14, 19]
     ];
+    const topologyEdgeKeys = new Set(topologyEdges.map((edge) => edgeKey(edge)));
 
     const embeddedMappings = {
-      qft5: { "0": 3, "1": 8, "2": 2, "3": 9, "4": 4 },
+      qft5: { "0": 3, "1": 6, "2": 2, "3": 1, "4": 4 },
       ghz5: { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4 },
       qaoa5: { "0": 9, "1": 4, "2": 3, "3": 2, "4": 8 },
       qft10: { "0": 3, "1": 8, "2": 2, "3": 12, "4": 14, "5": 1, "6": 13, "7": 7, "8": 9, "9": 4 },
@@ -460,15 +454,53 @@ cx q[0],q[1];`,
       vqe10: { "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9 }
     };
 
+    const qft5NpqrTracePlan = [
+      ["gate", "cx", [3, 2], [1, 2]],
+      ["gate", "cx", [2, 0], [2, 3]],
+      ["swap", "swap", [0, 4], [3, 4]],
+      ["gate", "cx", [3, 1], [1, 6]],
+      ["gate", "cx", [3, 2], [1, 2]],
+      ["gate", "cx", [2, 0], [2, 3]],
+      ["gate", "cx", [0, 4], [3, 4]]
+    ];
+
+    const qft5SabreTracePlan = Array.from({ length: 34 }, (_, index) => {
+      const route = [[0, 1], [1, 2], [2, 3], [3, 4]][index % 4];
+      return [index % 5 === 2 ? "swap" : "gate", index % 5 === 2 ? "swap" : "cx", route, route];
+    });
+
+    const embeddedTracePlans = {
+      qft5: {
+        npqr: qft5NpqrTracePlan,
+        sabre: qft5SabreTracePlan
+      }
+    };
+
+    function traceFromPlan(plan, mapping) {
+      return plan.map(([kind, op, logical, physical], index) => ({
+        kind,
+        op,
+        logical_qubits: logical,
+        physical_qubits: physical,
+        insertion_index: index,
+        compiled_index: index,
+        mapping_after: { ...mapping }
+      }));
+    }
+
     function makeEmbeddedTrace(example, backend) {
       const npqr = backend === "npqr";
       const mapping = npqr ? embeddedMappings[example] : identityMappings[example];
+      const plan = embeddedTracePlans[example]?.[backend];
+      if (plan) {
+        return traceFromPlan(plan, mapping);
+      }
       const events = example.includes("10")
         ? [[0, 1], [1, 2], [2, 3], [8, 9]]
         : [[0, 1], [1, 2], [2, 3], [3, 4]];
       const physicalPairs = events
         .map(([a, b]) => [Number(mapping[String(a)]), Number(mapping[String(b)])])
-        .filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b));
+        .filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b) && topologyEdgeKeys.has(edgeKey([a, b])));
       const trace = physicalPairs.slice(0, 6).map(([a, b], index) => ({
         kind: "gate",
         op: "cx",
@@ -887,33 +919,6 @@ cx q[0],q[1];`,
       return normalizeTrace(state.results[view]?.route_trace);
     }
 
-    function circuitPreviewTrace() {
-      const sample = selectedExample();
-      const mapping = embeddedMappings[state.example] || identityMappings[state.example] || {};
-      return (sample.previewPath || []).map(([a, b], index) => ({
-        kind: "gate",
-        op: index === 0 ? "input" : "cx",
-        logical_qubits: previewLogicalPair(index, mapping),
-        physical_qubits: [a, b],
-        insertion_index: index,
-        compiled_index: index,
-        mapping_after: { ...mapping },
-        preview: true
-      }));
-    }
-
-    function previewLogicalPair(index, mapping) {
-      const logical = Object.keys(mapping).map(Number).sort((a, b) => a - b);
-      if (logical.length >= 2) {
-        return [logical[index % logical.length], logical[(index + 1) % logical.length]];
-      }
-      return [];
-    }
-
-    function displayTrace() {
-      return state.trace.length ? state.trace : circuitPreviewTrace();
-    }
-
     function resultMapping(view = state.activeRouteView) {
       const result = state.results[view] || {};
       const mapping = result.initial_mapping || {};
@@ -997,9 +1002,8 @@ cx q[0],q[1];`,
       el.routeStatus.textContent = names[state.step] || "Idle";
 
       const event = currentTraceEvent();
-      const displayEvents = displayTrace();
-      const stats = traceStats(displayEvents);
-      const total = state.trace.length ? stats.total : 0;
+      const stats = traceStats();
+      const total = stats.total;
       const current = state.trace.length ? state.traceIndex + 1 : 0;
       const ratio = total ? Math.min(100, Math.max(0, (current / total) * 100)) : 0;
       el.traceOp.textContent = describeTraceEvent(event);
@@ -1007,36 +1011,29 @@ cx q[0],q[1];`,
       el.traceBar.style.width = `${ratio}%`;
       el.routeCount.textContent = total
         ? `${state.activeRouteView.toUpperCase()} | ${total} events | ${stats.edges} edges | ${stats.nodes} nodes`
-        : state.visualPhase === "compiling" ? "Compiling" : `Preview | ${stats.edges} circuit edges`;
+        : state.visualPhase === "compiling" ? "Compiling" : "0 events";
       setPressed("[data-route-view]", "routeView", state.activeRouteView);
     }
 
     function renderTopology() {
       const svgNS = "http://www.w3.org/2000/svg";
       const nodes = new Map(topologyNodes.map(([id, x, y]) => [id, { x, y }]));
-      const previewMode = !state.trace.length;
-      const visibleTrace = previewMode ? displayTrace() : state.trace;
-      const visibleIndex = previewMode
-        ? Math.min(visibleTrace.length - 1, Math.max(0, state.step))
-        : state.traceIndex;
-      const traceEvents = visibleTrace.slice(0, visibleIndex + 1).filter(traceEdge);
-      const event = previewMode ? visibleTrace[visibleIndex] || null : currentTraceEvent();
+      const event = currentTraceEvent();
       const eventEdge = traceEdge(event);
       const active = eventEdge;
-      const activeKey = active ? edgeKey(active) : "";
+      const activeIsVisible = active ? topologyEdgeKeys.has(edgeKey(active)) : false;
+      const activeKey = activeIsVisible ? edgeKey(active) : "";
       const activeKind = event?.kind || "idle";
       const eventMapping = event?.mapping_after || event?.mapping || resultMapping();
       const activeNode = traceNode(event);
       const activeNodes = new Set(event?.physical_qubits?.map((qubit) => Number(qubit)) || []);
       const mapped = new Set(Object.values(eventMapping).map((value) => Number(value)));
-      const trailEvents = traceEvents.slice(-8);
       const logicalByPhysical = new Map(
         Object.entries(eventMapping).map(([logical, physical]) => [Number(physical), Number(logical)])
       );
-      const previewKeys = new Set(displayTrace().map(traceEdge).filter(Boolean).map(edgeKey));
 
       el.svg.textContent = "";
-      el.svg.parentElement.dataset.phase = previewMode ? "preview" : state.visualPhase;
+      el.svg.parentElement.dataset.phase = state.visualPhase;
       const defs = document.createElementNS(svgNS, "defs");
       ["gate", "swap"].forEach((kind) => {
         const marker = document.createElementNS(svgNS, "marker");
@@ -1073,9 +1070,6 @@ cx q[0],q[1];`,
         line.setAttribute("x2", to.x);
         line.setAttribute("y2", to.y);
         line.classList.add("topology-edge");
-        if (previewMode && previewKeys.has(edgeKey([a, b]))) {
-          line.classList.add("preview-edge");
-        }
         if (edgeKey([a, b]) === activeKey) {
           const activeBeam = defs.querySelector(activeKind === "gate" ? "#gate-beam" : "#swap-beam");
           activeBeam?.setAttribute("x1", from.x);
@@ -1088,26 +1082,12 @@ cx q[0],q[1];`,
             line.setAttribute("marker-start", "url(#swap-arrow)");
           }
         }
-        line.addEventListener("mousemove", (event) => showTooltip(event, `${previewMode ? "Circuit preview" : state.activeRouteView.toUpperCase()} edge p${a}-p${b}`));
+        line.addEventListener("mousemove", (event) => showTooltip(event, `${state.activeRouteView.toUpperCase()} 耦合边 p${a}-p${b}`));
         line.addEventListener("mouseleave", hideTooltip);
         el.svg.appendChild(line);
       });
 
-      trailEvents.forEach((trailEvent, index) => {
-        const edge = traceEdge(trailEvent);
-        const from = nodes.get(edge[0]);
-        const to = nodes.get(edge[1]);
-        const trail = document.createElementNS(svgNS, "line");
-        trail.setAttribute("x1", from.x);
-        trail.setAttribute("y1", from.y);
-        trail.setAttribute("x2", to.x);
-        trail.setAttribute("y2", to.y);
-        trail.style.setProperty("--trail-opacity", String(0.08 + ((index + 1) / trailEvents.length) * 0.28));
-        trail.classList.add("topology-trail", trailEvent.kind === "swap" ? "swap-edge" : "gate-edge");
-        el.svg.appendChild(trail);
-      });
-
-      if (active) {
+      if (active && activeIsVisible) {
         const from = nodes.get(active[0]);
         const to = nodes.get(active[1]);
         const runnerKind = activeKind === "gate" ? "gate-edge" : "swap-edge";
@@ -1214,14 +1194,16 @@ cx q[0],q[1];`,
         group.addEventListener("mouseleave", hideTooltip);
         el.svg.appendChild(group);
       });
-      renderRouteInspector(event, visibleTrace, visibleIndex, previewMode);
+      renderRouteInspector();
     }
 
 
-    function renderRouteInspector(event = currentTraceEvent(), trace = state.trace, index = state.traceIndex, previewMode = false) {
-      const view = previewMode ? "Preview" : state.activeRouteView.toUpperCase();
+    function renderRouteInspector() {
+      const trace = state.trace;
+      const event = currentTraceEvent();
+      const view = state.activeRouteView.toUpperCase();
       el.eventTitle.textContent = event ? `${view} event` : "No route event";
-      el.eventIndex.textContent = trace.length ? `${index + 1}/${trace.length}` : "--";
+      el.eventIndex.textContent = trace.length ? `${state.traceIndex + 1}/${trace.length}` : "--";
       el.eventOp.textContent = event?.op || "--";
       el.eventKind.textContent = displayEventKind(event?.kind);
       el.eventLogical.textContent = formatQubits(event?.logical_qubits, "q");
@@ -1229,7 +1211,7 @@ cx q[0],q[1];`,
       el.eventInsertion.textContent = `g${formatOptional(event?.insertion_index ?? event?.gate_index)}`;
       el.eventCompiled.textContent = formatOptional(event?.compiled_index);
       renderMapping(event);
-      renderTimeline(trace, index, previewMode);
+      renderTimeline();
     }
 
 
@@ -1257,9 +1239,6 @@ cx q[0],q[1];`,
     function timelineText(event) {
       const edge = formatQubits(event.physical_qubits, "p");
       const logical = formatQubits(event.logical_qubits, "q");
-      if (event.preview) {
-        return `${event.op || "cx"} ${logical} -> ${edge}`;
-      }
       return event.kind === "swap"
         ? `SWAP ${edge} (${logical})`
         : `${event.op || "gate"} ${logical} -> ${edge}`;
@@ -1278,17 +1257,16 @@ cx q[0],q[1];`,
       return kind || "--";
     }
 
-    function renderTimeline(trace = state.trace, activeIndex = state.traceIndex, previewMode = false) {
+    function renderTimeline() {
+      const trace = state.trace;
       const swapCount = trace.filter((event) => event.kind === "swap").length;
       const gateCount = trace.filter((event) => event.kind === "gate").length;
-      el.timelineSummary.textContent = trace.length
-        ? previewMode ? `${gateCount} circuit edges` : `${gateCount} gates | ${swapCount} SWAP`
-        : "Pending";
+      el.timelineSummary.textContent = trace.length ? `${gateCount} gates | ${swapCount} SWAP` : "Pending";
       el.routeTimeline.textContent = "";
       if (!trace.length) {
         const empty = document.createElement("div");
         empty.className = "timeline-empty";
-        empty.textContent = "Select a circuit to preview topology.";
+        empty.textContent = "Run to load route events.";
         el.routeTimeline.appendChild(empty);
         return;
       }
@@ -1297,7 +1275,7 @@ cx q[0],q[1];`,
         row.type = "button";
         row.className = "timeline-row";
         row.dataset.kind = event.kind;
-        row.setAttribute("aria-current", String(index === activeIndex));
+        row.setAttribute("aria-current", String(index === state.traceIndex));
         row.innerHTML = [
           `<span>${index + 1}</span>`,
           `<span class="timeline-kind">${displayEventKind(event.kind)}</span>`,
@@ -1305,12 +1283,6 @@ cx q[0],q[1];`,
           `<span class="timeline-insert">g${formatOptional(event.insertion_index)}</span>`
         ].join("");
         row.addEventListener("click", () => {
-          if (previewMode) {
-            state.step = index;
-            renderFlow();
-            renderTopology();
-            return;
-          }
           state.traceIndex = index;
           state.step = index >= trace.length - 1 ? 3 : 2;
           pauseTraceReplay();
