@@ -2563,83 +2563,83 @@
 
     body.instrument-v2 .topology-stage-wrap {
       aspect-ratio: 16 / 10.4;
-      border: 1px solid #10253a;
+      border: 1px solid #c4d3dd;
       background:
-        linear-gradient(90deg, rgba(22, 166, 201, 0.16) 1px, transparent 1px),
-        linear-gradient(180deg, rgba(22, 166, 201, 0.1) 1px, transparent 1px),
-        radial-gradient(circle at 20% 16%, rgba(22, 166, 201, 0.16), transparent 23%),
-        radial-gradient(circle at 88% 78%, rgba(232, 137, 35, 0.12), transparent 26%),
-        linear-gradient(135deg, var(--chip-ink) 0%, var(--chip-panel) 52%, #07101c 100%);
+        linear-gradient(90deg, rgba(43, 92, 120, 0.11) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(43, 92, 120, 0.08) 1px, transparent 1px),
+        radial-gradient(circle at 18% 14%, rgba(43, 166, 201, 0.12), transparent 24%),
+        radial-gradient(circle at 86% 78%, rgba(232, 137, 35, 0.1), transparent 28%),
+        linear-gradient(180deg, #fbfdff 0%, #f0f5f8 58%, #e6eef3 100%);
       background-size: 32px 32px, 32px 32px, auto, auto, auto;
       border-radius: 2px;
       box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-        inset 0 0 0 8px rgba(3, 9, 18, 0.18),
-        inset 0 0 42px rgba(22, 166, 201, 0.07),
-        0 16px 36px rgba(10, 22, 36, 0.2);
+        inset 0 0 0 1px rgba(255, 255, 255, 0.9),
+        inset 0 0 0 8px rgba(238, 246, 250, 0.42),
+        inset 0 0 34px rgba(56, 109, 135, 0.08),
+        0 14px 28px rgba(50, 74, 96, 0.14);
     }
 
     body.instrument-v2 .topology-stage-wrap .chip-scale {
       position: absolute;
       inset: 18px;
       pointer-events: none;
-      opacity: 0.52;
+      opacity: 0.42;
       background:
-        linear-gradient(90deg, rgba(22, 166, 201, 0.42) 0 10px, transparent 10px 100%) left top / 48px 1px repeat-x,
-        linear-gradient(90deg, rgba(22, 166, 201, 0.42) 0 10px, transparent 10px 100%) left bottom / 48px 1px repeat-x,
-        linear-gradient(180deg, rgba(22, 166, 201, 0.42) 0 10px, transparent 10px 100%) left top / 1px 48px repeat-y,
-        linear-gradient(180deg, rgba(22, 166, 201, 0.42) 0 10px, transparent 10px 100%) right top / 1px 48px repeat-y;
+        linear-gradient(90deg, rgba(55, 120, 150, 0.36) 0 10px, transparent 10px 100%) left top / 48px 1px repeat-x,
+        linear-gradient(90deg, rgba(55, 120, 150, 0.36) 0 10px, transparent 10px 100%) left bottom / 48px 1px repeat-x,
+        linear-gradient(180deg, rgba(55, 120, 150, 0.36) 0 10px, transparent 10px 100%) left top / 1px 48px repeat-y,
+        linear-gradient(180deg, rgba(55, 120, 150, 0.36) 0 10px, transparent 10px 100%) right top / 1px 48px repeat-y;
       background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
     }
 
     body.instrument-v2 .topology-stage-wrap::before {
       inset: 16px;
-      border: 1px solid rgba(22, 166, 201, 0.18);
+      border: 1px solid rgba(75, 112, 137, 0.18);
       border-radius: 0;
       background:
-        linear-gradient(90deg, rgba(22, 166, 201, 0.14) 0 1px, transparent 1px 100%),
-        linear-gradient(180deg, rgba(124, 92, 255, 0.1) 0 1px, transparent 1px 100%);
+        linear-gradient(90deg, rgba(50, 111, 145, 0.09) 0 1px, transparent 1px 100%),
+        linear-gradient(180deg, rgba(50, 111, 145, 0.07) 0 1px, transparent 1px 100%);
       background-size: 48px 48px;
-      opacity: 0.46;
+      opacity: 0.56;
     }
 
     body.instrument-v2 .topology-stage-wrap::after {
       background:
-        linear-gradient(90deg, transparent 0%, rgba(22, 166, 201, 0.2) 48%, rgba(255, 255, 255, 0.08) 51%, transparent 66%),
-        linear-gradient(180deg, transparent 0%, rgba(124, 92, 255, 0.08), transparent 100%);
-      opacity: 0.34;
+        linear-gradient(90deg, transparent 0%, rgba(22, 166, 201, 0.12) 48%, rgba(255, 255, 255, 0.44) 51%, transparent 66%),
+        linear-gradient(180deg, transparent 0%, rgba(22, 166, 201, 0.06), transparent 100%);
+      opacity: 0.22;
       animation: chip-scan 5.2s ease-in-out infinite;
     }
 
     body.instrument-v2.is-compiling .topology-stage-wrap::after {
-      opacity: 0.86;
+      opacity: 0.5;
       animation-duration: 2.1s;
     }
 
     body.instrument-v2.is-replaying .topology-stage-wrap {
-      border-color: rgba(32, 191, 233, 0.62);
+      border-color: rgba(23, 147, 181, 0.58);
       box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.07),
-        inset 0 0 52px rgba(20, 169, 214, 0.12),
-        0 16px 40px rgba(10, 22, 36, 0.24),
-        0 0 24px rgba(20, 169, 214, 0.12);
+        inset 0 0 0 1px rgba(255, 255, 255, 0.92),
+        inset 0 0 46px rgba(21, 139, 170, 0.11),
+        0 16px 32px rgba(50, 74, 96, 0.18),
+        0 0 0 3px rgba(20, 169, 214, 0.08);
       animation: replay-frame-pulse 1.8s ease-in-out infinite alternate;
     }
 
     body.instrument-v2 .topology-edge {
-      stroke: var(--chip-line);
-      stroke-width: 1.25;
-      opacity: 0.82;
+      stroke: #9fb2bf;
+      stroke-width: 1.35;
+      opacity: 0.78;
       transition: stroke 0.18s ease, stroke-width 0.18s ease, opacity 0.18s ease;
     }
 
     body.instrument-v2 .topology-edge.gate-edge {
-      stroke: #20bfe9;
+      stroke: #1296b8;
       opacity: 0.95;
     }
 
     body.instrument-v2 .topology-edge.swap-edge {
-      stroke: #f59b2e;
+      stroke: #e88923;
       opacity: 1;
     }
 
@@ -2647,12 +2647,12 @@
       stroke-width: 4.2;
       stroke-dasharray: 13 8;
       stroke-linecap: round;
-      filter: drop-shadow(0 0 7px rgba(245, 155, 46, 0.58));
+      filter: drop-shadow(0 0 5px rgba(232, 137, 35, 0.32));
       animation: route-pulse 0.72s linear infinite;
     }
 
     body.instrument-v2 .topology-edge.active.gate-edge {
-      filter: drop-shadow(0 0 7px rgba(32, 191, 233, 0.52));
+      filter: drop-shadow(0 0 5px rgba(18, 150, 184, 0.28));
     }
 
     body.instrument-v2 .topology-runner-track {
@@ -2660,7 +2660,7 @@
       stroke-linecap: round;
       opacity: 0.22;
       pointer-events: none;
-      filter: drop-shadow(0 0 10px rgba(32, 191, 233, 0.42));
+      filter: drop-shadow(0 0 7px rgba(18, 150, 184, 0.22));
     }
 
     body.instrument-v2 .topology-runner-track.gate-edge {
@@ -2669,7 +2669,7 @@
 
     body.instrument-v2 .topology-runner-track.swap-edge {
       opacity: 0.38;
-      filter: drop-shadow(0 0 10px rgba(245, 155, 46, 0.5));
+      filter: drop-shadow(0 0 7px rgba(232, 137, 35, 0.28));
     }
 
     body.instrument-v2 .topology-trail {
@@ -2677,44 +2677,44 @@
       stroke-linecap: round;
       pointer-events: none;
       opacity: var(--trail-opacity, 0.2);
-      filter: drop-shadow(0 0 6px rgba(32, 191, 233, 0.3));
+      filter: drop-shadow(0 0 5px rgba(18, 150, 184, 0.2));
     }
 
     body.instrument-v2 .topology-trail.gate-edge {
-      stroke: #20bfe9;
+      stroke: #1296b8;
     }
 
     body.instrument-v2 .topology-trail.swap-edge {
-      stroke: #f59b2e;
-      filter: drop-shadow(0 0 6px rgba(245, 155, 46, 0.36));
+      stroke: #e88923;
+      filter: drop-shadow(0 0 5px rgba(232, 137, 35, 0.24));
     }
 
     body.instrument-v2 .topology-runner {
       r: 5.5;
-      fill: #eaffff;
-      stroke: rgba(255, 255, 255, 0.82);
+      fill: #128fac;
+      stroke: #ffffff;
       stroke-width: 1.4;
       pointer-events: none;
-      filter: drop-shadow(0 0 8px rgba(32, 191, 233, 0.8));
+      filter: drop-shadow(0 2px 5px rgba(18, 90, 116, 0.34));
       animation: runner-pulse 0.72s ease-in-out infinite alternate;
     }
 
     body.instrument-v2 .topology-runner.swap-edge {
-      fill: #fff2dc;
-      filter: drop-shadow(0 0 8px rgba(245, 155, 46, 0.86));
+      fill: #e88923;
+      filter: drop-shadow(0 2px 5px rgba(160, 86, 18, 0.34));
     }
 
     body.instrument-v2 .topology-packet {
       r: 3.8;
-      fill: #c9f8ff;
+      fill: #1296b8;
       opacity: 0.9;
       pointer-events: none;
-      filter: drop-shadow(0 0 7px rgba(32, 191, 233, 0.72));
+      filter: drop-shadow(0 2px 4px rgba(18, 90, 116, 0.26));
     }
 
     body.instrument-v2 .topology-packet.swap-edge {
-      fill: #ffd08a;
-      filter: drop-shadow(0 0 7px rgba(245, 155, 46, 0.74));
+      fill: #e88923;
+      filter: drop-shadow(0 2px 4px rgba(160, 86, 18, 0.28));
     }
 
     body.instrument-v2 .topology-packet.reverse {
@@ -2731,33 +2731,33 @@
     }
 
     body.instrument-v2 .topology-runner-tail.gate-edge {
-      stroke: #9af3ff;
-      filter: drop-shadow(0 0 8px rgba(32, 191, 233, 0.58));
+      stroke: #48b7cf;
+      filter: drop-shadow(0 2px 4px rgba(18, 90, 116, 0.22));
     }
 
     body.instrument-v2 .topology-runner-tail.swap-edge {
-      stroke: #ffd087;
-      filter: drop-shadow(0 0 8px rgba(245, 155, 46, 0.66));
+      stroke: #eaa447;
+      filter: drop-shadow(0 2px 4px rgba(160, 86, 18, 0.24));
     }
 
     body.instrument-v2 .topology-node {
-      fill: #081726;
-      stroke: #44bedb;
+      fill: #ffffff;
+      stroke: #2f9ab5;
       stroke-width: 1.65;
       transition: fill 0.18s ease, stroke 0.18s ease, stroke-width 0.18s ease, filter 0.18s ease;
     }
 
     body.instrument-v2 .topology-node.mapped {
-      fill: #102f45;
-      stroke: #53d8f5;
-      filter: drop-shadow(0 0 4px rgba(20, 169, 214, 0.26));
+      fill: #eaf7fb;
+      stroke: #188eac;
+      filter: drop-shadow(0 2px 4px rgba(61, 99, 121, 0.18));
     }
 
     body.instrument-v2 .topology-node.active {
-      fill: #102132;
-      stroke: #f59b2e;
+      fill: #fff3df;
+      stroke: #e88923;
       stroke-width: 2.8;
-      filter: drop-shadow(0 0 6px rgba(245, 155, 46, 0.42));
+      filter: drop-shadow(0 2px 5px rgba(160, 86, 18, 0.22));
     }
 
     body.instrument-v2 .topology-node.pair-active {
@@ -2765,15 +2765,15 @@
     }
 
     body.instrument-v2 .topology-node.pair-active.gate-active {
-      fill: #102c3a;
-      stroke: #20bfe9;
-      filter: drop-shadow(0 0 7px rgba(32, 191, 233, 0.46));
+      fill: #e6f7fb;
+      stroke: #1296b8;
+      filter: drop-shadow(0 2px 5px rgba(18, 90, 116, 0.24));
     }
 
     body.instrument-v2 .topology-node.pair-active.swap-active {
-      fill: #2a2214;
-      stroke: #f59b2e;
-      filter: drop-shadow(0 0 7px rgba(245, 155, 46, 0.46));
+      fill: #fff0d9;
+      stroke: #e88923;
+      filter: drop-shadow(0 2px 5px rgba(160, 86, 18, 0.24));
     }
 
     body.instrument-v2 .topology-node-ring {
@@ -2785,44 +2785,51 @@
     }
 
     body.instrument-v2 .topology-node-ring.gate-active {
-      stroke: #20bfe9;
-      filter: drop-shadow(0 0 8px rgba(32, 191, 233, 0.48));
+      stroke: #1296b8;
+      filter: drop-shadow(0 2px 5px rgba(18, 90, 116, 0.22));
     }
 
     body.instrument-v2 .topology-node-ring.swap-active {
-      stroke: #f59b2e;
-      filter: drop-shadow(0 0 8px rgba(245, 155, 46, 0.46));
+      stroke: #e88923;
+      filter: drop-shadow(0 2px 5px rgba(160, 86, 18, 0.22));
     }
 
     body.instrument-v2 .topology-node-ring.single-active {
-      stroke: #9b82ff;
-      filter: drop-shadow(0 0 7px rgba(155, 130, 255, 0.42));
+      stroke: #566fb4;
+      filter: drop-shadow(0 2px 5px rgba(58, 82, 142, 0.2));
     }
 
     body.instrument-v2 .topology-node.single-active {
-      fill: #171538;
-      stroke: #9b82ff;
+      fill: #eef2ff;
+      stroke: #566fb4;
       stroke-width: 2.8;
-      filter: drop-shadow(0 0 6px rgba(155, 130, 255, 0.4));
+      filter: drop-shadow(0 2px 5px rgba(58, 82, 142, 0.2));
       animation: node-pulse 0.82s ease-in-out infinite alternate;
     }
 
     body.instrument-v2 g:hover .topology-node {
-      fill: #132f55;
-      stroke: #9b82ff;
+      fill: #eef6fa;
+      stroke: #566fb4;
       stroke-width: 3;
     }
 
     body.instrument-v2 .node-label {
-      fill: #e9f7ff;
+      fill: #1d3342;
       font-family: var(--mono);
       font-size: 11px;
       font-weight: 700;
     }
 
     body.instrument-v2 .node-map-label {
-      fill: #a7eaff;
+      fill: #4d6a7a;
       font-size: 9px;
+    }
+
+    body.instrument-v2 .topology-tooltip {
+      border: 1px solid rgba(47, 104, 135, 0.22);
+      background: rgba(255, 255, 255, 0.94);
+      color: #1d3342;
+      box-shadow: 0 8px 20px rgba(55, 76, 96, 0.16);
     }
 
     @keyframes runner-pulse {
