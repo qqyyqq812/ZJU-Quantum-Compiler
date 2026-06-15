@@ -141,6 +141,30 @@ def test_public_site_exposes_real_inputs_outputs_and_fixed_baseline():
     assert "第一行需要 OPENQASM 2.0;。" in html
 
 
+def test_public_site_uses_truthful_compile_replay_state_machine():
+    html = _html()
+
+    assert "el.qasmDetails.open = Boolean(enabled);" in html
+    assert "编译完成后自动显示 NPQR/SABRE 的编译后 QASM" in html
+    assert 'compilePhase: "idle"' in html
+    assert 'swapPhase: "none"' in html
+    assert "state.step = (state.step + 1) % 4" not in html
+    assert 'state.compilePhase = "requesting";' in html
+    assert 'state.compilePhase = "mapping";' in html
+    assert 'state.compilePhase = "routing";' in html
+    assert 'state.compilePhase = "output";' in html
+    assert "function traceAdvanceDelay(event)" in html
+    assert "return state.trace.length > 80 ? 12 : 22;" in html
+    assert "return 700;" in html
+    assert "mapping-focus" in html
+    assert 'setRunVisual("replaying");' in html
+    assert 'state.swapPhase = "before";' not in html
+    assert 'state.swapPhase = nextEvent?.kind === "swap" ? "before" : "none";' in html
+    assert "event?.mapping_before" in html
+    assert "node-map-label is-swapping" not in html
+    assert "mapText.classList.add(\"is-swapping\")" in html
+
+
 def test_public_site_renders_tokyo_topology_and_trace_review():
     html = _html()
 
