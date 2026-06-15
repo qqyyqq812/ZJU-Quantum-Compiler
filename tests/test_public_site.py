@@ -83,9 +83,16 @@ def test_public_site_runs_remote_compile_without_embedded_fallback():
     assert "function embeddedCompileResult" not in html
     assert "function compileWithBestAvailableBackend" not in html
     assert "makeEmbeddedTrace" not in html
-    assert html.count('callApi("/api/compile"') == 2
-    assert 'body: JSON.stringify(compilePayload("npqr"))' in html
-    assert 'body: JSON.stringify(compilePayload("sabre"))' in html
+    assert html.count('callApi("/api/compile"') == 1
+    assert "function compileBackend(backend)" in html
+    assert "compileBackend(\"npqr\")" in html
+    assert "compileBackend(\"sabre\")" in html
+    assert "function isLargeTopologyRun()" in html
+    assert "function largeTopologyNpqrBudgetError()" in html
+    assert "大拓扑 NPQR 实时编译超过公共 API 时间预算。" in html
+    assert "实时预算外" in html
+    assert "大拓扑实时编译中：SABRE 优先。" in html
+    assert "selected && selected.capacity > 20" in html
     assert "return { qasm: el.qasm.value, ...base };" in html
     assert "{ example: state.example, ...base }" not in html
     assert "Promise.allSettled" in html

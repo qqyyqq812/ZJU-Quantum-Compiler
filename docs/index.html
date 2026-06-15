@@ -5855,6 +5855,26 @@ cx q[0],q[1];`
       return { qasm: el.qasm.value, ...base };
     }
 
+    function compileBackend(backend) {
+      return callApi("/api/compile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(compilePayload(backend))
+      });
+    }
+
+    function isLargeTopologyRun() {
+      const selected = setActiveTopologyForQubits(parseQasmQubits(el.qasm.value));
+      return Boolean(selected && selected.capacity > 20);
+    }
+
+    function largeTopologyNpqrBudgetError() {
+      const error = new Error("大拓扑 NPQR 实时编译超过公共 API 时间预算。");
+      error.display = "实时预算外";
+      error.statusLabel = "未运行";
+      return error;
+    }
+
     function validate() {
       const result = localQasmValidation();
       renderValidation(result);
@@ -5970,6 +5990,9 @@ cx q[0],q[1];`
       if (!error) {
         return "";
       }
+      if (error.display) {
+        return error.display;
+      }
       if (isTimeoutError(error)) {
         return "超时";
       }
@@ -5977,7 +6000,7 @@ cx q[0],q[1];`
     }
 
     function setResultMetrics(prefix, result, error = null) {
-      const status = result?.status || (error ? "错误" : "就绪");
+      const status = result?.status || error?.statusLabel || (error ? "错误" : "就绪");
       el[`${prefix}Status`].textContent = displayStatus(status);
       el[`${prefix}Swaps`].textContent = result?.swaps ?? "--";
       el[`${prefix}Depth`].textContent = result?.depth ?? "--";
@@ -6145,13 +6168,14 @@ cx q[0],q[1];`
       state.results = { npqr: null, sabre: null };
       state.activeQasmView = "npqr";
       state.activeRouteView = "npqr";
+      const largeTopologyRun = isLargeTopologyRun();
       setRunVisual("running");
       setCompiledState("busy", "生成中");
-      setResultMetrics("npqr", { status: "编译中" });
+      setResultMetrics("npqr", largeTopologyRun ? null : { status: "编译中" }, largeTopologyRun ? largeTopologyNpqrBudgetError() : null);
       setResultMetrics("sabre", { status: "编译中" });
       updateDelta(null, null);
       el.message.classList.remove("error");
-      el.message.textContent = "编译中";
+      el.message.textContent = largeTopologyRun ? "大拓扑实时编译中：SABRE 优先。" : "编译中";
       el.compiled.textContent = "// 等待编译结果";
       renderFlow();
       renderTopology();
@@ -6159,18 +6183,18 @@ cx q[0],q[1];`
 
       let shouldReplay = false;
       try {
-        const [npqrSettled, sabreSettled] = await Promise.allSettled([
-          callApi("/api/compile", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(compilePayload("npqr"))
-          }),
-          callApi("/api/compile", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(compilePayload("sabre"))
-          })
-        ]);
+        const [npqrSettled, sabreSettled] = largeTopologyRun
+          ? [
+              { status: "rejected", reason: largeTopologyNpqrBudgetError() },
+              await compileBackend("sabre").then(
+                (value) => ({ status: "fulfilled", value }),
+                (reason) => ({ status: "rejected", reason })
+              )
+            ]
+          : await Promise.allSettled([
+              compileBackend("npqr"),
+              compileBackend("sabre")
+            ]);
         if (runId !== state.runId) {
           return;
         }
