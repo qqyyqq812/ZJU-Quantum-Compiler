@@ -34,7 +34,8 @@ def test_public_site_has_one_formal_entry_page():
     assert "量子编译实验台" in html
     assert "Lab Instrument Playground V2" in html
     assert "Quantum Studio" not in html
-    assert "grid-template-columns: 272px minmax(520px, 1fr) 328px" in html
+    assert "grid-template-columns: 286px minmax(520px, 1fr) 328px" in html
+    assert "height: calc(100vh - 100px)" in html
     assert 'grid-template-areas: "data topology output";' in html
     assert '"inspector inspector' not in html
 
@@ -45,6 +46,11 @@ def test_public_site_keeps_first_screen_action_focused():
     for element_id in ["run-button", "step-button", "reset-button", "example-select", "backend-status"]:
         assert f'id="{element_id}"' in first_screen
     assert ">运行</span>" in first_screen
+    assert 'data-input-group="small"' in first_screen
+    assert 'data-input-group="large"' in first_screen
+    assert 'data-input-group="custom"' in first_screen
+    assert ">10/20</button>" in first_screen
+    assert ">35/50</button>" in first_screen
     assert 'id="tour-button"' in first_screen
     assert 'id="validation-bar"' in first_screen
     assert "等待校验" in first_screen
@@ -120,6 +126,10 @@ def test_public_site_runs_remote_compile_without_embedded_fallback():
         assert f'data-example="{example}"' in html
         assert f'<option value="{example}"' in html
 
+    assert 'data-example-group="small"' in html
+    assert 'data-example-group="large"' in html
+    assert "const exampleGroups = {" in html
+    assert "function syncExampleGroups()" in html
     assert 'topology: "tokyo"' not in html
     assert "topology: state.activeTopology.id" in html
     assert "topology: selected?.id || state.activeTopology.id" in html
@@ -234,6 +244,8 @@ def test_public_site_renders_dynamic_topology_and_trace_review():
     assert "renderSourceReplay" in html
     assert "buildSourceReplayRows" in html
     assert "sourceGateLookup" in html
+    assert 'event?.gate_index ?? event?.insertion_index' in html
+    assert "event.next_gate_index ?? event.blocked_gate_index ?? event.insertion_index" in html
     assert 'id="trace-op"' in html
     assert 'id="route-view-npqr"' in html
     assert 'id="route-view-sabre"' in html

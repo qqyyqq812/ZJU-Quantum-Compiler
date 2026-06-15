@@ -2147,6 +2147,8 @@
       font-family: var(--sans);
       font-size: 13px;
       line-height: 1.35;
+      min-height: 100vh;
+      overflow: hidden;
     }
 
     body.instrument-v2::before,
@@ -2157,6 +2159,11 @@
     body.instrument-v2 .page {
       width: min(100%, 1360px);
       padding: 0 14px;
+    }
+
+    body.instrument-v2 main.page {
+      padding-top: 8px;
+      padding-bottom: 8px;
     }
 
     body.instrument-v2 header {
@@ -2234,7 +2241,7 @@
     }
 
     body.instrument-v2 .control-row {
-      min-height: 48px;
+      min-height: 44px;
       gap: 18px;
       overflow: visible;
     }
@@ -2362,9 +2369,11 @@
 
     body.instrument-v2 #main-part {
       display: grid;
-      grid-template-columns: 272px minmax(520px, 1fr) 328px;
+      grid-template-columns: 286px minmax(520px, 1fr) 328px;
       grid-template-areas: "data topology output";
-      min-height: calc(100vh - 76px);
+      height: calc(100vh - 100px);
+      min-height: 680px;
+      max-height: 924px;
       background: var(--lab-paper);
       border: 1px solid var(--lab-line);
       border-top: 2px solid var(--lab-orange);
@@ -2380,6 +2389,10 @@
     }
 
     body.instrument-v2 .column {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
       padding: 11px 13px 13px;
       background: var(--lab-paper);
       color: var(--lab-ink);
@@ -2408,8 +2421,16 @@
         linear-gradient(180deg, #fbfcfd 0%, #f4f7f9 100%);
     }
 
+    body.instrument-v2 .column.output > .comparison-table,
+    body.instrument-v2 .column.output > .delta-grid,
+    body.instrument-v2 .column.output > .message,
+    body.instrument-v2 .column.output > .event-card {
+      flex: 0 0 auto;
+    }
+
     body.instrument-v2 h4 {
-      margin: 0 0 12px;
+      flex: 0 0 auto;
+      margin: 0 0 9px;
       color: var(--lab-muted);
     }
 
@@ -2424,7 +2445,16 @@
     }
 
     body.instrument-v2 .section {
-      margin-bottom: 12px;
+      flex: 0 0 auto;
+      margin-bottom: 8px;
+    }
+
+    body.instrument-v2 .column.data .section:last-child {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      min-height: 0;
+      margin-bottom: 0;
     }
 
     body.instrument-v2 .section > p {
@@ -2476,6 +2506,10 @@
       border: 1px solid var(--lab-line);
       background: #c8d2d9;
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    }
+
+    body.instrument-v2 .dataset[hidden] {
+      display: none !important;
     }
 
     body.instrument-v2 .dataset {
@@ -2556,9 +2590,10 @@
     }
 
     body.instrument-v2 textarea {
-      min-height: 210px;
+      flex: 1 1 auto;
+      min-height: 150px;
       padding: 8px;
-      resize: vertical;
+      resize: none;
     }
 
     body.instrument-v2 textarea[readonly] {
@@ -2566,8 +2601,9 @@
     }
 
     body.instrument-v2 .qasm-replay {
-      min-height: 210px;
-      max-height: 270px;
+      flex: 1 1 auto;
+      min-height: 150px;
+      max-height: none;
       border: 1px solid var(--lab-line-dark);
       background:
         linear-gradient(180deg, rgba(0, 111, 174, 0.025), transparent 120px),
@@ -2615,6 +2651,7 @@
     }
 
     body.instrument-v2 .validation-bar {
+      flex: 0 0 auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -2651,13 +2688,15 @@
     }
 
     body.instrument-v2 .topology-area {
+      flex: 1 1 auto;
       display: grid;
-      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+      min-height: 0;
     }
 
     body.instrument-v2 .route-toolbar,
     body.instrument-v2 .topology-head {
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     body.instrument-v2 .route-tabs {
@@ -2677,7 +2716,8 @@
     }
 
     body.instrument-v2 .topology-stage-wrap {
-      aspect-ratio: 16 / 9.4;
+      height: clamp(270px, 38vh, 400px);
+      min-height: 0;
       border: 1px solid #c4d3dd;
       background:
         linear-gradient(90deg, rgba(43, 92, 120, 0.11) 1px, transparent 1px),
@@ -2938,15 +2978,15 @@
     }
 
     body.instrument-v2 .compiler-flow {
-      margin-top: 8px;
+      margin-top: 6px;
       border-top: 2px solid #d7e3ea;
     }
 
     body.instrument-v2 .flow-stage {
       display: grid;
       align-content: center;
-      min-height: 32px;
-      padding: 5px 8px 5px 20px;
+      min-height: 30px;
+      padding: 4px 7px 4px 20px;
       color: var(--lab-muted);
       font-size: 10px;
       text-transform: none;
@@ -3042,8 +3082,8 @@
     }
 
     body.instrument-v2 .trace-readout {
-      min-height: 34px;
-      padding: 6px 8px;
+      min-height: 28px;
+      padding: 5px 8px;
     }
 
     body.instrument-v2 .trace-op {
@@ -3094,7 +3134,8 @@
     }
 
     body.instrument-v2 .mapping-panel {
-      margin-top: 8px;
+      flex: 0 0 auto;
+      margin-top: 7px;
     }
 
     body.instrument-v2 .event-field,
@@ -3116,6 +3157,8 @@
     body.instrument-v2 .mapping-grid {
       grid-template-columns: repeat(10, minmax(0, 1fr));
       gap: 3px;
+      max-height: 152px;
+      overflow: auto;
       padding: 7px;
     }
 
@@ -3128,7 +3171,7 @@
     }
 
     body.instrument-v2 .mapping-cell {
-      min-height: 32px;
+      min-height: 25px;
       padding: 3px;
     }
 
@@ -3168,7 +3211,7 @@
 
     body.instrument-v2 .comparison-table th,
     body.instrument-v2 .comparison-table td {
-      padding: 7px 8px;
+      padding: 5px 6px;
       border: 0;
       border-left: 1px solid var(--lab-line);
       border-top: 1px solid var(--lab-line);
@@ -3214,7 +3257,7 @@
     body.instrument-v2 .delta-grid {
       display: grid;
       grid-template-columns: 1fr;
-      margin-top: 8px;
+      margin-top: 6px;
       border: 1px solid var(--lab-line);
       border-radius: 0;
       overflow: hidden;
@@ -3224,8 +3267,8 @@
       display: grid;
       grid-template-columns: 64px minmax(0, 1fr);
       align-items: baseline;
-      min-height: 28px;
-      padding: 5px 8px;
+      min-height: 24px;
+      padding: 4px 7px;
       background: linear-gradient(180deg, #fff, #f8fafc);
       border-top: 1px solid var(--lab-line);
       border-color: var(--lab-line);
@@ -3244,9 +3287,9 @@
     }
 
     body.instrument-v2 .message {
-      min-height: 28px;
-      margin: 8px 0;
-      padding: 6px 8px;
+      min-height: 26px;
+      margin: 6px 0;
+      padding: 5px 8px;
       border-left: 2px solid var(--lab-cyan);
       background: linear-gradient(90deg, #f0fbff 0%, #fbfdfe 100%);
       color: #40515d;
@@ -3265,18 +3308,23 @@
     }
 
     body.instrument-v2 .qasm-details {
-      margin: 8px 0 0;
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      min-height: 0;
+      margin: 6px 0 0;
       border: 1px solid var(--lab-line);
       border-top: 0;
       background: linear-gradient(180deg, #fff, #fbfcfd);
     }
 
     body.instrument-v2 .qasm-details summary {
+      flex: 0 0 auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 10px;
-      padding: 6px 8px;
+      padding: 5px 8px;
       border-top: 1px solid var(--lab-line);
       color: var(--lab-ink);
       font-weight: 650;
@@ -3285,11 +3333,12 @@
     }
 
     body.instrument-v2 .compiled-head {
+      flex: 0 0 auto;
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto auto;
       gap: 8px;
       align-items: center;
-      margin: 6px;
+      margin: 5px;
     }
 
     body.instrument-v2 .compiled-head h4 {
@@ -3325,20 +3374,51 @@
     }
 
     body.instrument-v2 #compiled-qasm-output {
-      min-height: 122px;
-      max-height: 182px;
-      margin: 6px;
-      padding: 8px;
+      flex: 1 1 auto;
+      min-height: 88px;
+      max-height: none;
+      margin: 0 5px 5px;
+      padding: 7px;
       background: var(--lab-code);
       color: #101820;
       border-color: var(--lab-line-dark);
     }
 
     body.instrument-v2 #advanced {
-      margin: 14px auto 28px;
+      position: fixed;
+      right: 10px;
+      bottom: 10px;
+      z-index: 24;
+      width: min(560px, calc(100vw - 28px));
+      max-height: min(72vh, 620px);
+      margin: 0;
+      overflow: auto;
       background: #fff;
       border: 1px solid var(--lab-line);
       border-top: 2px solid var(--lab-header);
+      box-shadow: 0 16px 40px rgba(8, 16, 26, 0.18);
+    }
+
+    body.instrument-v2 #advanced:not([open]) {
+      width: 38px;
+      height: 30px;
+      overflow: hidden;
+    }
+
+    body.instrument-v2 #advanced:not([open]) summary {
+      display: grid;
+      place-items: center;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      font-size: 0;
+      white-space: nowrap;
+    }
+
+    body.instrument-v2 #advanced:not([open]) summary::before {
+      content: "▸";
+      color: var(--lab-ink);
+      font-size: 13px;
     }
 
     body.instrument-v2 #advanced summary {
@@ -3458,6 +3538,15 @@
         padding: 0 8px;
       }
 
+      body.instrument-v2 {
+        overflow: auto;
+      }
+
+      body.instrument-v2 main.page {
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+
       body.instrument-v2 .topbar,
       body.instrument-v2 .control-row {
         align-items: stretch;
@@ -3479,6 +3568,10 @@
           "topology"
           "output"
           "data";
+        height: auto;
+        min-height: 0;
+        max-height: none;
+        overflow: visible;
       }
 
       body.instrument-v2 .column {
@@ -3522,6 +3615,18 @@
       body.instrument-v2 textarea {
         min-height: 132px;
         max-height: 170px;
+      }
+
+      body.instrument-v2 .qasm-replay {
+        min-height: 170px;
+        max-height: 230px;
+      }
+
+      body.instrument-v2 #advanced {
+        position: static;
+        width: auto;
+        max-height: none;
+        margin: 12px 8px 18px;
       }
     }
   </style>
@@ -3590,27 +3695,27 @@
       <section class="column data">
         <h4><span>输入</span></h4>
         <div class="section">
-          <div class="input-tabs" aria-label="输入模式">
-            <button type="button" data-input-mode="examples" aria-pressed="true">示例</button>
-            <button type="button" data-input-mode="custom" aria-pressed="false">自定义</button>
-            <button type="button" data-input-mode="generate" aria-pressed="false">生成</button>
+          <div class="input-tabs" aria-label="输入范围">
+            <button type="button" data-input-group="small" data-input-mode="examples" aria-pressed="true">10/20</button>
+            <button type="button" data-input-group="large" data-input-mode="examples" aria-pressed="false">35/50</button>
+            <button type="button" data-input-group="custom" data-input-mode="custom" aria-pressed="false">自定义</button>
           </div>
         </div>
 
         <div class="section" id="examples-panel">
           <div class="dataset-list" aria-label="OpenQASM 示例">
-            <button class="dataset" type="button" data-example="qft5" aria-pressed="true"><b>QFT 5</b><span>密集相位</span></button>
-            <button class="dataset" type="button" data-example="ghz5" aria-pressed="false"><b>GHZ 5</b><span>纠缠链</span></button>
-            <button class="dataset" type="button" data-example="qaoa5" aria-pressed="false"><b>QAOA 5</b><span>分层耦合</span></button>
-            <button class="dataset" type="button" data-example="qft10" aria-pressed="false"><b>QFT 10</b><span>大电路</span></button>
-            <button class="dataset" type="button" data-example="qaoa10" aria-pressed="false"><b>QAOA 10</b><span>硬样例</span></button>
-            <button class="dataset" type="button" data-example="ghz10" aria-pressed="false"><b>GHZ 10</b><span>长链</span></button>
-            <button class="dataset" type="button" data-example="vqe10" aria-pressed="false"><b>VQE 10</b><span>变分线路</span></button>
-            <button class="dataset" type="button" data-example="line_ghz30" aria-pressed="false"><b>LineGHZ30</b><span>Grid 30Q</span></button>
-            <button class="dataset" type="button" data-example="random30d4" aria-pressed="false"><b>Random30-d4</b><span>Grid 30Q</span></button>
-            <button class="dataset" type="button" data-example="line_ghz50" aria-pressed="false"><b>LineGHZ50</b><span>Grid 50Q</span></button>
-            <button class="dataset" type="button" data-example="ring_sparse50" aria-pressed="false"><b>RingSparse50</b><span>Grid 50Q</span></button>
-            <button class="dataset" type="button" data-example="custom" aria-pressed="false"><b>自定义</b><span>手写 QASM</span></button>
+            <button class="dataset" type="button" data-example="qft5" data-example-group="small" aria-pressed="true"><b>QFT 5</b><span>密集相位</span></button>
+            <button class="dataset" type="button" data-example="ghz5" data-example-group="small" aria-pressed="false"><b>GHZ 5</b><span>纠缠链</span></button>
+            <button class="dataset" type="button" data-example="qaoa5" data-example-group="small" aria-pressed="false"><b>QAOA 5</b><span>分层耦合</span></button>
+            <button class="dataset" type="button" data-example="qft10" data-example-group="small" aria-pressed="false"><b>QFT 10</b><span>大电路</span></button>
+            <button class="dataset" type="button" data-example="qaoa10" data-example-group="small" aria-pressed="false"><b>QAOA 10</b><span>硬样例</span></button>
+            <button class="dataset" type="button" data-example="ghz10" data-example-group="small" aria-pressed="false"><b>GHZ 10</b><span>长链</span></button>
+            <button class="dataset" type="button" data-example="vqe10" data-example-group="small" aria-pressed="false"><b>VQE 10</b><span>变分线路</span></button>
+            <button class="dataset" type="button" data-example="line_ghz30" data-example-group="large" aria-pressed="false"><b>LineGHZ30</b><span>Grid 30Q</span></button>
+            <button class="dataset" type="button" data-example="random30d4" data-example-group="large" aria-pressed="false"><b>Random30-d4</b><span>Grid 30Q</span></button>
+            <button class="dataset" type="button" data-example="line_ghz50" data-example-group="large" aria-pressed="false"><b>LineGHZ50</b><span>Grid 50Q</span></button>
+            <button class="dataset" type="button" data-example="ring_sparse50" data-example-group="large" aria-pressed="false"><b>RingSparse50</b><span>Grid 50Q</span></button>
+            <button class="dataset" type="button" data-example="custom" data-example-group="custom" aria-pressed="false"><b>自定义</b><span>手写 QASM</span></button>
           </div>
         </div>
 
@@ -4679,6 +4784,7 @@ cx q[0],q[1];`
     const state = {
       example: "qft5",
       inputMode: "examples",
+      inputGroup: "small",
       activeQasmView: "npqr",
       activeRouteView: "npqr",
       activeTopology: topologyDefinitions.tokyo,
@@ -4706,6 +4812,22 @@ cx q[0],q[1];`
       validation: { status: "idle", message: "等待校验", line: null },
       validateTimer: null
     };
+
+    const exampleGroups = {
+      small: ["qft5", "ghz5", "qaoa5", "qft10", "qaoa10", "ghz10", "vqe10"],
+      large: ["line_ghz30", "random30d4", "line_ghz50", "ring_sparse50"],
+      custom: ["custom"]
+    };
+
+    function exampleGroupFor(example) {
+      if (exampleGroups.large.includes(example)) {
+        return "large";
+      }
+      if (example === "custom") {
+        return "custom";
+      }
+      return "small";
+    }
 
     const el = {
       run: document.getElementById("run-button"),
@@ -4871,6 +4993,20 @@ cx q[0],q[1];`
       });
     }
 
+    function syncInputTabs() {
+      document.querySelectorAll("[data-input-group]").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.inputGroup === state.inputGroup));
+      });
+    }
+
+    function syncExampleGroups() {
+      syncInputTabs();
+      document.querySelectorAll("[data-example]").forEach((button) => {
+        const group = button.dataset.exampleGroup || exampleGroupFor(button.dataset.example);
+        button.hidden = group !== state.inputGroup;
+      });
+    }
+
     function clampInteger(value, min, max, fallback) {
       const parsed = Number.parseInt(value, 10);
       if (!Number.isFinite(parsed)) {
@@ -4993,8 +5129,9 @@ cx q[0],q[1];`
 
     function renderInput() {
       const sample = selectedExample();
+      state.inputGroup = state.inputMode === "generate" ? "custom" : exampleGroupFor(state.example);
       el.examplesPanel.hidden = state.inputMode !== "examples";
-      el.generatorPanel.hidden = state.inputMode !== "generate";
+      el.generatorPanel.hidden = state.inputGroup !== "custom";
       el.qasm.readOnly = state.example !== "custom";
       el.qasm.dataset.mode = state.example;
       if (state.example !== "custom" || !el.qasm.value.trim()) {
@@ -5010,8 +5147,8 @@ cx q[0],q[1];`
         ? `${el.qasm.value.length} / ${MAX_INLINE_QASM_CHARS}`
         : `${sample.qubits} 个量子位`;
       el.exampleSelect.value = state.example;
-      setPressed("[data-input-mode]", "inputMode", state.inputMode);
       setPressed("[data-example]", "example", state.example);
+      syncExampleGroups();
       scheduleValidation();
     }
 
@@ -5135,6 +5272,19 @@ cx q[0],q[1];`
       return lookup;
     }
 
+    function sourceTwoQubitGateLookup() {
+      const lookup = new Map();
+      let gateIndex = 0;
+      qasmLines().forEach((line, index) => {
+        const stripped = line.trim();
+        if (/^\s*(cx|swap)\b/i.test(stripped)) {
+          lookup.set(gateIndex, { lineNumber: index + 1, text: stripped });
+          gateIndex += 1;
+        }
+      });
+      return lookup;
+    }
+
     function sourceLineForGateIndex(gateIndex) {
       const numeric = Number(gateIndex);
       if (!Number.isFinite(numeric)) {
@@ -5143,19 +5293,29 @@ cx q[0],q[1];`
       return sourceGateLookup().get(numeric)?.lineNumber || null;
     }
 
+    function sourceLineForTwoQubitGateIndex(gateIndex) {
+      const numeric = Number(gateIndex);
+      if (!Number.isFinite(numeric)) {
+        return null;
+      }
+      return sourceTwoQubitGateLookup().get(numeric)?.lineNumber || null;
+    }
+
     function eventSourceLine(event) {
       const line = Number(event?.source_line);
       if (Number.isFinite(line) && line > 0) {
         return line;
       }
-      if (state.activeRouteView !== "npqr") {
-        return null;
+      if (state.activeRouteView === "sabre") {
+        return sourceLineForTwoQubitGateIndex(eventGateKey(event)) || sourceLineForGateIndex(eventGateKey(event));
       }
       return sourceLineForGateIndex(eventGateKey(event));
     }
 
     function eventGateKey(event) {
-      const key = event?.kind === "swap" ? event.next_gate_index ?? event.insertion_index : event?.gate_index;
+      const key = event?.kind === "swap"
+        ? event.next_gate_index ?? event.blocked_gate_index ?? event.insertion_index
+        : event?.gate_index ?? event?.insertion_index;
       return key === null || key === undefined ? null : String(key);
     }
 
@@ -5918,6 +6078,7 @@ cx q[0],q[1];`
       resetReplayState();
       state.example = "qft5";
       state.inputMode = "examples";
+      state.inputGroup = "small";
       state.activeQasmView = "npqr";
       state.activeRouteView = "npqr";
       state.results = { npqr: null, sabre: null };
@@ -6526,6 +6687,7 @@ cx q[0],q[1];`
       button.addEventListener("click", () => {
         state.example = button.dataset.example;
         state.inputMode = state.example === "custom" ? "custom" : "examples";
+        state.inputGroup = exampleGroupFor(state.example);
         resetReplayState();
         state.results = { npqr: null, sabre: null };
         state.activeRouteView = "npqr";
@@ -6540,12 +6702,30 @@ cx q[0],q[1];`
     document.querySelectorAll("[data-input-mode]").forEach((button) => {
       button.addEventListener("click", () => {
         state.inputMode = button.dataset.inputMode;
-        if (state.inputMode === "custom" || state.inputMode === "generate") {
+        state.inputGroup = button.dataset.inputGroup || (state.inputMode === "examples" ? "small" : "custom");
+        if (state.inputGroup === "large") {
+          state.inputMode = "examples";
+          if (!exampleGroups.large.includes(state.example)) {
+            state.example = "line_ghz30";
+          }
+        } else if (state.inputGroup === "small") {
+          state.inputMode = "examples";
+          if (!exampleGroups.small.includes(state.example)) {
+            state.example = "qft5";
+          }
+        } else if (state.inputMode === "custom" || state.inputMode === "generate") {
           state.example = "custom";
         } else if (state.example === "custom") {
           state.example = "qft5";
         }
+        resetReplayState();
+        state.results = { npqr: null, sabre: null };
+        state.activeRouteView = "npqr";
+        stopAnimation();
         renderInput();
+        clearComparison("待运行");
+        renderFlow();
+        renderTopology();
       });
     });
 
@@ -6564,6 +6744,7 @@ cx q[0],q[1];`
     el.exampleSelect.addEventListener("change", () => {
       state.example = el.exampleSelect.value;
       state.inputMode = state.example === "custom" ? "custom" : "examples";
+      state.inputGroup = exampleGroupFor(state.example);
       resetReplayState();
       state.results = { npqr: null, sabre: null };
       state.activeRouteView = "npqr";
@@ -6577,6 +6758,7 @@ cx q[0],q[1];`
     el.qasm.addEventListener("input", () => {
       state.example = "custom";
       state.inputMode = state.inputMode === "generate" ? "generate" : "custom";
+      state.inputGroup = "custom";
       resetReplayState();
       state.results = { npqr: null, sabre: null };
       state.activeRouteView = "npqr";
