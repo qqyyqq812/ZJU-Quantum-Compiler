@@ -595,6 +595,82 @@
       background: #130f1a;
     }
 
+    .qasm-replay {
+      width: 100%;
+      min-height: 260px;
+      max-height: 360px;
+      margin: 0;
+      border: 1px solid var(--tf-line-dark);
+      border-radius: 6px;
+      background: var(--qc-editor);
+      color: var(--tf-text);
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.45;
+      overflow: auto;
+    }
+
+    .qasm-replay[hidden] {
+      display: none;
+    }
+
+    .qasm-replay-row {
+      display: grid;
+      grid-template-columns: 42px 58px minmax(0, 1fr) 92px;
+      gap: 8px;
+      align-items: baseline;
+      min-height: 25px;
+      padding: 4px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+      color: var(--qc-text-soft);
+      transition: background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .qasm-replay-row:last-child {
+      border-bottom: 0;
+    }
+
+    .qasm-replay-row.is-active {
+      background: rgba(245, 147, 34, 0.14);
+      color: var(--tf-text);
+      box-shadow: inset 3px 0 0 var(--tf-orange);
+    }
+
+    .qasm-replay-row.is-current-gate {
+      background: rgba(34, 211, 238, 0.12);
+      box-shadow: inset 3px 0 0 var(--qc-cyan);
+    }
+
+    .qasm-replay-row.is-insert {
+      background: rgba(245, 147, 34, 0.075);
+      color: #ffd7a0;
+    }
+
+    .qasm-replay-row.is-seen {
+      color: var(--tf-text);
+    }
+
+    .qasm-line-no,
+    .qasm-line-kind,
+    .qasm-line-meta {
+      color: var(--tf-muted);
+      white-space: nowrap;
+    }
+
+    .qasm-line-code {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: pre;
+    }
+
+    .qasm-replay-row.is-active .qasm-line-kind,
+    .qasm-replay-row.is-active .qasm-line-meta,
+    .qasm-replay-row.is-current-gate .qasm-line-kind,
+    .qasm-replay-row.is-current-gate .qasm-line-meta {
+      color: inherit;
+    }
+
     .input-meta {
       display: flex;
       justify-content: space-between;
@@ -702,17 +778,9 @@
       inset: 0;
       pointer-events: none;
       background:
-        linear-gradient(90deg, transparent 0%, rgba(34, 211, 238, 0.14) 48%, transparent 62%),
-        radial-gradient(circle at 50% 50%, rgba(124, 92, 255, 0.12), transparent 48%);
-      transform: translateX(-110%);
-      animation: chip-scan 3.8s ease-in-out infinite;
-      opacity: 0.78;
-    }
-
-    .topology-stage-wrap[data-phase="replaying"]::after,
-    .topology-stage-wrap[data-phase="done"]::after {
-      opacity: 0;
-      animation: none;
+        radial-gradient(circle at 50% 48%, rgba(34, 211, 238, 0.08), transparent 52%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 62%);
+      opacity: 0.62;
     }
 
     .topology-stage {
@@ -748,12 +816,43 @@
     .topology-edge.active {
       stroke: var(--tf-orange);
       stroke-width: 4.5;
-      stroke-dasharray: 12 8;
-      animation: route-pulse 0.85s linear infinite;
+      opacity: 1;
+      filter: drop-shadow(0 0 6px rgba(245, 147, 34, 0.35));
     }
 
     .topology-edge.active.gate-edge {
       stroke: var(--qc-cyan);
+      filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.35));
+    }
+
+    .topology-focus-band {
+      stroke-width: 10;
+      stroke-linecap: round;
+      opacity: 0.16;
+      pointer-events: none;
+    }
+
+    .topology-focus-band.gate-edge {
+      stroke: var(--qc-cyan);
+    }
+
+    .topology-focus-band.swap-edge {
+      stroke: var(--tf-orange);
+    }
+
+    .topology-edge-label rect {
+      fill: rgba(7, 13, 31, 0.9);
+      stroke: rgba(255, 255, 255, 0.15);
+    }
+
+    .topology-edge-label text {
+      fill: var(--tf-text);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
     }
 
     .topology-node {
@@ -778,43 +877,12 @@
       fill: #1a1244;
       stroke: var(--qc-violet);
       stroke-width: 4;
-      animation: node-pulse 0.9s ease-in-out infinite alternate;
     }
 
     g:hover .topology-node {
       fill: #15264f;
       stroke: var(--qc-violet);
       stroke-width: 3;
-    }
-
-    @keyframes route-pulse {
-      from {
-        stroke-dashoffset: 20;
-      }
-
-      to {
-        stroke-dashoffset: 0;
-      }
-    }
-
-    @keyframes chip-scan {
-      0%, 28% {
-        transform: translateX(-110%);
-      }
-
-      62%, 100% {
-        transform: translateX(110%);
-      }
-    }
-
-    @keyframes node-pulse {
-      from {
-        stroke-opacity: 0.55;
-      }
-
-      to {
-        stroke-opacity: 1;
-      }
     }
 
     .node-label {
@@ -2499,6 +2567,55 @@
       color: #26323d;
     }
 
+    body.instrument-v2 .qasm-replay {
+      min-height: 250px;
+      max-height: 360px;
+      border: 1px solid var(--lab-line-dark);
+      background:
+        linear-gradient(180deg, rgba(0, 111, 174, 0.025), transparent 120px),
+        var(--lab-code);
+      color: #101820;
+      border-radius: 0;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    body.instrument-v2 .qasm-replay-row {
+      grid-template-columns: 38px 52px minmax(0, 1fr) 76px;
+      min-height: 24px;
+      padding: 3px 7px;
+      border-bottom: 1px solid #e5edf2;
+      color: #405767;
+    }
+
+    body.instrument-v2 .qasm-replay-row.is-seen {
+      color: #203040;
+    }
+
+    body.instrument-v2 .qasm-replay-row.is-active {
+      background: linear-gradient(90deg, rgba(239, 143, 26, 0.2), #fff 78%);
+      color: #102f45;
+      box-shadow: inset 3px 0 0 var(--lab-orange);
+    }
+
+    body.instrument-v2 .qasm-replay-row.is-current-gate {
+      background: linear-gradient(90deg, rgba(20, 169, 214, 0.16), #fff 78%);
+      color: #102f45;
+      box-shadow: inset 3px 0 0 var(--lab-cyan);
+    }
+
+    body.instrument-v2 .qasm-replay-row.is-insert {
+      background: #fff8ee;
+      color: #8a4a00;
+    }
+
+    body.instrument-v2 .qasm-line-no,
+    body.instrument-v2 .qasm-line-kind,
+    body.instrument-v2 .qasm-line-meta {
+      color: #789;
+    }
+
     body.instrument-v2 .validation-bar {
       display: flex;
       align-items: center;
@@ -2605,15 +2722,13 @@
 
     body.instrument-v2 .topology-stage-wrap::after {
       background:
-        linear-gradient(90deg, transparent 0%, rgba(22, 166, 201, 0.12) 48%, rgba(255, 255, 255, 0.44) 51%, transparent 66%),
-        linear-gradient(180deg, transparent 0%, rgba(22, 166, 201, 0.06), transparent 100%);
-      opacity: 0.22;
-      animation: chip-scan 5.2s ease-in-out infinite;
+        radial-gradient(circle at 50% 42%, rgba(22, 166, 201, 0.08), transparent 50%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.52), transparent 70%);
+      opacity: 0.54;
     }
 
     body.instrument-v2.is-compiling .topology-stage-wrap::after {
-      opacity: 0.5;
-      animation-duration: 2.1s;
+      opacity: 0.62;
     }
 
     body.instrument-v2.is-replaying .topology-stage-wrap {
@@ -2623,7 +2738,6 @@
         inset 0 0 46px rgba(21, 139, 170, 0.11),
         0 16px 32px rgba(50, 74, 96, 0.18),
         0 0 0 3px rgba(20, 169, 214, 0.08);
-      animation: replay-frame-pulse 1.8s ease-in-out infinite alternate;
     }
 
     body.instrument-v2 .topology-edge {
@@ -2645,31 +2759,12 @@
 
     body.instrument-v2 .topology-edge.active {
       stroke-width: 4.2;
-      stroke-dasharray: 13 8;
       stroke-linecap: round;
       filter: drop-shadow(0 0 5px rgba(232, 137, 35, 0.32));
-      animation: route-pulse 0.72s linear infinite;
     }
 
     body.instrument-v2 .topology-edge.active.gate-edge {
       filter: drop-shadow(0 0 5px rgba(18, 150, 184, 0.28));
-    }
-
-    body.instrument-v2 .topology-runner-track {
-      stroke-width: 7;
-      stroke-linecap: round;
-      opacity: 0.22;
-      pointer-events: none;
-      filter: drop-shadow(0 0 7px rgba(18, 150, 184, 0.22));
-    }
-
-    body.instrument-v2 .topology-runner-track.gate-edge {
-      opacity: 0.34;
-    }
-
-    body.instrument-v2 .topology-runner-track.swap-edge {
-      opacity: 0.38;
-      filter: drop-shadow(0 0 7px rgba(232, 137, 35, 0.28));
     }
 
     body.instrument-v2 .topology-trail {
@@ -2687,57 +2782,6 @@
     body.instrument-v2 .topology-trail.swap-edge {
       stroke: #e88923;
       filter: drop-shadow(0 0 5px rgba(232, 137, 35, 0.24));
-    }
-
-    body.instrument-v2 .topology-runner {
-      r: 5.5;
-      fill: #128fac;
-      stroke: #ffffff;
-      stroke-width: 1.4;
-      pointer-events: none;
-      filter: drop-shadow(0 2px 5px rgba(18, 90, 116, 0.34));
-      animation: runner-pulse 0.72s ease-in-out infinite alternate;
-    }
-
-    body.instrument-v2 .topology-runner.swap-edge {
-      fill: #e88923;
-      filter: drop-shadow(0 2px 5px rgba(160, 86, 18, 0.34));
-    }
-
-    body.instrument-v2 .topology-packet {
-      r: 3.8;
-      fill: #1296b8;
-      opacity: 0.9;
-      pointer-events: none;
-      filter: drop-shadow(0 2px 4px rgba(18, 90, 116, 0.26));
-    }
-
-    body.instrument-v2 .topology-packet.swap-edge {
-      fill: #e88923;
-      filter: drop-shadow(0 2px 4px rgba(160, 86, 18, 0.28));
-    }
-
-    body.instrument-v2 .topology-packet.reverse {
-      opacity: 0.72;
-    }
-
-    body.instrument-v2 .topology-runner-tail {
-      stroke-width: 3.2;
-      stroke-linecap: round;
-      stroke-dasharray: 16 92;
-      opacity: 0.82;
-      pointer-events: none;
-      animation: runner-tail 0.72s linear infinite;
-    }
-
-    body.instrument-v2 .topology-runner-tail.gate-edge {
-      stroke: #48b7cf;
-      filter: drop-shadow(0 2px 4px rgba(18, 90, 116, 0.22));
-    }
-
-    body.instrument-v2 .topology-runner-tail.swap-edge {
-      stroke: #eaa447;
-      filter: drop-shadow(0 2px 4px rgba(160, 86, 18, 0.24));
     }
 
     body.instrument-v2 .topology-node {
@@ -2760,10 +2804,6 @@
       filter: drop-shadow(0 2px 5px rgba(160, 86, 18, 0.22));
     }
 
-    body.instrument-v2 .topology-node.pair-active {
-      animation: pair-node-pulse 0.72s ease-in-out infinite alternate;
-    }
-
     body.instrument-v2 .topology-node.pair-active.gate-active {
       fill: #e6f7fb;
       stroke: #1296b8;
@@ -2781,7 +2821,6 @@
       stroke-width: 1.4;
       opacity: 0.7;
       pointer-events: none;
-      animation: node-ring-pulse 0.72s ease-out infinite;
     }
 
     body.instrument-v2 .topology-node-ring.gate-active {
@@ -2804,7 +2843,26 @@
       stroke: #566fb4;
       stroke-width: 2.8;
       filter: drop-shadow(0 2px 5px rgba(58, 82, 142, 0.2));
-      animation: node-pulse 0.82s ease-in-out infinite alternate;
+    }
+
+    body.instrument-v2 .topology-focus-band {
+      stroke-width: 10;
+      opacity: 0.18;
+      filter: drop-shadow(0 0 7px rgba(18, 150, 184, 0.2));
+    }
+
+    body.instrument-v2 .topology-focus-band.swap-edge {
+      filter: drop-shadow(0 0 7px rgba(232, 137, 35, 0.24));
+    }
+
+    body.instrument-v2 .topology-edge-label rect {
+      fill: rgba(255, 255, 255, 0.92);
+      stroke: rgba(47, 104, 135, 0.24);
+    }
+
+    body.instrument-v2 .topology-edge-label text {
+      fill: #1d3342;
+      font-size: 10px;
     }
 
     body.instrument-v2 g:hover .topology-node {
@@ -2830,68 +2888,6 @@
       background: rgba(255, 255, 255, 0.94);
       color: #1d3342;
       box-shadow: 0 8px 20px rgba(55, 76, 96, 0.16);
-    }
-
-    @keyframes runner-pulse {
-      from {
-        opacity: 0.72;
-        stroke-width: 1.2;
-      }
-
-      to {
-        opacity: 1;
-        stroke-width: 3;
-      }
-    }
-
-    @keyframes runner-tail {
-      from {
-        stroke-dashoffset: 0;
-      }
-
-      to {
-        stroke-dashoffset: -108;
-      }
-    }
-
-    @keyframes pair-node-pulse {
-      from {
-        stroke-width: 2.6;
-        filter: drop-shadow(0 0 5px rgba(245, 155, 46, 0.42));
-      }
-
-      to {
-        stroke-width: 4.2;
-        filter: drop-shadow(0 0 13px rgba(245, 155, 46, 0.78));
-      }
-    }
-
-    @keyframes node-ring-pulse {
-      from {
-        opacity: 0.72;
-      }
-
-      to {
-        opacity: 0;
-      }
-    }
-
-    @keyframes replay-frame-pulse {
-      from {
-        box-shadow:
-          inset 0 0 0 1px rgba(255, 255, 255, 0.07),
-          inset 0 0 42px rgba(20, 169, 214, 0.1),
-          0 16px 34px rgba(10, 22, 36, 0.22),
-          0 0 14px rgba(20, 169, 214, 0.08);
-      }
-
-      to {
-        box-shadow:
-          inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-          inset 0 0 62px rgba(20, 169, 214, 0.16),
-          0 18px 42px rgba(10, 22, 36, 0.26),
-          0 0 28px rgba(20, 169, 214, 0.16);
-      }
     }
 
     body.instrument-v2 .compiler-flow,
@@ -3518,6 +3514,7 @@
             <span id="qasm-count">5 量子位</span>
           </div>
           <textarea id="qasm-input" aria-labelledby="qasm-label" spellcheck="false" readonly></textarea>
+          <div class="qasm-replay" id="qasm-replay" aria-label="源码同步路由回放" hidden></div>
           <div class="validation-bar" id="validation-bar" data-status="idle" aria-live="polite">
             <strong id="validation-status">等待校验</strong>
             <span id="validation-message">选择示例或输入 OpenQASM。</span>
@@ -3544,7 +3541,7 @@
             <div>
               <div class="topology-stage-wrap">
                 <div class="chip-scale" aria-hidden="true"></div>
-                <svg class="topology-stage" id="tokyo-topology" viewBox="0 0 640 480" preserveAspectRatio="xMidYMin meet" role="img" aria-label="SVG IBM Tokyo 20Q topology animation"></svg>
+                <svg class="topology-stage" id="tokyo-topology" viewBox="0 0 640 480" preserveAspectRatio="xMidYMin meet" role="img" aria-label="IBM Tokyo 20Q topology replay"></svg>
                 <div class="topology-tooltip" id="topology-tooltip" role="status"></div>
               </div>
               <div class="compiler-flow" aria-label="路由事件进度">
@@ -3838,6 +3835,7 @@ cx q[0],q[1];`
       step: 0,
       trace: [],
       traceIndex: 0,
+      replayRows: [],
       visualPhase: "idle",
       running: false,
       paused: false,
@@ -3862,6 +3860,7 @@ cx q[0],q[1];`
       generatorLayers: document.getElementById("generator-layers"),
       generateQasm: document.getElementById("generate-qasm"),
       qasm: document.getElementById("qasm-input"),
+      qasmReplay: document.getElementById("qasm-replay"),
       qasmLabel: document.getElementById("qasm-label"),
       qasmCount: document.getElementById("qasm-count"),
       validationBar: document.getElementById("validation-bar"),
@@ -4200,6 +4199,185 @@ cx q[0],q[1];`
       return normalizeTrace(state.results[view]?.route_trace);
     }
 
+    function canReplaySource() {
+      return Boolean(state.trace.length && state.trace.some((event) => eventSourceLine(event)));
+    }
+
+    function sourceGateLookup() {
+      const lookup = new Map();
+      let gateIndex = 0;
+      qasmLines().forEach((line, index) => {
+        const stripped = line.trim();
+        if (!stripped || stripped.startsWith("//")) {
+          return;
+        }
+        if (["OPENQASM", "include", "qreg", "creg", "barrier", "measure"].some((prefix) => stripped.startsWith(prefix))) {
+          return;
+        }
+        lookup.set(gateIndex, { lineNumber: index + 1, text: stripped });
+        gateIndex += 1;
+      });
+      return lookup;
+    }
+
+    function sourceLineForGateIndex(gateIndex) {
+      const numeric = Number(gateIndex);
+      if (!Number.isFinite(numeric)) {
+        return null;
+      }
+      return sourceGateLookup().get(numeric)?.lineNumber || null;
+    }
+
+    function eventSourceLine(event) {
+      const line = Number(event?.source_line);
+      if (Number.isFinite(line) && line > 0) {
+        return line;
+      }
+      if (state.activeRouteView !== "npqr") {
+        return null;
+      }
+      return sourceLineForGateIndex(eventGateKey(event));
+    }
+
+    function eventGateKey(event) {
+      const key = event?.kind === "swap" ? event.next_gate_index ?? event.insertion_index : event?.gate_index;
+      return key === null || key === undefined ? null : String(key);
+    }
+
+    function qasmLines() {
+      return el.qasm.value.split(/\r?\n/);
+    }
+
+    function sourceReplayKey(kind, index) {
+      return `${kind}:${index}`;
+    }
+
+    function buildSourceReplayRows() {
+      const sourceLines = qasmLines();
+      const rows = [];
+      const swapsByLine = new Map();
+      state.trace.forEach((event, traceIndex) => {
+        if (event.kind !== "swap") {
+          return;
+        }
+        const sourceLine = eventSourceLine(event);
+        if (!sourceLine) {
+          return;
+        }
+        if (!swapsByLine.has(sourceLine)) {
+          swapsByLine.set(sourceLine, []);
+        }
+        swapsByLine.get(sourceLine).push({ event, traceIndex });
+      });
+
+      sourceLines.forEach((code, index) => {
+        const lineNumber = index + 1;
+        const inserts = swapsByLine.get(lineNumber) || [];
+        inserts.forEach(({ event, traceIndex }) => {
+          const physical = (event.physical_qubits || []).map((qubit) => Number(qubit));
+          const swapCode = physical.length >= 2
+            ? `swap q[${physical[0]}],q[${physical[1]}];`
+            : `swap ${formatQubits(event.physical_qubits, "p")};`;
+          rows.push({
+            type: "swap",
+            traceIndex,
+            lineNumber,
+            key: sourceReplayKey("swap", traceIndex),
+            code: swapCode,
+            meta: `${formatQubits(event.physical_qubits, "p")} · before g${formatOptional(event.next_gate_index ?? event.insertion_index)}`
+          });
+        });
+        rows.push({
+          type: "source",
+          traceIndex: null,
+          lineNumber,
+          key: sourceReplayKey("source", lineNumber),
+          code,
+          meta: ""
+        });
+      });
+      return rows;
+    }
+
+    function currentSourceReplayKey() {
+      const event = currentTraceEvent();
+      if (!event) {
+        return null;
+      }
+      if (event.kind === "swap") {
+        return sourceReplayKey("swap", state.traceIndex);
+      }
+      const sourceLine = eventSourceLine(event);
+      return sourceLine ? sourceReplayKey("source", sourceLine) : null;
+    }
+
+    function renderSourceReplay() {
+      const enabled = canReplaySource();
+      el.qasm.hidden = enabled;
+      el.qasmReplay.hidden = !enabled;
+      if (!enabled) {
+        state.replayRows = [];
+        el.qasmReplay.textContent = "";
+        return;
+      }
+      const activeKey = currentSourceReplayKey();
+      const currentEvent = currentTraceEvent();
+      const currentGateKey = eventGateKey(currentEvent);
+      state.replayRows = buildSourceReplayRows();
+      el.qasmReplay.textContent = "";
+      state.replayRows.forEach((row) => {
+        const line = document.createElement("div");
+        const rowGateKey = row.type === "source"
+          ? String(state.trace.find((event) => event.kind === "gate" && eventSourceLine(event) === row.lineNumber)?.gate_index ?? "")
+          : "";
+        line.className = "qasm-replay-row";
+        line.dataset.key = row.key;
+        line.dataset.type = row.type;
+        if (row.traceIndex !== null && row.traceIndex <= state.traceIndex) {
+          line.classList.add("is-seen");
+        }
+        if (row.key === activeKey) {
+          line.classList.add("is-active");
+        }
+        if (row.type === "source" && currentGateKey && rowGateKey === currentGateKey) {
+          line.classList.add("is-current-gate");
+        }
+        if (row.type === "swap") {
+          line.classList.add("is-insert");
+        }
+        line.innerHTML = [
+          `<span class="qasm-line-no">${row.type === "swap" ? "+" : row.lineNumber}</span>`,
+          `<span class="qasm-line-kind">${row.type === "swap" ? "SWAP" : "QASM"}</span>`,
+          `<span class="qasm-line-code"></span>`,
+          `<span class="qasm-line-meta">${row.meta}</span>`
+        ].join("");
+        line.querySelector(".qasm-line-code").textContent = row.code || " ";
+        el.qasmReplay.appendChild(line);
+      });
+      keepSourceRowVisible();
+    }
+
+    function keepSourceRowVisible() {
+      if (el.qasmReplay.hidden) {
+        return;
+      }
+      const activeKey = currentSourceReplayKey();
+      if (!activeKey) {
+        return;
+      }
+      const row = el.qasmReplay.querySelector(`[data-key="${CSS.escape(activeKey)}"]`);
+      if (!row) {
+        return;
+      }
+      const rowBox = row.getBoundingClientRect();
+      const replayBox = el.qasmReplay.getBoundingClientRect();
+      if (rowBox.top < replayBox.top + 24) {
+        el.qasmReplay.scrollTop -= replayBox.top + 24 - rowBox.top;
+      } else if (rowBox.bottom > replayBox.bottom - 24) {
+        el.qasmReplay.scrollTop += rowBox.bottom - replayBox.bottom + 24;
+      }
+    }
+
     function resultMapping(view = state.activeRouteView) {
       const result = state.results[view] || {};
       const mapping = result.initial_mapping || {};
@@ -4292,6 +4470,7 @@ cx q[0],q[1];`
         ? `${state.activeRouteView.toUpperCase()} · ${total} 个事件 · ${stats.edges} 条边 · ${stats.nodes} 个节点`
         : state.visualPhase === "compiling" ? "编译中" : "0 个事件";
       setPressed("[data-route-view]", "routeView", state.activeRouteView);
+      renderSourceReplay();
     }
 
     function renderTopology() {
@@ -4314,33 +4493,6 @@ cx q[0],q[1];`
 
       el.svg.textContent = "";
       el.svg.parentElement.dataset.phase = state.visualPhase;
-      const defs = document.createElementNS(svgNS, "defs");
-      ["gate", "swap"].forEach((kind) => {
-        const marker = document.createElementNS(svgNS, "marker");
-        const arrow = document.createElementNS(svgNS, "path");
-        const gradient = document.createElementNS(svgNS, "linearGradient");
-        marker.setAttribute("id", `${kind}-arrow`);
-        marker.setAttribute("viewBox", "0 0 10 10");
-        marker.setAttribute("refX", "8");
-        marker.setAttribute("refY", "5");
-        marker.setAttribute("markerWidth", "5");
-        marker.setAttribute("markerHeight", "5");
-        marker.setAttribute("orient", "auto-start-reverse");
-        arrow.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
-        arrow.setAttribute("fill", kind === "swap" ? "#f59b2e" : "#20bfe9");
-        marker.appendChild(arrow);
-        gradient.setAttribute("id", `${kind}-beam`);
-        gradient.setAttribute("gradientUnits", "userSpaceOnUse");
-        [["0%", "transparent"], ["38%", kind === "swap" ? "#f59b2e" : "#20bfe9"], ["100%", "transparent"]].forEach(([offset, color]) => {
-          const stop = document.createElementNS(svgNS, "stop");
-          stop.setAttribute("offset", offset);
-          stop.setAttribute("stop-color", color);
-          gradient.appendChild(stop);
-        });
-        defs.appendChild(marker);
-        defs.appendChild(gradient);
-      });
-      el.svg.appendChild(defs);
       topologyEdges.forEach(([a, b]) => {
         const from = nodes.get(a);
         const to = nodes.get(b);
@@ -4350,18 +4502,6 @@ cx q[0],q[1];`
         line.setAttribute("x2", to.x);
         line.setAttribute("y2", to.y);
         line.classList.add("topology-edge");
-        if (edgeKey([a, b]) === activeKey) {
-          const activeBeam = defs.querySelector(activeKind === "gate" ? "#gate-beam" : "#swap-beam");
-          activeBeam?.setAttribute("x1", from.x);
-          activeBeam?.setAttribute("y1", from.y);
-          activeBeam?.setAttribute("x2", to.x);
-          activeBeam?.setAttribute("y2", to.y);
-          line.classList.add("active", activeKind === "gate" ? "gate-edge" : "swap-edge");
-          line.setAttribute("marker-end", activeKind === "gate" ? "url(#gate-arrow)" : "url(#swap-arrow)");
-          if (activeKind === "swap") {
-            line.setAttribute("marker-start", "url(#swap-arrow)");
-          }
-        }
         line.addEventListener("mousemove", (event) => showTooltip(event, `${state.activeRouteView.toUpperCase()} 耦合边 p${a}-p${b}`));
         line.addEventListener("mouseleave", hideTooltip);
         el.svg.appendChild(line);
@@ -4384,53 +4524,36 @@ cx q[0],q[1];`
       if (active) {
         const from = nodes.get(active[0]);
         const to = nodes.get(active[1]);
-        const runnerKind = activeKind === "gate" ? "gate-edge" : "swap-edge";
-        const runnerPath = `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
-        const track = document.createElementNS(svgNS, "line");
-        track.setAttribute("x1", from.x);
-        track.setAttribute("y1", from.y);
-        track.setAttribute("x2", to.x);
-        track.setAttribute("y2", to.y);
-        track.setAttribute("marker-end", activeKind === "gate" ? "url(#gate-arrow)" : "url(#swap-arrow)");
-        if (activeKind === "swap") {
-          track.setAttribute("marker-start", "url(#swap-arrow)");
-        }
-        track.setAttribute("stroke", activeKind === "gate" ? "url(#gate-beam)" : "url(#swap-beam)");
-        track.classList.add("topology-runner-track", runnerKind);
-        const tail = document.createElementNS(svgNS, "path");
-        tail.setAttribute("d", runnerPath);
-        tail.classList.add("topology-runner-tail", runnerKind);
-        const runner = document.createElementNS(svgNS, "circle");
-        const motion = document.createElementNS(svgNS, "animateMotion");
-        motion.setAttribute("path", runnerPath);
-        motion.setAttribute("dur", activeKind === "swap" ? "0.82s" : "0.64s");
-        motion.setAttribute("repeatCount", "indefinite");
-        motion.setAttribute("rotate", "auto");
-        runner.classList.add("topology-runner", runnerKind);
-        runner.appendChild(motion);
-        const packets = [0, 0.32, 0.64].map((offset) => {
-          const packet = document.createElementNS(svgNS, "circle");
-          const packetMotion = document.createElementNS(svgNS, "animateMotion");
-          packetMotion.setAttribute("path", runnerPath);
-          packetMotion.setAttribute("dur", activeKind === "swap" ? "0.82s" : "0.64s");
-          packetMotion.setAttribute("repeatCount", "indefinite");
-          packetMotion.setAttribute("begin", `${offset}s`);
-          packet.classList.add("topology-packet", runnerKind);
-          packet.appendChild(packetMotion);
-          return packet;
-        });
-        const swapPackets = activeKind === "swap" ? [0.16, 0.48].map((offset) => {
-          const packet = document.createElementNS(svgNS, "circle");
-          const packetMotion = document.createElementNS(svgNS, "animateMotion");
-          packetMotion.setAttribute("path", `M ${to.x} ${to.y} L ${from.x} ${from.y}`);
-          packetMotion.setAttribute("dur", "0.82s");
-          packetMotion.setAttribute("repeatCount", "indefinite");
-          packetMotion.setAttribute("begin", `${offset}s`);
-          packet.classList.add("topology-packet", "swap-edge", "reverse");
-          packet.appendChild(packetMotion);
-          return packet;
-        }) : [];
-        el.svg.append(track, tail, ...packets, ...swapPackets, runner);
+        const edgeClass = activeKind === "swap" ? "swap-edge" : "gate-edge";
+        const focus = document.createElementNS(svgNS, "line");
+        focus.setAttribute("x1", from.x);
+        focus.setAttribute("y1", from.y);
+        focus.setAttribute("x2", to.x);
+        focus.setAttribute("y2", to.y);
+        focus.classList.add("topology-focus-band", edgeClass);
+        const activeLine = document.createElementNS(svgNS, "line");
+        activeLine.setAttribute("x1", from.x);
+        activeLine.setAttribute("y1", from.y);
+        activeLine.setAttribute("x2", to.x);
+        activeLine.setAttribute("y2", to.y);
+        activeLine.classList.add("topology-edge", "active", edgeClass);
+        const label = document.createElementNS(svgNS, "g");
+        const labelBox = document.createElementNS(svgNS, "rect");
+        const labelText = document.createElementNS(svgNS, "text");
+        const labelCopy = `${activeKind === "swap" ? "SWAP" : event.op || "GATE"} ${formatQubits(event.logical_qubits, "q")} / ${formatQubits(event.physical_qubits, "p")}`;
+        const midX = (from.x + to.x) / 2;
+        const midY = (from.y + to.y) / 2;
+        const labelWidth = Math.max(74, Math.min(154, labelCopy.length * 6 + 14));
+        label.classList.add("topology-edge-label");
+        labelBox.setAttribute("x", midX - labelWidth / 2);
+        labelBox.setAttribute("y", midY - 13);
+        labelBox.setAttribute("width", labelWidth);
+        labelBox.setAttribute("height", 24);
+        labelText.setAttribute("x", midX);
+        labelText.setAttribute("y", midY);
+        labelText.textContent = labelCopy;
+        label.append(labelBox, labelText);
+        el.svg.append(focus, activeLine, label);
       }
 
       topologyNodes.forEach(([id, x, y]) => {
@@ -4468,19 +4591,8 @@ cx q[0],q[1];`
           const ring = document.createElementNS(svgNS, "circle");
           ring.setAttribute("cx", x);
           ring.setAttribute("cy", y);
-          ring.setAttribute("r", 18);
+          ring.setAttribute("r", 22);
           ring.classList.add("topology-node-ring", pairActive ? pairKind : "single-active");
-          const radiusPulse = document.createElementNS(svgNS, "animate");
-          radiusPulse.setAttribute("attributeName", "r");
-          radiusPulse.setAttribute("values", "18;23");
-          radiusPulse.setAttribute("dur", "0.72s");
-          radiusPulse.setAttribute("repeatCount", "indefinite");
-          const opacityPulse = document.createElementNS(svgNS, "animate");
-          opacityPulse.setAttribute("attributeName", "opacity");
-          opacityPulse.setAttribute("values", "0.62;0");
-          opacityPulse.setAttribute("dur", "0.72s");
-          opacityPulse.setAttribute("repeatCount", "indefinite");
-          ring.append(radiusPulse, opacityPulse);
           group.appendChild(ring);
         }
         group.append(circle, text, mapText);
@@ -4732,7 +4844,7 @@ cx q[0],q[1];`
 
     function compilePayload(backend) {
       const base = { backend, topology: "tokyo" };
-      return state.example === "custom" ? { qasm: el.qasm.value, ...base } : { example: state.example, ...base };
+      return { qasm: el.qasm.value, ...base };
     }
 
     function validate() {

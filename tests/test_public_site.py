@@ -76,6 +76,8 @@ def test_public_site_runs_remote_compile_without_embedded_fallback():
     assert html.count('callApi("/api/compile"') == 2
     assert 'body: JSON.stringify(compilePayload("npqr"))' in html
     assert 'body: JSON.stringify(compilePayload("sabre"))' in html
+    assert "return { qasm: el.qasm.value, ...base };" in html
+    assert "{ example: state.example, ...base }" not in html
     assert "Promise.allSettled" in html
     assert "startTraceReplay();" in html
     assert "REST API 可能仍在计算，请稍后再试。" in html
@@ -90,6 +92,7 @@ def test_public_site_exposes_real_inputs_outputs_and_fixed_baseline():
 
     for element_id in [
         "qasm-input",
+        "qasm-replay",
         "generator-family",
         "generator-qubits",
         "generator-layers",
@@ -124,12 +127,15 @@ def test_public_site_renders_tokyo_topology_and_trace_review():
     html = _html()
 
     assert '<svg class="topology-stage" id="tokyo-topology"' in html
-    assert 'aria-label="SVG IBM Tokyo 20Q topology animation"' in html
+    assert 'aria-label="IBM Tokyo 20Q topology replay"' in html
     assert "const topologyNodes = [" in html
     assert "const topologyEdges = [" in html
     assert "traceEdge(event)" in html
     assert "traceNode(event)" in html
     assert "traceStats" in html
+    assert "renderSourceReplay" in html
+    assert "buildSourceReplayRows" in html
+    assert "sourceGateLookup" in html
     assert 'id="trace-op"' in html
     assert 'id="route-view-npqr"' in html
     assert 'id="route-view-sabre"' in html
@@ -138,6 +144,26 @@ def test_public_site_renders_tokyo_topology_and_trace_review():
     assert "mapping_after" in html
     assert "sample.path" not in html
     assert "Preview Tokyo edge" not in html
+
+
+def test_public_site_uses_static_truthful_topology_replay():
+    html = _html()
+
+    for token in [
+        "animateMotion",
+        "topology-runner",
+        "topology-packet",
+        "chip-scan",
+        "route-pulse",
+        "marker-end",
+        "marker-start",
+        "gate-arrow",
+        "swap-arrow",
+    ]:
+        assert token not in html
+
+    assert "topology-focus-band" in html
+    assert "topology-edge-label" in html
 
 
 def test_public_site_keeps_mcp_as_folded_advanced_entry():
