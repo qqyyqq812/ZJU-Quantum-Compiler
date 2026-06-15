@@ -2363,9 +2363,7 @@
     body.instrument-v2 #main-part {
       display: grid;
       grid-template-columns: 272px minmax(520px, 1fr) 328px;
-      grid-template-areas:
-        "data topology output"
-        "inspector inspector inspector";
+      grid-template-areas: "data topology output";
       min-height: calc(100vh - 76px);
       background: var(--lab-paper);
       border: 1px solid var(--lab-line);
@@ -2654,7 +2652,7 @@
 
     body.instrument-v2 .topology-area {
       display: grid;
-      grid-template-rows: auto auto 1fr;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
     }
 
     body.instrument-v2 .route-toolbar,
@@ -2940,13 +2938,13 @@
     }
 
     body.instrument-v2 .compiler-flow {
-      margin-top: 10px;
+      margin-top: 8px;
       border-top: 2px solid #dbe5ec;
     }
 
     body.instrument-v2 .flow-stage {
-      min-height: 38px;
-      padding: 7px 8px 7px 20px;
+      min-height: 32px;
+      padding: 5px 7px 5px 18px;
       color: var(--lab-muted);
       font-size: 10px;
       text-transform: none;
@@ -2988,8 +2986,8 @@
     }
 
     body.instrument-v2 .trace-readout {
-      min-height: 40px;
-      padding: 7px 9px;
+      min-height: 34px;
+      padding: 6px 8px;
     }
 
     body.instrument-v2 .trace-op {
@@ -3004,18 +3002,11 @@
     }
 
     body.instrument-v2 .route-inspector {
-      grid-area: inspector;
-      display: grid;
-      grid-template-columns: 230px 0.9fr 1.1fr;
-      gap: 8px;
-      padding: 8px 12px 10px;
-      border-top: 1px solid var(--lab-line);
-      background: #f6f7f8;
-      scroll-margin-top: 92px;
+      display: contents;
     }
 
     body.instrument-v2:not(.has-results) .route-inspector {
-      display: none;
+      display: contents;
     }
 
     body.instrument-v2 .event-card,
@@ -3025,11 +3016,11 @@
     }
 
     body.instrument-v2 .timeline-panel {
-      grid-column: auto;
+      display: none;
     }
 
     body.instrument-v2 .route-timeline {
-      max-height: 118px;
+      max-height: 150px;
       overflow: auto;
       overscroll-behavior: contain;
       scroll-behavior: auto;
@@ -3039,6 +3030,15 @@
       color: var(--lab-ink);
       border-bottom: 1px solid var(--lab-line);
       font-size: 12px;
+      padding: 6px 8px;
+    }
+
+    body.instrument-v2 .event-card {
+      margin-top: 8px;
+    }
+
+    body.instrument-v2 .mapping-panel {
+      margin-top: 8px;
     }
 
     body.instrument-v2 .event-field,
@@ -3059,7 +3059,21 @@
 
     body.instrument-v2 .mapping-grid {
       grid-template-columns: repeat(10, minmax(0, 1fr));
-      gap: 4px;
+      gap: 3px;
+      padding: 7px;
+    }
+
+    body.instrument-v2 .event-grid {
+      margin: 7px;
+    }
+
+    body.instrument-v2 .event-field {
+      padding: 5px 7px;
+    }
+
+    body.instrument-v2 .mapping-cell {
+      min-height: 32px;
+      padding: 3px;
     }
 
     body.instrument-v2 .timeline-row {
@@ -3182,6 +3196,10 @@
       color: #40515d;
       border-radius: 0;
       font-size: 12px;
+    }
+
+    body.instrument-v2 .output .event-card {
+      border-top: 2px solid #dbe5ec;
     }
 
     body.instrument-v2 .message.error {
@@ -3369,8 +3387,7 @@
         grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
         grid-template-areas:
           "data topology"
-          "output output"
-          "inspector inspector";
+          "output output";
       }
 
       body.instrument-v2 .column.output {
@@ -3378,9 +3395,6 @@
         border-top: 1px solid var(--lab-line);
       }
 
-      body.instrument-v2 .route-inspector {
-        grid-template-columns: 1fr;
-      }
     }
 
     @media (max-width: 760px) {
@@ -3408,8 +3422,7 @@
         grid-template-areas:
           "topology"
           "output"
-          "data"
-          "inspector";
+          "data";
       }
 
       body.instrument-v2 .column {
@@ -3424,11 +3437,6 @@
 
       body.instrument-v2 .column.topology {
         border-top: 0;
-      }
-
-      body.instrument-v2 .route-inspector {
-        grid-template-columns: 1fr;
-        padding: 10px;
       }
 
       body.instrument-v2 .mapping-grid {
@@ -3621,6 +3629,13 @@
             <span><b class="legend-swap"></b>插入 SWAP</span>
             <span><b class="legend-map"></b>已映射物理位</span>
           </div>
+          <section class="mapping-panel">
+            <div class="inspector-title">
+              <span>当前逻辑→物理映射</span>
+              <small id="mapping-active">--</small>
+            </div>
+            <div class="mapping-grid" id="mapping-grid" aria-label="当前映射表"></div>
+          </section>
         </div>
       </section>
 
@@ -3653,9 +3668,6 @@
           </div>
           <pre id="compiled-qasm-output" tabindex="0"><code id="compiled-qasm-code">// 等待编译结果</code></pre>
         </details>
-      </section>
-
-      <aside class="route-inspector" aria-label="路由事件检查器">
         <section class="event-card">
           <div class="inspector-title">
             <span id="event-title">暂无路由事件</span>
@@ -3670,14 +3682,10 @@
             <div class="event-field"><span>输出序号</span><strong id="event-compiled">--</strong></div>
           </div>
         </section>
-        <section class="mapping-panel">
-          <div class="inspector-title">
-            <span>当前逻辑→物理映射</span>
-            <small id="mapping-active">--</small>
-          </div>
-          <div class="mapping-grid" id="mapping-grid" aria-label="当前映射表"></div>
-        </section>
-        <section class="timeline-panel">
+      </section>
+
+      <aside class="route-inspector" aria-label="路由时间线">
+        <section class="timeline-panel" hidden>
           <div class="inspector-title">
             <span>路由时间线</span>
             <small id="timeline-summary">等待</small>

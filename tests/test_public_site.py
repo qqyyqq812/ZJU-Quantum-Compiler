@@ -36,6 +36,7 @@ def test_public_site_has_one_formal_entry_page():
     assert "Quantum Studio" not in html
     assert "grid-template-columns: 272px minmax(520px, 1fr) 328px" in html
     assert 'grid-template-areas: "data topology output";' in html
+    assert '"inspector inspector' not in html
 
 
 def test_public_site_keeps_first_screen_action_focused():
@@ -192,6 +193,8 @@ def test_public_site_renders_tokyo_topology_and_trace_review():
     assert 'id="route-view-sabre"' in html
     assert 'id="mapping-grid"' in html
     assert 'id="route-timeline"' in html
+    assert '<section class="timeline-panel" hidden>' in html
+    assert 'aria-label="路由事件检查器"' not in html
     assert "mapping_after" in html
     assert "sample.path" not in html
     assert "Preview Tokyo edge" not in html
