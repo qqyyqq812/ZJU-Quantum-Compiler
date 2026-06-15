@@ -2939,15 +2939,18 @@
 
     body.instrument-v2 .compiler-flow {
       margin-top: 8px;
-      border-top: 2px solid #dbe5ec;
+      border-top: 2px solid #d7e3ea;
     }
 
     body.instrument-v2 .flow-stage {
+      display: grid;
+      align-content: center;
       min-height: 32px;
-      padding: 5px 7px 5px 18px;
+      padding: 5px 8px 5px 20px;
       color: var(--lab-muted);
       font-size: 10px;
       text-transform: none;
+      background: #fff;
     }
 
     body.instrument-v2 .flow-stage b {
@@ -2955,25 +2958,78 @@
       font-size: 11px;
     }
 
+    body.instrument-v2 .flow-stage::before {
+      left: 7px;
+      top: 12px;
+      width: 7px;
+      height: 7px;
+      border-color: #b8c9d3;
+      background: #f7fafb;
+    }
+
+    body.instrument-v2 .flow-stage::after {
+      left: 14px;
+      top: 15px;
+      background: #dce7ed;
+    }
+
+    body.instrument-v2 .flow-stage::marker {
+      content: "";
+    }
+
+    body.instrument-v2 .flow-stage.is-done {
+      color: #2f6f5c;
+      background: linear-gradient(90deg, #eff9f4, #fff);
+      box-shadow: inset 3px 0 0 #4b9c76;
+    }
+
+    body.instrument-v2 .flow-stage.is-done::before {
+      border-color: #4b9c76;
+      background: #4b9c76;
+    }
+
     body.instrument-v2 .flow-stage.is-active {
-      background: linear-gradient(90deg, #fff6eb, #fff);
-      color: var(--lab-orange);
-      box-shadow: inset 3px 0 0 var(--lab-orange);
-    }
-
-    body.instrument-v2 .flow-stage.is-active::before {
-      animation: phase-pulse 1.05s ease-out infinite;
-      box-shadow: 0 0 0 0 rgba(239, 143, 26, 0.36);
-    }
-
-    body.instrument-v2.is-compiling .flow-stage.is-active {
       background: linear-gradient(90deg, #edfaff, #fff);
       color: var(--lab-blue);
       box-shadow: inset 3px 0 0 var(--lab-cyan);
     }
 
-    body.instrument-v2.is-compiling .flow-stage.is-active::before {
+    body.instrument-v2 .flow-stage.is-active::before {
+      animation: phase-pulse 1.05s ease-out infinite;
+      border-color: var(--lab-cyan);
+      background: var(--lab-cyan);
       box-shadow: 0 0 0 0 rgba(20, 169, 214, 0.34);
+    }
+
+    body.instrument-v2 .flow-stage.is-review {
+      background: linear-gradient(90deg, #fff8ed, #fff);
+      color: var(--lab-orange);
+      box-shadow: inset 3px 0 0 var(--lab-orange);
+    }
+
+    body.instrument-v2 .flow-stage.is-review::before {
+      border-color: var(--lab-orange);
+      background: var(--lab-orange);
+    }
+
+    body.instrument-v2 .flow-stage.is-error {
+      background: linear-gradient(90deg, #fff1f1, #fff);
+      color: #b42318;
+      box-shadow: inset 3px 0 0 #d92d20;
+    }
+
+    body.instrument-v2 .flow-stage.is-error::before {
+      border-color: #d92d20;
+      background: #d92d20;
+    }
+
+    body.instrument-v2 .flow-stage[data-elapsed]:not([data-elapsed=""]) b::after {
+      content: attr(data-elapsed);
+      margin-left: 6px;
+      color: #6f8490;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 500;
     }
 
     @keyframes phase-pulse {
@@ -3758,6 +3814,9 @@ POST /mcp</code></pre>
     const PUBLIC_APP_BASE = "http://1.95.70.10/";
     const API_TIMEOUT_MS = 120000;
     const API_STATUS_TIMEOUT_MS = 20000;
+    const JOB_CREATE_TIMEOUT_MS = 20000;
+    const JOB_POLL_TIMEOUT_MS = 20000;
+    const JOB_POLL_INTERVAL_MS = 180;
     const MAX_INLINE_QASM_CHARS = 8000;
 
     const params = new URLSearchParams(window.location.search);
@@ -4637,6 +4696,9 @@ cx q[0],q[1];`
       timelineSignature: "",
       visualPhase: "idle",
       compilePhase: "idle",
+      phaseTimings: [],
+      jobStatus: "idle",
+      phaseBackend: "npqr",
       swapPhase: "none",
       running: false,
       paused: false,
@@ -4778,12 +4840,15 @@ cx q[0],q[1];`
       state.timelineSignature = "";
       state.visualPhase = "idle";
       state.compilePhase = "idle";
+      state.phaseTimings = [];
+      state.jobStatus = "idle";
+      state.phaseBackend = "npqr";
       state.swapPhase = "none";
     }
 
     function syncBodyState() {
       document.body.classList.toggle("has-results", Boolean(state.results.npqr || state.results.sabre));
-      document.body.classList.toggle("is-compiling", state.visualPhase === "compiling" || state.compilePhase === "requesting");
+      document.body.classList.toggle("is-compiling", state.visualPhase === "compiling");
       document.body.classList.toggle("is-replaying", state.visualPhase === "replaying");
     }
 
@@ -5283,10 +5348,10 @@ cx q[0],q[1];`
       return {
         idle: 0,
         parsing: 0,
-        requesting: 2,
         mapping: 1,
         routing: 2,
         output: 3,
+        done: 3,
         error: state.step || 0
       }[state.compilePhase] ?? state.step;
     }
@@ -5312,14 +5377,14 @@ cx q[0],q[1];`
 
     function describeTraceEvent(event) {
       if (!event) {
-        if (state.compilePhase === "requesting") {
-          return "后端编译中";
+        if (state.visualPhase === "compiling") {
+          return backendPhaseReadout();
         }
         if (state.compilePhase === "mapping") {
-          return "展示初始映射";
+          return `映射审阅 · ${Object.keys(resultMapping()).length} 个逻辑位`;
         }
         if (state.compilePhase === "output") {
-          return "编译后 QASM 已生成";
+          return "完成 · 可视化审阅";
         }
         return "待运行";
       }
@@ -5344,22 +5409,61 @@ cx q[0],q[1];`
       return values.map((value) => value === null || value === undefined ? "--" : `${prefix}${value}`).join("-");
     }
 
+    function phaseTimingMap() {
+      return new Map((state.phaseTimings || []).map((phase) => [phase.phase, phase]));
+    }
+
+    function formatPhaseElapsed(phaseName) {
+      const phase = phaseTimingMap().get(phaseName);
+      if (!phase) {
+        return "";
+      }
+      if (Number.isFinite(phase.elapsed_ms)) {
+        return `${Math.max(0, Math.round(phase.elapsed_ms))}ms`;
+      }
+      if (phase.status === "running" && Number.isFinite(phase.started_at)) {
+        return "运行中";
+      }
+      return "";
+    }
+
+    function backendPhaseReadout() {
+      const label = {
+        parsing: "解析",
+        mapping: "映射",
+        routing: "路由",
+        output: "输出"
+      }[state.compilePhase] || "编译";
+      const elapsed = formatPhaseElapsed(state.compilePhase);
+      return elapsed ? `后台编译 · ${label} ${elapsed}` : `后台编译 · ${label}`;
+    }
+
     function renderFlow() {
       syncBodyState();
       state.step = phaseStep();
       const names = {
         idle: "待命",
         parsing: "解析 QASM",
-        requesting: "后端编译中",
         mapping: "映射",
         routing: `${state.activeRouteView.toUpperCase()} 路由`,
         output: "输出 QASM",
+        done: "完成",
         error: "错误"
       };
+      const stagePhases = ["parsing", "mapping", "routing", "output"];
       document.querySelectorAll("[data-stage]").forEach((stage) => {
         const index = Number(stage.dataset.stage);
-        stage.classList.toggle("is-active", index === state.step);
-        stage.classList.toggle("is-done", !["idle", "requesting", "error"].includes(state.compilePhase) && index < state.step);
+        const phaseName = stagePhases[index];
+        const timing = phaseTimingMap().get(phaseName);
+        const isActive = state.visualPhase === "compiling" && state.compilePhase === phaseName;
+        const isDone = state.compilePhase === "done" || timing?.status === "done" || (!["idle", "error"].includes(state.compilePhase) && index < state.step);
+        const isReview = state.visualPhase === "replaying" && index === state.step;
+        const isError = state.compilePhase === "error" && (timing?.status === "error" || index === state.step);
+        stage.classList.toggle("is-active", isActive);
+        stage.classList.toggle("is-done", Boolean(isDone && !isActive && !isError));
+        stage.classList.toggle("is-review", isReview);
+        stage.classList.toggle("is-error", isError);
+        stage.dataset.elapsed = formatPhaseElapsed(phaseName);
       });
       el.routeStatus.textContent = names[state.compilePhase] || "待命";
 
@@ -5373,7 +5477,7 @@ cx q[0],q[1];`
       el.traceBar.style.width = `${ratio}%`;
       el.routeCount.textContent = total
         ? `${state.activeRouteView.toUpperCase()} · ${total} 个事件 · ${stats.edges} 条边 · ${stats.nodes} 个节点`
-        : state.compilePhase === "requesting" ? "编译中" : "0 个事件";
+        : state.visualPhase === "compiling" ? "编译中" : "0 个事件";
       setPressed("[data-route-view]", "routeView", state.activeRouteView);
       renderSourceReplay();
     }
@@ -5671,7 +5775,7 @@ cx q[0],q[1];`
     function stepOnce() {
       if (!state.trace.length) {
         state.visualPhase = state.visualPhase === "compiling" ? "compiling" : "idle";
-        state.compilePhase = state.visualPhase === "compiling" ? "requesting" : "idle";
+        state.compilePhase = state.visualPhase === "compiling" ? state.compilePhase : "idle";
         renderFlow();
         renderTopology();
         return;
@@ -5686,31 +5790,6 @@ cx q[0],q[1];`
       }
       renderFlow();
       renderTopology();
-    }
-
-    function startAnimation() {
-      stopAnimation();
-      state.visualPhase = "compiling";
-      state.compilePhase = "parsing";
-      state.swapPhase = "none";
-      renderFlow();
-      renderTopology();
-      state.timer = window.setTimeout(() => {
-        if (!state.running || state.paused || state.compilePhase !== "parsing") {
-          return;
-        }
-        state.compilePhase = "mapping";
-        renderFlow();
-        renderTopology();
-        state.timer = window.setTimeout(() => {
-          if (!state.running || state.paused || state.compilePhase !== "mapping") {
-            return;
-          }
-          state.compilePhase = "requesting";
-          renderFlow();
-          renderTopology();
-        }, 360);
-      }, 260);
     }
 
     function stopAnimation() {
@@ -5863,6 +5942,57 @@ cx q[0],q[1];`
       });
     }
 
+    function createCompileJob(backend) {
+      return callApi("/api/compile/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(compilePayload(backend))
+      }, JOB_CREATE_TIMEOUT_MS);
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function updateJobPhase(job, backend) {
+      if (!job || !["npqr", "sabre"].includes(backend)) {
+        return;
+      }
+      if (backend !== state.phaseBackend) {
+        return;
+      }
+      state.jobStatus = job.status || "running";
+      state.phaseTimings = job.phases || [];
+      state.compilePhase = job.phase === "done" ? "done" : job.phase === "error" ? "error" : job.phase || state.compilePhase;
+      state.visualPhase = job.status === "completed" ? "done" : job.status === "failed" ? "idle" : "compiling";
+      renderFlow();
+      renderTopology();
+    }
+
+    async function pollCompileJob(job, backend, runId) {
+      let current = job;
+      updateJobPhase(current, backend);
+      while (current.status === "queued" || current.status === "running") {
+        if (runId !== state.runId) {
+          throw new Error("Run superseded");
+        }
+        await sleep(JOB_POLL_INTERVAL_MS);
+        current = await callApi(`/api/compile/jobs/${current.job_id}`, {}, JOB_POLL_TIMEOUT_MS);
+        updateJobPhase(current, backend);
+      }
+      if (current.status === "completed" && current.result) {
+        return current.result;
+      }
+      const error = new Error(current.error || "Compile job failed");
+      error.statusLabel = "错误";
+      throw error;
+    }
+
+    async function compileBackendJob(backend, runId) {
+      const job = await createCompileJob(backend);
+      return pollCompileJob(job, backend, runId);
+    }
+
     function isLargeTopologyRun() {
       const selected = setActiveTopologyForQubits(parseQasmQubits(el.qasm.value));
       return Boolean(selected && selected.capacity > 20);
@@ -5906,11 +6036,11 @@ cx q[0],q[1];`
       }
     }
 
-    async function callApi(path, options = {}) {
+    async function callApi(path, options = {}, timeoutMs = API_TIMEOUT_MS) {
       let lastError = null;
       for (const candidate of apiCandidates()) {
         try {
-          const data = await callApiAt(candidate, path, options);
+          const data = await callApiAt(candidate, path, options, timeoutMs);
           apiBase = candidate;
           setBackend("ok", "在线");
           syncApiControls(`当前 API: ${apiBase}`);
@@ -6094,6 +6224,9 @@ cx q[0],q[1];`
       state.step = state.trace.length ? 1 : 3;
       state.visualPhase = state.trace.length ? "replaying" : "done";
       state.compilePhase = state.trace.length ? "mapping" : "output";
+      if (!state.phaseTimings?.length) {
+        state.phaseTimings = [];
+      }
       state.swapPhase = "none";
       setResultMetrics("npqr", npqrResult, npqrError);
       setResultMetrics("sabre", sabreResult, sabreError);
@@ -6117,6 +6250,36 @@ cx q[0],q[1];`
         : `完成。${traceCopy}`;
     }
 
+    function updateSettledResults(npqrSettled, sabreSettled) {
+      const npqrData = npqrSettled?.status === "fulfilled" ? npqrSettled.value : null;
+      const sabreData = sabreSettled?.status === "fulfilled" ? sabreSettled.value : null;
+      const npqrError = npqrSettled?.status === "rejected" ? npqrSettled.reason : null;
+      const sabreError = sabreSettled?.status === "rejected" ? sabreSettled.reason : null;
+      state.results = {
+        npqr: npqrSettled ? npqrData || null : state.results.npqr,
+        sabre: sabreSettled ? sabreData || null : state.results.sabre
+      };
+      if (npqrSettled && npqrData?.compiled_qasm) {
+        state.activeQasmView = "npqr";
+      } else if (sabreSettled && sabreData?.compiled_qasm && !state.results.npqr?.compiled_qasm) {
+        state.activeQasmView = "sabre";
+      }
+      if (npqrSettled && normalizeTrace(npqrData?.route_trace).length) {
+        state.activeRouteView = "npqr";
+      } else if (sabreSettled && normalizeTrace(sabreData?.route_trace).length && !normalizeTrace(state.results.npqr?.route_trace).length) {
+        state.activeRouteView = "sabre";
+      }
+      if (npqrSettled) {
+        setResultMetrics("npqr", state.results.npqr, npqrError);
+      }
+      if (sabreSettled) {
+        setResultMetrics("sabre", state.results.sabre, sabreError);
+      }
+      updateDelta(state.results.npqr, state.results.sabre);
+      updateQasmView();
+      renderFlow();
+    }
+
     async function run() {
       if (state.visualPhase === "replaying" && state.trace.length) {
         pauseTraceReplay();
@@ -6135,7 +6298,6 @@ cx q[0],q[1];`
           stopAnimation();
         } else {
           state.visualPhase = "compiling";
-          state.compilePhase = "requesting";
           renderFlow();
           renderTopology();
         }
@@ -6163,12 +6325,15 @@ cx q[0],q[1];`
       state.runId = runId;
       resetReplayState();
       state.visualPhase = "compiling";
-      state.compilePhase = "requesting";
+      state.compilePhase = "parsing";
+      state.phaseTimings = [];
+      state.jobStatus = "queued";
       state.swapPhase = "none";
       state.results = { npqr: null, sabre: null };
       state.activeQasmView = "npqr";
-      state.activeRouteView = "npqr";
       const largeTopologyRun = isLargeTopologyRun();
+      state.activeRouteView = largeTopologyRun ? "sabre" : "npqr";
+      state.phaseBackend = largeTopologyRun ? "sabre" : "npqr";
       setRunVisual("running");
       setCompiledState("busy", "生成中");
       setResultMetrics("npqr", largeTopologyRun ? null : { status: "编译中" }, largeTopologyRun ? largeTopologyNpqrBudgetError() : null);
@@ -6179,22 +6344,46 @@ cx q[0],q[1];`
       el.compiled.textContent = "// 等待编译结果";
       renderFlow();
       renderTopology();
-      startAnimation();
 
       let shouldReplay = false;
       try {
+        const npqrPromise = largeTopologyRun
+          ? Promise.reject(largeTopologyNpqrBudgetError())
+          : compileBackendJob("npqr", runId);
+        const sabrePromise = compileBackendJob("sabre", runId);
+        npqrPromise.then(
+          (value) => {
+            if (runId === state.runId) {
+              updateSettledResults({ status: "fulfilled", value }, null);
+            }
+          },
+          (reason) => {
+            if (runId === state.runId && !largeTopologyRun) {
+              updateSettledResults({ status: "rejected", reason }, null);
+            }
+          }
+        );
+        sabrePromise.then(
+          (value) => {
+            if (runId === state.runId) {
+              updateSettledResults(null, { status: "fulfilled", value });
+            }
+          },
+          (reason) => {
+            if (runId === state.runId) {
+              updateSettledResults(null, { status: "rejected", reason });
+            }
+          }
+        );
         const [npqrSettled, sabreSettled] = largeTopologyRun
           ? [
               { status: "rejected", reason: largeTopologyNpqrBudgetError() },
-              await compileBackend("sabre").then(
+              await sabrePromise.then(
                 (value) => ({ status: "fulfilled", value }),
                 (reason) => ({ status: "rejected", reason })
               )
             ]
-          : await Promise.allSettled([
-              compileBackend("npqr"),
-              compileBackend("sabre")
-            ]);
+          : await Promise.allSettled([npqrPromise, sabrePromise]);
         if (runId !== state.runId) {
           return;
         }
@@ -6221,6 +6410,7 @@ cx q[0],q[1];`
         state.traceIndex = 0;
         state.visualPhase = "idle";
         state.compilePhase = "error";
+        state.jobStatus = "failed";
         state.swapPhase = "none";
         renderFlow();
       } finally {

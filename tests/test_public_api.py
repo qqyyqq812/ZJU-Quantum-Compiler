@@ -1,6 +1,8 @@
 """FastAPI smoke tests for the public local playground API."""
 from __future__ import annotations
 
+import time
+
 from fastapi.testclient import TestClient
 from qiskit import qasm2
 
@@ -179,6 +181,56 @@ def test_api_compile_defaults_to_npqr_with_sabre_baseline():
     first_event = body["route_trace"][0]
     assert "reason" in first_event
     assert "source_line" in first_event
+
+
+def _wait_for_compile_job(job_id: str, timeout: float = 10.0) -> dict:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        response = client.get(f"/api/compile/jobs/{job_id}")
+        assert response.status_code == 200
+        body = response.json()
+        if body["status"] in {"completed", "failed"}:
+            return body
+        time.sleep(0.05)
+    raise AssertionError(f"compile job {job_id} did not finish")
+
+
+def test_api_compile_job_returns_real_phase_timings_and_result():
+    response = client.post(
+        "/api/compile/jobs",
+        json={"example": "ghz5", "backend": "sabre", "topology": "tokyo"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["job_id"]
+    assert body["status"] in {"queued", "running", "completed"}
+    assert body["phase"] in {"parsing", "mapping", "routing", "output", "done"}
+
+    final = _wait_for_compile_job(body["job_id"])
+    assert final["status"] == "completed"
+    assert final["phase"] == "done"
+    assert final["result"]["backend"] == "sabre"
+    assert final["result"]["status"] == "OK"
+    phases = {phase["phase"]: phase for phase in final["phases"]}
+    for name in ["parsing", "mapping", "routing", "output"]:
+        assert name in phases
+        assert phases[name]["status"] == "done"
+        assert phases[name]["elapsed_ms"] >= 0
+
+
+def test_api_compile_job_reports_failed_qasm_without_fake_result():
+    response = client.post(
+        "/api/compile/jobs",
+        json={"qasm": "not qasm", "backend": "sabre", "topology": "tokyo"},
+    )
+
+    assert response.status_code == 200
+    final = _wait_for_compile_job(response.json()["job_id"])
+    assert final["status"] == "failed"
+    assert final["phase"] == "error"
+    assert final["result"] is None
+    assert "Invalid OpenQASM 2 input" in final["error"]
 
 
 def test_api_compile_npqr_accepts_frontier_pruning_staging_policy():

@@ -84,9 +84,13 @@ def test_public_site_runs_remote_compile_without_embedded_fallback():
     assert "function compileWithBestAvailableBackend" not in html
     assert "makeEmbeddedTrace" not in html
     assert html.count('callApi("/api/compile"') == 1
+    assert html.count('callApi("/api/compile/jobs"') == 1
+    assert "function createCompileJob(backend)" in html
+    assert "async function pollCompileJob(job, backend, runId)" in html
+    assert "function compileBackendJob(backend, runId)" in html
     assert "function compileBackend(backend)" in html
-    assert "compileBackend(\"npqr\")" in html
-    assert "compileBackend(\"sabre\")" in html
+    assert "compileBackendJob(\"npqr\", runId)" in html
+    assert "compileBackendJob(\"sabre\", runId)" in html
     assert "function isLargeTopologyRun()" in html
     assert "function largeTopologyNpqrBudgetError()" in html
     assert "大拓扑 NPQR 实时编译超过公共 API 时间预算。" in html
@@ -174,7 +178,13 @@ def test_public_site_uses_truthful_compile_replay_state_machine():
     assert 'compilePhase: "idle"' in html
     assert 'swapPhase: "none"' in html
     assert "state.step = (state.step + 1) % 4" not in html
-    assert 'state.compilePhase = "requesting";' in html
+    assert "function startAnimation()" not in html
+    assert 'state.compilePhase = "requesting";' not in html
+    assert 'phaseTimings: []' in html
+    assert 'phaseBackend: "npqr"' in html
+    assert 'state.phaseBackend = largeTopologyRun ? "sabre" : "npqr";' in html
+    assert "state.phaseTimings = job.phases || [];" in html
+    assert "backendPhaseReadout" in html
     assert 'state.compilePhase = "mapping";' in html
     assert 'state.compilePhase = "routing";' in html
     assert 'state.compilePhase = "output";' in html
@@ -190,6 +200,11 @@ def test_public_site_uses_truthful_compile_replay_state_machine():
     assert "快进 ${skipped} 个门" in html
     assert "mapping-focus" in html
     assert "is-dimmed" in html
+    assert "is-review" in html
+    assert "is-error" in html
+    assert "is-done" in html
+    assert "后台编译 ·" in html
+    assert "完成 · 可视化审阅" in html
     assert "animation: swap-label-shift 1s ease-in-out;" in html
     assert 'setRunVisual("replaying");' in html
     assert 'state.swapPhase = "before";' not in html

@@ -11,9 +11,12 @@ localhost, the page can call these endpoints for live NPQR and SABRE routing.
 from __future__ import annotations
 
 import time
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Literal, TYPE_CHECKING
+from threading import Lock
+from typing import Any, Callable, Literal, TYPE_CHECKING
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,6 +56,11 @@ FRONTIER_TRIGGER_PROFILES: dict[str, dict[str, Any]] = {
         "frontier_max_cx_like": 120,
     }
 }
+JOB_TTL_SECONDS = 20 * 60
+JOB_EXECUTOR = ThreadPoolExecutor(max_workers=4, thread_name_prefix="compile-job")
+JobStatus = Literal["queued", "running", "completed", "failed"]
+JobPhase = Literal["parsing", "mapping", "routing", "output", "done", "error"]
+PhaseReporter = Callable[[JobPhase], None]
 
 EXAMPLES: dict[str, dict[str, str]] = {
     "qft5": {
@@ -214,6 +222,162 @@ class CompileResponse(BaseModel):
     message: str | None = None
 
 
+class CompilePhaseTiming(BaseModel):
+    phase: JobPhase
+    status: Literal["pending", "running", "done", "error"] = "pending"
+    started_at: float | None = None
+    ended_at: float | None = None
+    elapsed_ms: float | None = None
+
+
+class CompileJobResponse(BaseModel):
+    job_id: str
+    status: JobStatus
+    phase: JobPhase
+    phases: list[CompilePhaseTiming]
+    result: CompileResponse | None = None
+    error: str | None = None
+    created_at: float
+    updated_at: float
+    expires_at: float
+
+
+class _CompileJobState:
+    def __init__(self, job_id: str, req: CompileRequest) -> None:
+        now = time.time()
+        self.job_id = job_id
+        self.req = req
+        self.status: JobStatus = "queued"
+        self.phase: JobPhase = "parsing"
+        self.result: CompileResponse | None = None
+        self.error: str | None = None
+        self.created_at = now
+        self.updated_at = now
+        self.expires_at = now + JOB_TTL_SECONDS
+        self.phases: dict[JobPhase, CompilePhaseTiming] = {
+            phase: CompilePhaseTiming(phase=phase)
+            for phase in ("parsing", "mapping", "routing", "output")
+        }
+
+    def begin(self, phase: JobPhase) -> None:
+        if phase not in self.phases:
+            return
+        now = time.time()
+        self.status = "running"
+        self.phase = phase
+        timing = self.phases[phase]
+        if timing.started_at is None:
+            timing.started_at = now
+        timing.ended_at = None
+        timing.elapsed_ms = None
+        timing.status = "running"
+        self.updated_at = now
+        self.expires_at = now + JOB_TTL_SECONDS
+
+    def finish_open_phases(self, *, errored: bool = False) -> None:
+        now = time.time()
+        for timing in self.phases.values():
+            if timing.status == "running":
+                timing.ended_at = now
+                timing.elapsed_ms = max(0.0, (now - (timing.started_at or now)) * 1000)
+                timing.status = "error" if errored else "done"
+        self.updated_at = now
+        self.expires_at = now + JOB_TTL_SECONDS
+
+    def complete(self, result: CompileResponse) -> None:
+        now = time.time()
+        self.finish_open_phases()
+        self.status = "completed"
+        self.phase = "done"
+        self.result = result
+        self.updated_at = now
+        self.expires_at = now + JOB_TTL_SECONDS
+
+    def fail(self, message: str) -> None:
+        now = time.time()
+        self.finish_open_phases(errored=True)
+        self.status = "failed"
+        self.phase = "error"
+        self.error = message
+        self.updated_at = now
+        self.expires_at = now + JOB_TTL_SECONDS
+
+    def response(self) -> CompileJobResponse:
+        return CompileJobResponse(
+            job_id=self.job_id,
+            status=self.status,
+            phase=self.phase,
+            phases=list(self.phases.values()),
+            result=self.result,
+            error=self.error,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+            expires_at=self.expires_at,
+        )
+
+
+_compile_jobs: dict[str, _CompileJobState] = {}
+_compile_jobs_lock = Lock()
+
+
+def _cleanup_compile_jobs() -> None:
+    now = time.time()
+    expired = [
+        job_id
+        for job_id, job in _compile_jobs.items()
+        if job.expires_at < now
+    ]
+    for job_id in expired:
+        _compile_jobs.pop(job_id, None)
+
+
+def _job_snapshot(job_id: str) -> CompileJobResponse:
+    with _compile_jobs_lock:
+        _cleanup_compile_jobs()
+        job = _compile_jobs.get(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail=f"Unknown compile job: {job_id}")
+        return job.response()
+
+
+def _job_reporter(job_id: str) -> PhaseReporter:
+    def report(phase: JobPhase) -> None:
+        with _compile_jobs_lock:
+            job = _compile_jobs.get(job_id)
+            if job:
+                job.finish_open_phases()
+                job.begin(phase)
+
+    return report
+
+
+def _run_compile_job(job_id: str) -> None:
+    with _compile_jobs_lock:
+        job = _compile_jobs.get(job_id)
+        if not job:
+            return
+        req = job.req
+    try:
+        result = _compile_request(req, phase_reporter=_job_reporter(job_id))
+    except HTTPException as exc:
+        message = str(exc.detail)
+        with _compile_jobs_lock:
+            job = _compile_jobs.get(job_id)
+            if job:
+                job.fail(message)
+        return
+    except Exception as exc:  # noqa: BLE001
+        with _compile_jobs_lock:
+            job = _compile_jobs.get(job_id)
+            if job:
+                job.fail(str(exc))
+        return
+    with _compile_jobs_lock:
+        job = _compile_jobs.get(job_id)
+        if job:
+            job.complete(result)
+
+
 def _resolve_topology(name: str):
     canon = _TOPOLOGY_ALIAS.get(name, name)
     return canon, get_topology(canon)
@@ -361,16 +525,30 @@ def _compile_sabre(
     coupling_map,
     heuristic: Literal["basic", "lookahead", "decay"] = STANDARD_SABRE_HEURISTIC,
 ) -> QuantumCircuit:
+    mapped = _map_for_sabre(circuit, coupling_map)
+    return _route_mapped_sabre(mapped, coupling_map, heuristic)
+
+
+def _map_for_sabre(circuit: QuantumCircuit, coupling_map) -> QuantumCircuit:
     layout_and_route = PassManager(
         [
             TrivialLayout(coupling_map),
             FullAncillaAllocation(coupling_map),
             EnlargeWithAncilla(),
             ApplyLayout(),
-            SabreSwap(coupling_map, heuristic=heuristic, seed=42, trials=1),
         ]
     )
-    routed = layout_and_route.run(circuit)
+    return layout_and_route.run(circuit)
+
+
+def _route_mapped_sabre(
+    mapped_circuit: QuantumCircuit,
+    coupling_map,
+    heuristic: Literal["basic", "lookahead", "decay"] = STANDARD_SABRE_HEURISTIC,
+) -> QuantumCircuit:
+    routed = PassManager(
+        [SabreSwap(coupling_map, heuristic=heuristic, seed=42, trials=1)]
+    ).run(mapped_circuit)
     return transpile(
         routed,
         basis_gates=BASIS_GATES,
@@ -664,9 +842,12 @@ async def api_npqr_evidence() -> dict:
     return load_npqr_evidence_manifest()
 
 
-@app.post("/api/compile", response_model=CompileResponse)
-async def api_compile(req: CompileRequest) -> CompileResponse:
-    """Compile a QASM example with NPQR or SABRE."""
+def _compile_request(
+    req: CompileRequest,
+    phase_reporter: PhaseReporter | None = None,
+) -> CompileResponse:
+    if phase_reporter:
+        phase_reporter("parsing")
     topo_name, coupling_map = _resolve_topology(req.topology)
     qasm_source = _request_qasm_source(req)
     circuit = _load_request_circuit(req)
@@ -681,6 +862,8 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
 
     if req.backend == "npqr":
         if not DEFAULT_NPQR_MODEL.exists():
+            if phase_reporter:
+                phase_reporter("output")
             return CompileResponse(
                 status="N/A",
                 backend="npqr",
@@ -704,6 +887,8 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
                 message="NPQR checkpoint file is missing; SABRE baseline is comparison only.",
             )
         try:
+            if phase_reporter:
+                phase_reporter("mapping")
             runtime = _npqr_runtime_for(
                 req.topology,
                 str(DEFAULT_NPQR_MODEL),
@@ -712,6 +897,8 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
                 req.npqr_frontier_trigger_profile,
             )
         except ImportError as exc:
+            if phase_reporter:
+                phase_reporter("output")
             return CompileResponse(
                 status="N/A",
                 backend="npqr",
@@ -734,7 +921,11 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
                 baseline=_sabre_summary(circuit, coupling_map),
                 message=f"NPQR dependency is not installed in this REST deployment: {exc.name}.",
             )
+        if phase_reporter:
+            phase_reporter("routing")
         result = runtime.compile(circuit)
+        if phase_reporter:
+            phase_reporter("output")
         compiled_qasm = (
             qasm2.dumps(result.compiled_circuit)
             if req.include_compiled_qasm and result.completed and result.compiled_circuit
@@ -766,7 +957,14 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
         )
 
     if req.backend == "sabre":
-        compiled = _compile_sabre(circuit, coupling_map, req.heuristic)
+        if phase_reporter:
+            phase_reporter("mapping")
+        mapped = _map_for_sabre(circuit, coupling_map)
+        if phase_reporter:
+            phase_reporter("routing")
+        compiled = _route_mapped_sabre(mapped, coupling_map, req.heuristic)
+        if phase_reporter:
+            phase_reporter("output")
         route_trace, final_mapping = _sabre_trace_payload(compiled, circuit.num_qubits)
         ops = dict(compiled.count_ops())
         return CompileResponse(
@@ -791,6 +989,30 @@ async def api_compile(req: CompileRequest) -> CompileResponse:
         )
 
     raise HTTPException(status_code=400, detail="backend must be npqr or sabre.")
+
+
+@app.post("/api/compile/jobs", response_model=CompileJobResponse)
+async def create_compile_job(req: CompileRequest) -> CompileJobResponse:
+    """Create an in-memory compile job and return its current status."""
+    job_id = uuid.uuid4().hex
+    job = _CompileJobState(job_id, req)
+    with _compile_jobs_lock:
+        _cleanup_compile_jobs()
+        _compile_jobs[job_id] = job
+    JOB_EXECUTOR.submit(_run_compile_job, job_id)
+    return _job_snapshot(job_id)
+
+
+@app.get("/api/compile/jobs/{job_id}", response_model=CompileJobResponse)
+async def get_compile_job(job_id: str) -> CompileJobResponse:
+    """Return the current status, phase timings, and result for a compile job."""
+    return _job_snapshot(job_id)
+
+
+@app.post("/api/compile", response_model=CompileResponse)
+async def api_compile(req: CompileRequest) -> CompileResponse:
+    """Compile a QASM example with NPQR or SABRE."""
+    return _compile_request(req)
 
 
 @app.get("/api/topology/{name}")
