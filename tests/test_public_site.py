@@ -16,6 +16,14 @@ def _first_screen(html: str) -> str:
     return body.split('<details class="page" id="advanced"', 1)[0]
 
 
+def _embedded_example_qasm(html: str, example: str) -> str:
+    marker = f"      {example}: {{"
+    start = html.index(marker)
+    qasm_start = html.index("        qasm: `", start) + len("        qasm: `")
+    qasm_end = html.index("`\n      }", qasm_start)
+    return html[qasm_start:qasm_end]
+
+
 def test_public_site_has_one_formal_entry_page():
     html = _html()
     extra_pages = sorted(path.name for path in DOCS.glob("index-*.html"))
@@ -85,6 +93,15 @@ def test_public_site_runs_remote_compile_without_embedded_fallback():
     for example in ["qft5", "ghz5", "qaoa5", "qft10", "qaoa10", "ghz10", "vqe10", "custom"]:
         assert f'data-example="{example}"' in html
         assert f'<option value="{example}"' in html
+
+
+def test_public_site_embeds_full_example_qasm_for_source_replay():
+    html = _html()
+
+    assert "完整示例由后端按名称加载" not in html
+    for example in ["qft5", "ghz5", "qaoa5", "qft10", "qaoa10", "ghz10", "vqe10"]:
+        expected = (Path("examples") / f"{example}.qasm").read_text(encoding="utf-8").rstrip()
+        assert _embedded_example_qasm(html, example) == expected
 
 
 def test_public_site_exposes_real_inputs_outputs_and_fixed_baseline():
