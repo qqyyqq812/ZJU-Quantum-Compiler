@@ -76,6 +76,37 @@ cx q[0],q[1];
     assert "cx" in body["supported_gates"]
 
 
+def test_api_validate_accepts_selected_30_and_50_qubit_grid_topologies():
+    qasm30 = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[30];
+h q[0];
+cx q[0],q[29];
+"""
+    qasm50 = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[50];
+h q[0];
+cx q[0],q[49];
+"""
+
+    ok30 = client.post("/api/validate", json={"qasm": qasm30, "topology": "grid_5x6"})
+    wrong30 = client.post("/api/validate", json={"qasm": qasm30, "topology": "tokyo"})
+    ok50 = client.post("/api/validate", json={"qasm": qasm50, "topology": "grid_5x10"})
+
+    assert ok30.status_code == 200
+    assert ok30.json()["status"] == "OK"
+    assert ok30.json()["input_qubits"] == 30
+
+    assert wrong30.status_code == 200
+    assert wrong30.json()["status"] == "Invalid"
+    assert wrong30.json()["input_qubits"] == 30
+
+    assert ok50.status_code == 200
+    assert ok50.json()["status"] == "OK"
+    assert ok50.json()["input_qubits"] == 50
+
+
 def test_api_validate_rejects_invalid_openqasm2():
     response = client.post("/api/validate", json={"qasm": "qreg q[2];\ncx q[0],q[1];"})
 

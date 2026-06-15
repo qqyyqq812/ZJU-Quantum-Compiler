@@ -92,9 +92,26 @@ def test_public_site_runs_remote_compile_without_embedded_fallback():
     assert "startTraceReplay();" in html
     assert "REST API 可能仍在计算，请稍后再试。" in html
 
-    for example in ["qft5", "ghz5", "qaoa5", "qft10", "qaoa10", "ghz10", "vqe10", "custom"]:
+    for example in [
+        "qft5",
+        "ghz5",
+        "qaoa5",
+        "qft10",
+        "qaoa10",
+        "ghz10",
+        "vqe10",
+        "line_ghz30",
+        "random30d4",
+        "line_ghz50",
+        "ring_sparse50",
+        "custom",
+    ]:
         assert f'data-example="{example}"' in html
         assert f'<option value="{example}"' in html
+
+    assert 'topology: "tokyo"' not in html
+    assert "topology: state.activeTopology.id" in html
+    assert "topology: selected?.id || state.activeTopology.id" in html
 
 
 def test_public_site_embeds_full_example_qasm_for_source_replay():
@@ -175,13 +192,20 @@ def test_public_site_uses_truthful_compile_replay_state_machine():
     assert "mapText.classList.add(\"is-swapping\")" in html
 
 
-def test_public_site_renders_tokyo_topology_and_trace_review():
+def test_public_site_renders_dynamic_topology_and_trace_review():
     html = _html()
 
     assert '<svg class="topology-stage" id="tokyo-topology"' in html
     assert 'aria-label="IBM Tokyo 20Q topology replay"' in html
+    assert 'id="topology-title"' in html
     assert "const topologyNodes = [" in html
     assert "const topologyEdges = [" in html
+    assert "function selectTopologyForQubits" in html
+    assert 'grid_5x6: generateGridTopology("grid_5x6", "Grid 5×6 30Q", 5, 6)' in html
+    assert 'grid_5x10: generateGridTopology("grid_5x10", "Grid 5×10 50Q", 5, 10)' in html
+    assert "当前前端演示上界为选定 50 比特结构。" in html
+    assert 'max="50"' in html
+    assert 'link.download = `compiled_${state.activeTopology.id}_${backend}.qasm`;' in html
     assert "traceEdge(event)" in html
     assert "traceNode(event)" in html
     assert "traceStats" in html

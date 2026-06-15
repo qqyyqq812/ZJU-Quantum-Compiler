@@ -3509,6 +3509,10 @@
           <option value="qaoa10">QAOA 10</option>
           <option value="ghz10">GHZ 10</option>
           <option value="vqe10">VQE 10</option>
+          <option value="line_ghz30">LineGHZ30</option>
+          <option value="random30d4">Random30-d4</option>
+          <option value="line_ghz50">LineGHZ50</option>
+          <option value="ring_sparse50">RingSparse50</option>
           <option value="custom">自定义</option>
         </select>
       </div>
@@ -3546,6 +3550,10 @@
             <button class="dataset" type="button" data-example="qaoa10" aria-pressed="false"><b>QAOA 10</b><span>硬样例</span></button>
             <button class="dataset" type="button" data-example="ghz10" aria-pressed="false"><b>GHZ 10</b><span>长链</span></button>
             <button class="dataset" type="button" data-example="vqe10" aria-pressed="false"><b>VQE 10</b><span>变分线路</span></button>
+            <button class="dataset" type="button" data-example="line_ghz30" aria-pressed="false"><b>LineGHZ30</b><span>Grid 30Q</span></button>
+            <button class="dataset" type="button" data-example="random30d4" aria-pressed="false"><b>Random30-d4</b><span>Grid 30Q</span></button>
+            <button class="dataset" type="button" data-example="line_ghz50" aria-pressed="false"><b>LineGHZ50</b><span>Grid 50Q</span></button>
+            <button class="dataset" type="button" data-example="ring_sparse50" aria-pressed="false"><b>RingSparse50</b><span>Grid 50Q</span></button>
             <button class="dataset" type="button" data-example="custom" aria-pressed="false"><b>自定义</b><span>手写 QASM</span></button>
           </div>
         </div>
@@ -3562,7 +3570,7 @@
               </select>
             </label>
             <label for="generator-qubits">量子位
-              <input id="generator-qubits" type="number" min="2" max="10" value="8">
+              <input id="generator-qubits" type="number" min="2" max="50" value="8">
             </label>
             <label for="generator-layers">层数
               <input id="generator-layers" type="number" min="1" max="6" value="2">
@@ -3599,7 +3607,7 @@
             <div class="route-count" id="route-count">0 个事件</div>
           </div>
           <div class="topology-head">
-            <div>IBM Tokyo 物理拓扑</div>
+            <div id="topology-title">IBM Tokyo 20Q</div>
             <div class="route-status" id="route-status">待命</div>
           </div>
           <div class="route-layout">
@@ -4458,6 +4466,68 @@ cx q[0],q[1];`
       }
     };
 
+    examples.line_ghz30 = {
+      name: "LineGHZ30",
+      qubits: 30,
+      qasm: generateScaleExampleQasm("line_ghz", 30)
+    };
+    examples.random30d4 = {
+      name: "Random30-d4",
+      qubits: 30,
+      qasm: generateScaleExampleQasm("random_depth4", 30)
+    };
+    examples.line_ghz50 = {
+      name: "LineGHZ50",
+      qubits: 50,
+      qasm: generateScaleExampleQasm("line_ghz", 50)
+    };
+    examples.ring_sparse50 = {
+      name: "RingSparse50",
+      qubits: 50,
+      qasm: generateScaleExampleQasm("ring_sparse", 50)
+    };
+
+    function generateScaleExampleQasm(family, qubits) {
+      const lines = [
+        "OPENQASM 2.0;",
+        'include "qelib1.inc";',
+        `qreg q[${qubits}];`
+      ];
+      if (family === "line_ghz") {
+        lines.push("h q[0];");
+        for (let qubit = 0; qubit < qubits - 1; qubit += 1) {
+          lines.push(`cx q[${qubit}],q[${qubit + 1}];`);
+        }
+      } else if (family === "ring_sparse") {
+        for (let qubit = 0; qubit < qubits; qubit += 1) {
+          lines.push(`rz(${((qubit + 1) / 100).toFixed(2)}) q[${qubit}];`);
+          if (qubit % 2 === 0) {
+            lines.push(`sx q[${qubit}];`);
+          }
+        }
+        for (let qubit = 0; qubit < qubits; qubit += 1) {
+          lines.push(`cx q[${qubit}],q[${(qubit + 1) % qubits}];`);
+        }
+        for (let qubit = 0; qubit < qubits; qubit += 5) {
+          lines.push(`cx q[${qubit}],q[${(qubit + qubits / 2) % qubits}];`);
+        }
+      } else {
+        for (let layer = 0; layer < 4; layer += 1) {
+          for (let qubit = 0; qubit < qubits; qubit += 1) {
+            lines.push((qubit + layer) % 3 === 0 ? `h q[${qubit}];` : `rz(${((layer + 1) * (qubit + 1) / 31).toFixed(3)}) q[${qubit}];`);
+          }
+          for (let pair = 0; pair < Math.floor(qubits / 2); pair += 1) {
+            const a = (pair * 7 + layer * 3) % qubits;
+            const b = (a + 5 + pair * 2 + layer) % qubits;
+            if (a !== b) {
+              lines.push(`cx q[${a}],q[${b}];`);
+            }
+          }
+        }
+      }
+      return `${lines.join("\n")}\n`;
+    }
+
     const topologyNodes = [
       [0, 70, 58], [1, 195, 58], [2, 320, 58], [3, 445, 58], [4, 570, 58],
       [5, 70, 178], [6, 195, 178], [7, 320, 178], [8, 445, 178], [9, 570, 178],
@@ -4474,11 +4544,85 @@ cx q[0],q[1];`
       [14, 19], [15, 16], [16, 17], [17, 18], [18, 19]
     ];
 
+    const TOPOLOGY_LIMIT_MESSAGE = "当前前端演示上界为选定 50 比特结构。";
+
+    function generateGridTopology(id, label, rows, cols) {
+      const nodes = [];
+      const edges = [];
+      const left = cols > 6 ? 42 : 70;
+      const right = cols > 6 ? 598 : 570;
+      const top = 56;
+      const bottom = 424;
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          const qubit = row * cols + col;
+          const x = cols === 1 ? 320 : left + ((right - left) * col) / (cols - 1);
+          const y = rows === 1 ? 240 : top + ((bottom - top) * row) / (rows - 1);
+          nodes.push([qubit, Math.round(x), Math.round(y)]);
+          if (col < cols - 1) {
+            edges.push([qubit, qubit + 1]);
+          }
+          if (row < rows - 1) {
+            edges.push([qubit, qubit + cols]);
+          }
+        }
+      }
+      return {
+        id,
+        label,
+        capacity: rows * cols,
+        rows,
+        cols,
+        nodes,
+        edges,
+        nodeRadius: cols > 6 ? 11 : 13,
+        ringRadius: cols > 6 ? 16 : 19,
+        labelSize: cols > 6 ? 9 : 10,
+        mapLabelSize: cols > 6 ? 8 : 8.5,
+        mapLabelOffset: cols > 6 ? 17 : 19
+      };
+    }
+
+    const topologyDefinitions = {
+      tokyo: {
+        id: "tokyo",
+        label: "IBM Tokyo 20Q",
+        capacity: 20,
+        nodes: topologyNodes,
+        edges: topologyEdges,
+        nodeRadius: 16,
+        ringRadius: 22,
+        labelSize: 11,
+        mapLabelSize: 9,
+        mapLabelOffset: 21
+      },
+      grid_5x6: generateGridTopology("grid_5x6", "Grid 5×6 30Q", 5, 6),
+      grid_5x10: generateGridTopology("grid_5x10", "Grid 5×10 50Q", 5, 10)
+    };
+
+    function selectTopologyForQubits(qubits) {
+      const count = Number(qubits);
+      if (!Number.isFinite(count) || count < 1) {
+        return topologyDefinitions.tokyo;
+      }
+      if (count <= 20) {
+        return topologyDefinitions.tokyo;
+      }
+      if (count <= 30) {
+        return topologyDefinitions.grid_5x6;
+      }
+      if (count <= 50) {
+        return topologyDefinitions.grid_5x10;
+      }
+      return null;
+    }
+
     const state = {
       example: "qft5",
       inputMode: "examples",
       activeQasmView: "npqr",
       activeRouteView: "npqr",
+      activeTopology: topologyDefinitions.tokyo,
       results: {
         npqr: null,
         sabre: null
@@ -4525,6 +4669,7 @@ cx q[0],q[1];`
       validationMessage: document.getElementById("validation-message"),
       validationStats: document.getElementById("validation-stats"),
       svg: document.getElementById("tokyo-topology"),
+      topologyTitle: document.getElementById("topology-title"),
       tooltip: document.getElementById("topology-tooltip"),
       routeStatus: document.getElementById("route-status"),
       npqrStatus: document.getElementById("npqr-status"),
@@ -4669,8 +4814,33 @@ cx q[0],q[1];`
       return Math.min(max, Math.max(min, parsed));
     }
 
+    function parseQasmQubits(qasm) {
+      const qregLine = String(qasm || "").split(/\r?\n/).find((line) => /^\s*qreg\s+\w+\[\d+\]\s*;/.test(line));
+      if (!qregLine) {
+        return null;
+      }
+      const qubits = Number(qregLine.match(/\[(\d+)\]/)?.[1]);
+      return Number.isFinite(qubits) ? qubits : null;
+    }
+
+    function setActiveTopologyForQubits(qubits) {
+      const selected = selectTopologyForQubits(qubits);
+      if (selected) {
+        state.activeTopology = selected;
+      }
+      return selected;
+    }
+
+    function activeTopologyNodes() {
+      return state.activeTopology?.nodes || topologyDefinitions.tokyo.nodes;
+    }
+
+    function activeTopologyEdges() {
+      return state.activeTopology?.edges || topologyDefinitions.tokyo.edges;
+    }
+
     function generateCircuitQasm(family, qubits, layers) {
-      const n = clampInteger(qubits, 2, 10, 8);
+      const n = clampInteger(qubits, 2, 50, 8);
       const depth = clampInteger(layers, 1, 6, 2);
       const lines = [
         "OPENQASM 2.0;",
@@ -4765,6 +4935,9 @@ cx q[0],q[1];`
       if (state.example !== "custom" || !el.qasm.value.trim()) {
         el.qasm.value = sample.qasm;
       }
+      setActiveTopologyForQubits(parseQasmQubits(el.qasm.value) || sample.qubits);
+      el.topologyTitle.textContent = state.activeTopology.label;
+      el.svg.setAttribute("aria-label", `${state.activeTopology.label} topology replay`);
       el.qasmLabel.textContent = state.example === "custom"
         ? state.inputMode === "generate" ? "生成的 OpenQASM 2" : "自定义 OpenQASM 2"
         : `示例/${state.example}.qasm`;
@@ -4805,12 +4978,18 @@ cx q[0],q[1];`
       if (!Number.isFinite(qubits) || qubits < 1) {
         return { status: "Invalid", message: "qreg 量子位数量无效。", line: null };
       }
-      if (qubits > 20) {
-        return { status: "Invalid", message: "IBM Tokyo 最多支持 20 个物理量子位。", line: null };
+      const selectedTopology = setActiveTopologyForQubits(qubits);
+      if (!selectedTopology) {
+        return { status: "Invalid", message: TOPOLOGY_LIMIT_MESSAGE, line: null, input_qubits: qubits };
+      }
+      if (qubits > selectedTopology.capacity) {
+        return { status: "Invalid", message: `${selectedTopology.label} 最多支持 ${selectedTopology.capacity} 个物理量子位。`, line: null, input_qubits: qubits };
       }
       const gateCount = lines.filter((line) => /^\s*(h|x|sx|rz|cx|swap|measure|barrier)\b/i.test(line)).length;
       const cxCount = lines.filter((line) => /^\s*cx\b/i.test(line)).length;
-      return { status: "OK", message: "本地格式检查通过。", line: null, input_qubits: qubits, gate_count: gateCount, cx_count: cxCount };
+      el.topologyTitle.textContent = selectedTopology.label;
+      el.svg.setAttribute("aria-label", `${selectedTopology.label} topology replay`);
+      return { status: "OK", message: `本地格式检查通过，目标拓扑 ${selectedTopology.label}。`, line: null, input_qubits: qubits, gate_count: gateCount, cx_count: cxCount };
     }
 
     function renderValidation(result = state.validation) {
@@ -4835,7 +5014,7 @@ cx q[0],q[1];`
         const result = await callApi("/api/validate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ qasm: el.qasm.value, topology: "tokyo" })
+          body: JSON.stringify({ qasm: el.qasm.value, topology: state.activeTopology.id })
         });
         renderValidation({
           status: result.status || "OK",
@@ -5201,15 +5380,25 @@ cx q[0],q[1];`
 
     function renderTopology() {
       const svgNS = "http://www.w3.org/2000/svg";
-      const nodes = new Map(topologyNodes.map(([id, x, y]) => [id, { x, y }]));
-      const traceEvents = state.traceIndex >= 0 ? state.trace.slice(0, state.traceIndex + 1).filter(traceEdge) : [];
+      const topology = state.activeTopology || topologyDefinitions.tokyo;
+      const topologyNodeList = activeTopologyNodes();
+      const topologyEdgeList = activeTopologyEdges();
+      const nodes = new Map(topologyNodeList.map(([id, x, y]) => [id, { x, y }]));
+      const traceEvents = state.traceIndex >= 0
+        ? state.trace.slice(0, state.traceIndex + 1).filter((traceEvent) => {
+          const edge = traceEdge(traceEvent);
+          return edge && nodes.has(edge[0]) && nodes.has(edge[1]);
+        })
+        : [];
       const event = currentTraceEvent();
-      const eventEdge = traceEdge(event);
+      const rawEventEdge = traceEdge(event);
+      const eventEdge = rawEventEdge && nodes.has(rawEventEdge[0]) && nodes.has(rawEventEdge[1]) ? rawEventEdge : null;
       const active = eventEdge;
       const activeKey = active ? edgeKey(active) : "";
       const activeKind = event?.kind || "idle";
       const eventMapping = currentTopologyMapping(event);
-      const activeNode = traceNode(event);
+      const rawActiveNode = traceNode(event);
+      const activeNode = nodes.has(rawActiveNode) ? rawActiveNode : null;
       const activeNodes = new Set(event?.physical_qubits?.map((qubit) => Number(qubit)) || []);
       const mapped = new Set(Object.values(eventMapping).map((value) => Number(value)));
       const trailEvents = traceEvents.slice(-8);
@@ -5219,7 +5408,12 @@ cx q[0],q[1];`
 
       el.svg.textContent = "";
       el.svg.parentElement.dataset.phase = state.visualPhase;
-      topologyEdges.forEach(([a, b]) => {
+      el.svg.dataset.topology = topology.id;
+      if (el.topologyTitle) {
+        el.topologyTitle.textContent = topology.label;
+      }
+      el.svg.setAttribute("aria-label", `${topology.label} topology replay`);
+      topologyEdgeList.forEach(([a, b]) => {
         const from = nodes.get(a);
         const to = nodes.get(b);
         const line = document.createElementNS(svgNS, "line");
@@ -5285,7 +5479,7 @@ cx q[0],q[1];`
         el.svg.append(focus, activeLine, label);
       }
 
-      topologyNodes.forEach(([id, x, y]) => {
+      topologyNodeList.forEach(([id, x, y]) => {
         const group = document.createElementNS(svgNS, "g");
         const circle = document.createElementNS(svgNS, "circle");
         const text = document.createElementNS(svgNS, "text");
@@ -5294,7 +5488,7 @@ cx q[0],q[1];`
         const pairKind = activeKind === "gate" ? "gate-active" : "swap-active";
         circle.setAttribute("cx", x);
         circle.setAttribute("cy", y);
-        circle.setAttribute("r", 16);
+        circle.setAttribute("r", topology.nodeRadius);
         circle.classList.add("topology-node");
         if (state.compilePhase === "mapping" && !mapped.has(id)) {
           circle.classList.add("is-dimmed");
@@ -5317,10 +5511,12 @@ cx q[0],q[1];`
         text.setAttribute("x", x);
         text.setAttribute("y", y + 0.5);
         text.classList.add("node-label");
+        text.style.fontSize = `${topology.labelSize}px`;
         text.textContent = id;
         mapText.setAttribute("x", x);
-        mapText.setAttribute("y", y + 21);
+        mapText.setAttribute("y", y + topology.mapLabelOffset);
         mapText.classList.add("node-map-label");
+        mapText.style.fontSize = `${topology.mapLabelSize}px`;
         if (state.swapPhase !== "none" && activeNodes.has(id)) {
           mapText.classList.add("is-swapping");
         }
@@ -5329,7 +5525,7 @@ cx q[0],q[1];`
           const ring = document.createElementNS(svgNS, "circle");
           ring.setAttribute("cx", x);
           ring.setAttribute("cy", y);
-          ring.setAttribute("r", 22);
+          ring.setAttribute("r", topology.ringRadius);
           ring.classList.add("topology-node-ring", pairActive ? pairKind : "single-active");
           group.appendChild(ring);
         }
@@ -5363,7 +5559,8 @@ cx q[0],q[1];`
       const used = new Map(Object.entries(mapping).map(([logical, physical]) => [Number(physical), Number(logical)]));
       el.mappingActive.textContent = `${used.size} 个逻辑位`;
       el.mappingGrid.textContent = "";
-      topologyNodes.forEach(([physical]) => {
+      el.mappingGrid.style.gridTemplateColumns = `repeat(${Math.min(10, state.activeTopology?.cols || 5)}, minmax(0, 1fr))`;
+      activeTopologyNodes().forEach(([physical]) => {
         const cell = document.createElement("div");
         cell.className = "mapping-cell";
         if (used.has(Number(physical))) {
@@ -5653,7 +5850,8 @@ cx q[0],q[1];`
     }
 
     function compilePayload(backend) {
-      const base = { backend, topology: "tokyo" };
+      const selected = setActiveTopologyForQubits(parseQasmQubits(el.qasm.value));
+      const base = { backend, topology: selected?.id || state.activeTopology.id };
       return { qasm: el.qasm.value, ...base };
     }
 
@@ -6040,7 +6238,7 @@ cx q[0],q[1];`
       const link = document.createElement("a");
       link.href = url;
       const backend = state.activeQasmView || "npqr";
-      link.download = `compiled_tokyo_${backend}.qasm`;
+      link.download = `compiled_${state.activeTopology.id}_${backend}.qasm`;
       document.body.appendChild(link);
       link.click();
       link.remove();
