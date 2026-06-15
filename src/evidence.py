@@ -179,7 +179,7 @@ def build_npqr_evidence_manifest() -> dict[str, Any]:
             "NPQR is a neural-assisted quantum routing compiler for IBM Tokyo-style "
             "hardware constraints. It combines a learned policy with mapping "
             "selection, bounded beam search, pruning, and local repair. On the "
-            "representative 10/20-qubit course benchmark, it completes every case "
+            "representative 10/20-qubit benchmark, it completes every case "
             "and uses fewer SWAPs than the SABRE basic baseline."
         ),
         "default_route": {
@@ -237,7 +237,7 @@ def build_npqr_evidence_manifest() -> dict[str, Any]:
         },
         "representative_10_20_basic": {
             "description": (
-                "Main course-project quality evidence. NPQR is compared with the "
+                "Main quality evidence. NPQR is compared with the "
                 "SABRE basic baseline on representative 10/20-qubit routing tasks."
             ),
             "summary": _quality_summary(REPRESENTATIVE_10_20_BASIC_ROWS),
@@ -285,17 +285,17 @@ def build_npqr_evidence_manifest() -> dict[str, Any]:
                 "The route is verified by replaying the emitted gate and SWAP trace.",
                 "NPQR completes and beats SABRE basic on the representative 10/20-qubit benchmark.",
                 "The bounded 30/50-qubit test completes and beats SABRE basic on the selected cases.",
-                "The project is suitable for course reporting as a graph search and neural heuristic system.",
+                "The project is suitable as a graph search and neural heuristic system.",
             ],
             "not_claimed": [
                 "NPQR is not claimed to beat SABRE on every circuit.",
                 "NPQR is not claimed to beat SABRE lookahead across the board.",
-                "80/100-qubit routing is not claimed as a completed capability in the final course submission.",
+                "80/100-qubit routing is not claimed as a completed capability.",
                 "The checked-in model is not claimed to be a fully retrained state-of-the-art model.",
                 "SABRE is not used as a hidden fallback for NPQR completion.",
             ],
         },
-        "course_algorithm_mapping": [
+        "concept_mapping": [
             "graph modeling",
             "transform-and-conquer",
             "greedy heuristics",

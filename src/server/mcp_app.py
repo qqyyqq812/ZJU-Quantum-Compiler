@@ -362,7 +362,7 @@ def get_npqr_boundary() -> dict[str, Any]:
 
 @mcp.tool()
 def get_algorithm_evidence() -> dict[str, Any]:
-    """Return public NPQR algorithm evidence and course-report mapping."""
+    """Return public NPQR algorithm evidence and concept mapping."""
     manifest = load_npqr_evidence_manifest()
     return manifest
 

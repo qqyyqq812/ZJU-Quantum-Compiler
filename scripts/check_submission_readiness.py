@@ -14,6 +14,12 @@ SITE_PATH = PROJECT_ROOT / "docs" / "index.html"
 PROJECT_GUIDE_PATH = PROJECT_ROOT / "docs" / "项目说明.md"
 USER_GUIDE_PATH = PROJECT_ROOT / "docs" / "playground-user-guide.md"
 AI_DISCLOSURE_PATH = PROJECT_ROOT / "docs" / "ai-collaboration.md"
+FINAL_CLOSURE_PATH = PROJECT_ROOT / "docs" / "final-closure-report.md"
+REPORT_SOURCE_PATHS = [
+    PROJECT_ROOT / "docs" / "report_latex" / "main.tex",
+    *sorted((PROJECT_ROOT / "docs" / "report_latex" / "sections").glob("*.tex")),
+    *sorted((PROJECT_ROOT / "docs" / "report_latex" / "tables").glob("*.tex")),
+]
 PPTX_PATH = PROJECT_ROOT / "docs" / "slides" / "quantum-routing-algorithm-showcase-final.pptx"
 MODEL_PATH = PROJECT_ROOT / "models" / "default" / "npqr-default.pt"
 REST_APP = PROJECT_ROOT / "src" / "server" / "app.py"
@@ -32,9 +38,23 @@ FORBIDDEN_PUBLIC_PATTERNS = [
     "wave2_" + "stage",
     "results/" + "npqr_",
     "组员分工",
-    "大作业",
+    "大" + "作业",
+    "算法" + "设计与" + "智能" + "计算",
+    "算法" + "大" + "作业",
+    "课程" + "项目",
+    "课程" + "报告",
+    "课程" + "作业",
+    "课程" + "代表",
+    "课程" + "算法",
+    "智能" + "计算",
     "人工PR",
+    "co" + "urse-" + "project",
+    "co" + "urse " + "project",
+    "co" + "urse " + "assignment",
+    "co" + "urse " + "submission",
 ]
+
+ALLOWED_ASSIGNMENT_PHRASE = "量子信息基础大作业"
 
 LARGE_EXAMPLE_FILES = [
     PROJECT_ROOT / "examples" / "line_ghz30.qasm",
@@ -80,7 +100,12 @@ def _pptx_text(path: Path = PPTX_PATH) -> str:
 
 
 def _has_forbidden_public_terms(text: str) -> bool:
-    return any(re.search(pattern, text) for pattern in FORBIDDEN_PUBLIC_PATTERNS)
+    normalized = text.replace(ALLOWED_ASSIGNMENT_PHRASE, "")
+    return any(re.search(pattern, normalized) for pattern in FORBIDDEN_PUBLIC_PATTERNS)
+
+
+def _report_source_text() -> str:
+    return "\n".join(_read_text(path) for path in REPORT_SOURCE_PATHS if path.exists())
 
 
 def check_readiness() -> list[ReadinessItem]:
@@ -89,13 +114,17 @@ def check_readiness() -> list[ReadinessItem]:
     project_guide = _read_text(PROJECT_GUIDE_PATH)
     user_guide = _read_text(USER_GUIDE_PATH)
     ai_disclosure = _read_text(AI_DISCLOSURE_PATH)
+    final_closure = _read_text(FINAL_CLOSURE_PATH)
     rest_app = _read_text(REST_APP)
     mcp_app = _read_text(MCP_APP)
     evidence = _read_text(EVIDENCE_MODULE)
     package_script = _read_text(PACKAGE_SCRIPT)
     matrix_script = _read_text(MATRIX_SCRIPT)
     pptx_text = _pptx_text()
-    public_docs = "\n".join([readme, project_guide, user_guide, ai_disclosure])
+    report_source = _report_source_text()
+    public_docs = "\n".join(
+        [readme, project_guide, user_guide, ai_disclosure, final_closure, report_source, pptx_text]
+    )
 
     return [
         ReadinessItem(
@@ -137,7 +166,7 @@ def check_readiness() -> list[ReadinessItem]:
             _status(
                 "npqr_public_algorithm_evidence_v1" in evidence
                 and "algorithm_components" in evidence
-                and "course_algorithm_mapping" in evidence
+                and "concept_mapping" in evidence
                 and "representative_10_20_basic" in evidence
                 and "scale_smoke_30_50_basic" in evidence
                 and "npqr_beats_sabre_basic" in evidence
@@ -168,7 +197,7 @@ def check_readiness() -> list[ReadinessItem]:
             "docs",
             "Public docs hide internal process terms",
             _status(not _has_forbidden_public_terms(public_docs)),
-            "README.md + docs/项目说明.md + docs/playground-user-guide.md + docs/ai-collaboration.md",
+            "README.md + docs/项目说明.md + docs/playground-user-guide.md + docs/ai-collaboration.md + docs/final-closure-report.md + report sources",
         ),
         ReadinessItem(
             "docs",
@@ -190,7 +219,7 @@ def check_readiness() -> list[ReadinessItem]:
                 and "接口说明" in project_guide
                 and "目录结构" in project_guide
                 and "结果边界" in project_guide
-                and "算法设计要点" in project_guide
+                and "方法要点" in project_guide
                 and "SABRE 是固定" in project_guide
             ),
             "docs/项目说明.md",

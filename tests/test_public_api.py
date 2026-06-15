@@ -204,7 +204,7 @@ def test_api_npqr_evidence_returns_public_manifest():
     assert body["scale_smoke_30_50_basic"]["summary"]["npqr_beats_sabre_basic"] == 4
     assert body["large_scale_boundary"]["max_completed_qubits"] == 50
     assert body["scale_smoke_30_50_basic"]["known_boundary"]
-    assert "graph modeling" in body["course_algorithm_mapping"]
+    assert "graph modeling" in body["concept_mapping"]
 
 
 def test_api_compile_defaults_to_npqr_with_sabre_baseline():

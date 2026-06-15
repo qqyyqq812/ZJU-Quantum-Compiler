@@ -1,7 +1,7 @@
 # NPQR final closure report
 
-This report summarizes the final course-project closure target for NPQR. The
-project goal is not to claim state-of-the-art quantum routing. The goal is to
+This report summarizes the final closure target for NPQR. The project goal is
+not to claim state-of-the-art quantum routing. The goal is to
 show a complete, explainable, and reproducible neural-assisted routing system
 that beats the SABRE basic baseline on representative 10/20-qubit circuits and
 shows useful scaling behavior on selected 30/50-qubit bounded tests. A final
@@ -13,7 +13,7 @@ NPQR combines neural action scoring, initial mapping selection, bounded search,
 frontier pruning, suffix repair, and trace replay. SABRE is used only as a
 comparison baseline and is not used as an NPQR fallback.
 
-The final course-project claim is:
+The final project claim is:
 
 - NPQR completes the representative 10/20-qubit benchmark set.
 - NPQR beats SABRE basic on the representative 10/20-qubit benchmark set.
@@ -26,7 +26,7 @@ The final course-project claim is:
 ## 10/20-qubit basic baseline result
 
 The representative 10/20-qubit result is the main performance evidence for the
-course project.
+project.
 
 | case | qubits | NPQR swaps | SABRE basic swaps | delta |
 | --- | ---: | ---: | ---: | ---: |
@@ -67,7 +67,7 @@ Summary:
 - SABRE fallback: `0`
 
 The scale test supports the claim that NPQR has useful larger-scale potential.
-It also shows that the final course-project system has a demonstrated 50-qubit
+It also shows that the final system has a demonstrated 50-qubit
 completion range for selected structures.
 
 ## 80/100-qubit boundary test
@@ -96,13 +96,12 @@ Use a short demo that shows one small, one 20-qubit, and one larger-scale case.
 
 ## Closure boundary
 
-The project is ready to close as a course assignment when the report, website,
-and public tests all use the same claim:
+The project is ready to close when the report, website, and public tests all
+use the same claim:
 
 > NPQR beats SABRE basic on representative 10/20-qubit routing tasks, returns
 > replayable no-fallback traces, and shows useful but not universal scaling
 > behavior up to selected 50-qubit bounded tests.
 
 Do not claim that NPQR beats SABRE lookahead across the board. Do not claim
-state-of-the-art routing. Do not start GPU training for the final course
-submission.
+state-of-the-art routing. Do not start GPU training for the final submission.
