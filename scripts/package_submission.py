@@ -19,10 +19,6 @@ PACKAGE_MANIFEST = [
     ("docs/ai-collaboration.md", "ai-collaboration.md"),
     ("docs/final-closure-report.md", "final-closure-report.md"),
     ("docs/report_latex/main.pdf", "report/npqr-technical-report.pdf"),
-    (
-        "docs/slides/quantum-routing-algorithm-showcase-final.pptx",
-        "slides/quantum-routing-algorithm-showcase-final.pptx",
-    ),
     ("examples/qft5.qasm", "examples/qft5.qasm"),
     ("examples/ghz5.qasm", "examples/ghz5.qasm"),
     ("examples/qaoa5.qasm", "examples/qaoa5.qasm"),

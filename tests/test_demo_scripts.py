@@ -5,7 +5,9 @@ from pathlib import Path
 
 from qiskit import QuantumCircuit
 
+from scripts import measure_phase_timing
 from src import cli
+from src.compiler.profile_timing import PhaseProfiler, maybe_measure
 from src.server.mcp_app import compile_sabre, list_examples
 
 
@@ -45,7 +47,6 @@ def test_submission_package_script_defines_public_review_manifest():
         "docs/ai-collaboration.md",
         "docs/final-closure-report.md",
         "docs/report_latex/main.pdf",
-        "docs/slides/quantum-routing-algorithm-showcase-final.pptx",
         "examples/qft5.qasm",
         "examples/line_ghz30.qasm",
         "examples/random30_d4.qasm",
@@ -96,3 +97,69 @@ def test_checked_in_large_qasm_files_are_parseable():
     ]:
         circuit = QuantumCircuit.from_qasm_file(str(path))
         assert circuit.num_qubits in {30, 50}
+
+
+def test_npqr_phase_timing_script_exposes_required_stage_contract():
+    labels = measure_phase_timing.PHASE_LABELS
+
+    for phase in [
+        "data_preprocessing",
+        "dependency_graph_build",
+        "topology_distance_matrix",
+        "logical_interaction_graph",
+        "initial_mapping_candidates",
+        "main_search",
+        "action_generation_mask",
+        "neural_network_inference",
+        "beam_expand_prune",
+        "postprocessing",
+        "suffix_repair",
+        "trace_replay_validation",
+        "total",
+    ]:
+        assert phase in labels
+
+    assert measure_phase_timing.CASE_SPECS["line_ghz30"].topology == "grid_5x6"
+    assert measure_phase_timing.CASE_SPECS["line_ghz50"].topology == "grid_5x10"
+    assert "qaoa10" in measure_phase_timing.DEFAULT_CASES
+    assert "brickwork20_profile" in measure_phase_timing.DEFAULT_CASES
+
+
+def test_npqr_phase_summary_preserves_timeout_wall_time():
+    runs = [
+        {
+            "case_id": "line_ghz30",
+            "status": "timeout",
+            "wall_ms": 20000.0,
+            "phase_timings": {},
+        },
+        {
+            "case_id": "line_ghz30",
+            "status": "timeout",
+            "wall_ms": 21000.0,
+            "phase_timings": {},
+        },
+    ]
+
+    rows = measure_phase_timing._summarize_runs(runs)
+    total = next(row for row in rows if row["phase"] == "total")
+
+    assert total["ok_runs"] == 0
+    assert total["timeouts"] == 2
+    assert total["mean_ms"] == 0.0
+    assert total["timeout_wall_mean_ms"] == 20500.0
+    assert total["timeout_wall_min_ms"] == 20000.0
+    assert total["timeout_wall_max_ms"] == 21000.0
+
+
+def test_phase_profiler_records_nested_measurements():
+    profiler = PhaseProfiler()
+
+    with maybe_measure(profiler, "unit_test_phase"):
+        sum(range(100))
+    profiler.add("unit_test_phase", 1.5)
+
+    data = profiler.to_dict()["unit_test_phase"]
+    assert data["count"] == 2
+    assert data["total_ms"] >= 1.5
+    assert data["max_ms"] >= data["min_ms"]

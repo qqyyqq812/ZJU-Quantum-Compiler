@@ -20,6 +20,7 @@ from src.compiler.initial_mapping import (
 )
 from src.compiler.light_env import LightweightEnv
 from src.compiler.policy import PolicyNetwork
+from src.compiler.profile_timing import PhaseProfiler, maybe_measure
 
 
 def _load_policy_state_dict(model_path: str):
@@ -120,52 +121,56 @@ def generate_initial_mapping_candidates(
     strategy: str = "legacy",
     qap_local_search_rounds: int = 2,
     selector_top_k: int = 1,
+    profiler: PhaseProfiler | None = None,
 ) -> list[dict[int, int]]:
-    n_logical = circuit.num_qubits
-    n_physical = coupling_map.size()
-    identity = {i: i for i in range(n_logical)}
-    mappings: list[dict[int, int]] = []
-    seen: set[tuple[tuple[int, int], ...]] = set()
-    _append_unique(mappings, seen, identity, n_logical, n_physical)
+    with maybe_measure(profiler, "initial_mapping_candidates"):
+        n_logical = circuit.num_qubits
+        n_physical = coupling_map.size()
+        identity = {i: i for i in range(n_logical)}
+        mappings: list[dict[int, int]] = []
+        seen: set[tuple[tuple[int, int], ...]] = set()
+        _append_unique(mappings, seen, identity, n_logical, n_physical)
 
-    try:
-        greedy = compute_initial_mapping(circuit, coupling_map)
-        _append_unique(mappings, seen, greedy, n_logical, n_physical)
-    except Exception:
-        greedy = identity
-
-    if strategy in {"qap", "selector"}:
         try:
-            qap = compute_qap_initial_mapping(
-                circuit,
-                coupling_map,
-                local_search_rounds=qap_local_search_rounds,
-            )
-            _append_unique(mappings, seen, qap, n_logical, n_physical)
+            with maybe_measure(profiler, "logical_interaction_graph"):
+                greedy = compute_initial_mapping(circuit, coupling_map)
+            _append_unique(mappings, seen, greedy, n_logical, n_physical)
         except Exception:
-            qap = greedy
-    else:
-        qap = greedy
+            greedy = identity
 
-    edges = sorted({tuple(sorted(edge)) for edge in coupling_map.get_edges()})
-    for base in [identity, greedy, qap]:
-        for p1, p2 in edges:
-            if len(mappings) >= 2 + perturbation_count:
-                if strategy == "selector":
-                    return _select_top_mapping_candidates(circuit, coupling_map, mappings, selector_top_k)
-                return mappings
-            candidate = _swap_physical_positions(base, p1, p2)
-            if strategy in {"qap", "selector"}:
-                candidate = improve_mapping_qap_local_search(
-                    circuit,
-                    coupling_map,
-                    candidate,
-                    rounds=qap_local_search_rounds,
-                )
-            _append_unique(mappings, seen, candidate, n_logical, n_physical)
-    if strategy == "selector":
-        return _select_top_mapping_candidates(circuit, coupling_map, mappings, selector_top_k)
-    return mappings
+        if strategy in {"qap", "selector"}:
+            try:
+                with maybe_measure(profiler, "logical_interaction_graph"):
+                    qap = compute_qap_initial_mapping(
+                        circuit,
+                        coupling_map,
+                        local_search_rounds=qap_local_search_rounds,
+                    )
+                _append_unique(mappings, seen, qap, n_logical, n_physical)
+            except Exception:
+                qap = greedy
+        else:
+            qap = greedy
+
+        edges = sorted({tuple(sorted(edge)) for edge in coupling_map.get_edges()})
+        for base in [identity, greedy, qap]:
+            for p1, p2 in edges:
+                if len(mappings) >= 2 + perturbation_count:
+                    if strategy == "selector":
+                        return _select_top_mapping_candidates(circuit, coupling_map, mappings, selector_top_k)
+                    return mappings
+                candidate = _swap_physical_positions(base, p1, p2)
+                if strategy in {"qap", "selector"}:
+                    candidate = improve_mapping_qap_local_search(
+                        circuit,
+                        coupling_map,
+                        candidate,
+                        rounds=qap_local_search_rounds,
+                    )
+                _append_unique(mappings, seen, candidate, n_logical, n_physical)
+        if strategy == "selector":
+            return _select_top_mapping_candidates(circuit, coupling_map, mappings, selector_top_k)
+        return mappings
 
 
 def _select_top_mapping_candidates(
@@ -190,17 +195,20 @@ class NeuralPlanningRouter:
         coupling_map: CouplingMap,
         model_path: str | None = None,
         config: NeuralPlannerConfig | None = None,
+        profiler: PhaseProfiler | None = None,
     ) -> None:
         self.coupling_map = coupling_map
         self.config = config or NeuralPlannerConfig()
         self.model_path = model_path
+        self.profiler = profiler
         self.model_load_error: str | None = None
-        template_env = QuantumRoutingEnv(
-            coupling_map=coupling_map,
-            max_steps=self.config.max_steps,
-            soft_mask=self.config.soft_mask,
-            initial_mapping_fn=None,
-        )
+        with maybe_measure(self.profiler, "topology_distance_matrix"):
+            template_env = QuantumRoutingEnv(
+                coupling_map=coupling_map,
+                max_steps=self.config.max_steps,
+                soft_mask=self.config.soft_mask,
+                initial_mapping_fn=None,
+            )
         self._obs_dim = int(template_env.observation_space.shape[0])
         self._max_front_gates = int(template_env._max_front_gates)
         self._max_swap_edges = int(template_env._max_swap_edges)
@@ -247,10 +255,12 @@ class NeuralPlanningRouter:
             strategy=self.config.mapping_strategy,
             qap_local_search_rounds=self.config.qap_local_search_rounds,
             selector_top_k=self.config.selector_top_k,
+            profiler=self.profiler,
         )
         best: _BeamState | None = None
         for mapping in candidates:
-            state = self._run_beam_for_mapping(circuit, mapping)
+            with maybe_measure(self.profiler, "main_search"):
+                state = self._run_beam_for_mapping(circuit, mapping)
             if self._is_better_state(state, best):
                 best = state
             if best.env.is_done() and best.env._total_swaps == 0:
@@ -319,31 +329,34 @@ class NeuralPlanningRouter:
                     expanded.append(state)
                     continue
                 for action, log_prob in self._top_policy_actions(state.env):
-                    child_env = state.env.clone()
-                    _, _, terminated, truncated, _ = child_env.step(action)
-                    child_trace = (*state.trace, action)
-                    if self.config.execute_gates_first and not terminated and not truncated:
-                        child_trace = self._advance_productive_passes(child_env, child_trace)
-                        terminated = child_env.is_done()
-                        truncated = child_env._step_count >= child_env.max_steps
+                    with maybe_measure(self.profiler, "beam_expand_prune"):
+                        child_env = state.env.clone()
+                        _, _, terminated, truncated, _ = child_env.step(action)
+                        child_trace = (*state.trace, action)
+                        if self.config.execute_gates_first and not terminated and not truncated:
+                            child_trace = self._advance_productive_passes(child_env, child_trace)
+                            terminated = child_env.is_done()
+                            truncated = child_env._step_count >= child_env.max_steps
                     child_value = 1.0 if child_env.is_done() else self._estimate_value(child_env)
                     if truncated and not child_env.is_done():
                         child_value = -1.0
-                    child = _BeamState(
-                        env=child_env,
-                        score=self._score_state(child_env, state.log_policy + log_prob, child_value),
-                        log_policy=state.log_policy + log_prob,
-                        value=child_value,
-                        trace=child_trace,
-                        initial_mapping=state.initial_mapping,
-                    )
+                    with maybe_measure(self.profiler, "beam_expand_prune"):
+                        child = _BeamState(
+                            env=child_env,
+                            score=self._score_state(child_env, state.log_policy + log_prob, child_value),
+                            log_policy=state.log_policy + log_prob,
+                            value=child_value,
+                            trace=child_trace,
+                            initial_mapping=state.initial_mapping,
+                        )
                     expanded.append(child)
                     if self._is_better_state(child, best):
                         best = child
             if not expanded:
                 break
-            expanded.sort(key=lambda item: item.score, reverse=True)
-            beam = expanded[: self.config.beam_width]
+            with maybe_measure(self.profiler, "beam_expand_prune"):
+                expanded.sort(key=lambda item: item.score, reverse=True)
+                beam = expanded[: self.config.beam_width]
             if all(state.env.is_done() for state in beam):
                 break
         return best
@@ -368,28 +381,34 @@ class NeuralPlanningRouter:
         def mapping_fn(_circuit, _coupling_map):
             return dict(initial_mapping)
 
-        env = QuantumRoutingEnv(
-            coupling_map=self.coupling_map,
-            max_steps=self.config.max_steps,
-            soft_mask=self.config.soft_mask,
-            initial_mapping_fn=mapping_fn,
-        )
+        with maybe_measure(self.profiler, "topology_distance_matrix"):
+            env = QuantumRoutingEnv(
+                coupling_map=self.coupling_map,
+                max_steps=self.config.max_steps,
+                soft_mask=self.config.soft_mask,
+                initial_mapping_fn=mapping_fn,
+            )
         env.set_circuit(circuit)
-        env.reset()
+        with maybe_measure(self.profiler, "dependency_graph_build"):
+            env.reset()
         return env
 
     def _top_policy_actions(self, env: LightweightEnv) -> list[tuple[int, float]]:
         device = next(self.policy.parameters()).device
-        obs = torch.tensor(self._fixed_obs(env), dtype=torch.float32, device=device).unsqueeze(0)
-        info = env._get_info()
-        gnn_input = info["gnn_input"]
-        graph_batch = GraphBatch.from_data_list([gnn_input["graph"]]).to(device)
-        action_mask = torch.tensor(env.get_action_mask(), dtype=torch.float32, device=device)
-        with torch.no_grad():
-            dist, _ = self.policy.forward(obs, graph_batch, [gnn_input["swap_edges"]])
+        with maybe_measure(self.profiler, "action_generation_mask"):
+            mask = env.get_action_mask()
+        action_mask = torch.tensor(mask, dtype=torch.float32, device=device)
+        with maybe_measure(self.profiler, "neural_network_inference"):
+            obs = torch.tensor(self._fixed_obs(env), dtype=torch.float32, device=device).unsqueeze(0)
+            info = env._get_info()
+            gnn_input = info["gnn_input"]
+            graph_batch = GraphBatch.from_data_list([gnn_input["graph"]]).to(device)
+            with torch.no_grad():
+                dist, _ = self.policy.forward(obs, graph_batch, [gnn_input["swap_edges"]])
             logits = dist.logits.squeeze(0)
-            logits = logits.masked_fill(action_mask == 0, -1e9)
-            log_probs = torch.log_softmax(logits, dim=-1)
+        logits = logits.masked_fill(action_mask == 0, -1e9)
+        log_probs = torch.log_softmax(logits, dim=-1)
+        with maybe_measure(self.profiler, "action_generation_mask"):
             valid = torch.where(action_mask > 0)[0]
             if valid.numel() == 0:
                 return []
@@ -403,12 +422,13 @@ class NeuralPlanningRouter:
 
     def _estimate_value(self, env: LightweightEnv) -> float:
         device = next(self.policy.parameters()).device
-        obs = torch.tensor(self._fixed_obs(env), dtype=torch.float32, device=device).unsqueeze(0)
-        info = env._get_info()
-        gnn_input = info["gnn_input"]
-        graph_batch = GraphBatch.from_data_list([gnn_input["graph"]]).to(device)
-        with torch.no_grad():
-            _, values = self.policy.forward(obs, graph_batch, [gnn_input["swap_edges"]])
+        with maybe_measure(self.profiler, "neural_network_inference"):
+            obs = torch.tensor(self._fixed_obs(env), dtype=torch.float32, device=device).unsqueeze(0)
+            info = env._get_info()
+            gnn_input = info["gnn_input"]
+            graph_batch = GraphBatch.from_data_list([gnn_input["graph"]]).to(device)
+            with torch.no_grad():
+                _, values = self.policy.forward(obs, graph_batch, [gnn_input["swap_edges"]])
         return float(values.squeeze(0).item())
 
     def _fixed_obs(self, env: LightweightEnv) -> np.ndarray:

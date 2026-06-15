@@ -24,7 +24,6 @@ def test_submission_readiness_marks_public_release_ready():
         "Website opens from GitHub Pages with optional REST and MCP",
         "Final package script is user-facing",
         "Algorithm matrix remains reproducible",
-        "Presentation material exists",
     ]
     for item in expected_ready:
         assert by_item[item].status == "READY"

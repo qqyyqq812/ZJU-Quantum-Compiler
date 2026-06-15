@@ -24,6 +24,7 @@ from src.compiler.npqr_trace import (
     replay_action_trace,
     verify_routed_circuit_topology,
 )
+from src.compiler.profile_timing import PhaseProfiler, maybe_measure
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -326,19 +327,23 @@ class NPQRRuntime:
         coupling_map: CouplingMap,
         model_path: str | Path = DEFAULT_NPQR_MODEL,
         config: NPQRRuntimeConfig | None = None,
+        profiler: PhaseProfiler | None = None,
     ) -> None:
         self.coupling_map = coupling_map
         self.model_path = Path(model_path)
         self.config = config or NPQRRuntimeConfig()
+        self.profiler = profiler
         self.primary_router = NeuralPlanningRouter(
             coupling_map,
             model_path=str(self.model_path),
             config=_planner_config(self.config, selector_top_k=self.config.primary_selector_top_k),
+            profiler=profiler,
         )
         self.rescue_router = NeuralPlanningRouter(
             coupling_map,
             model_path=str(self.model_path),
             config=_planner_config(self.config, selector_top_k=self.config.rescue_selector_top_k),
+            profiler=profiler,
         )
 
     @property
@@ -444,24 +449,27 @@ class NPQRRuntime:
                 final_trace,
                 max_steps=max(self.config.max_steps, len(final_trace) + self.config.suffix_depth),
             )
-            suffix = search_completion_suffix(
-                env,
-                max_depth=self.config.suffix_depth,
-                max_nodes=self.config.suffix_max_nodes,
-                action_limit=self.config.suffix_action_limit,
-            )
+            with maybe_measure(self.profiler, "suffix_repair"):
+                suffix = search_completion_suffix(
+                    env,
+                    max_depth=self.config.suffix_depth,
+                    max_nodes=self.config.suffix_max_nodes,
+                    action_limit=self.config.suffix_action_limit,
+                )
             if suffix.found:
                 final_trace = (*final_trace, *suffix.suffix_actions)
 
-        replay = replay_action_trace(
-            circuit,
-            self.coupling_map,
-            selected.initial_mapping,
-            list(final_trace),
-            max_steps=max(self.config.max_steps, len(final_trace) + 1),
-        )
-        compiled_circuit = build_routed_circuit_from_replay(circuit, self.coupling_map, replay)
-        topology_check = verify_routed_circuit_topology(compiled_circuit, self.coupling_map)
+        with maybe_measure(self.profiler, "postprocessing"):
+            with maybe_measure(self.profiler, "trace_replay_validation"):
+                replay = replay_action_trace(
+                    circuit,
+                    self.coupling_map,
+                    selected.initial_mapping,
+                    list(final_trace),
+                    max_steps=max(self.config.max_steps, len(final_trace) + 1),
+                )
+                compiled_circuit = build_routed_circuit_from_replay(circuit, self.coupling_map, replay)
+                topology_check = verify_routed_circuit_topology(compiled_circuit, self.coupling_map)
         if not topology_check.passed:
             return NPQRRuntimeResult(
                 algorithm="npqr_neural_selector_suffix_v1",
@@ -535,10 +543,12 @@ class NPQRRuntime:
             strategy="selector",
             qap_local_search_rounds=self.config.qap_local_search_rounds,
             selector_top_k=self.config.frontier_selector_top_k,
+            profiler=self.profiler,
         )[: max(1, self.config.frontier_max_candidates)]
         best: FrontierRescueResult | None = None
         for mapping in mappings:
-            result = self._route_mapping_with_frontier_objective(circuit, mapping)
+            with maybe_measure(self.profiler, "main_search"):
+                result = self._route_mapping_with_frontier_objective(circuit, mapping)
             if self._is_better_frontier_result(result, best):
                 best = result
         if best is None:
@@ -586,22 +596,24 @@ class NPQRRuntime:
             seen_states.add(_frontier_state_key(env))
             if env.is_done() or env._step_count >= env.max_steps:
                 break
-            actions = self._valid_frontier_swap_actions(env)
+            with maybe_measure(self.profiler, "action_generation_mask"):
+                actions = self._valid_frontier_swap_actions(env)
             if not actions:
                 break
-            action = min(
-                actions,
-                key=lambda candidate: self._score_frontier_action(
-                    env,
-                    candidate,
-                    seen_states=seen_states,
-                    recent_actions=recent_actions,
-                ),
-            )
-            _, _, terminated, truncated, _ = env.step(int(action))
-            trace.append(int(action))
-            recent_actions.append(int(action))
-            seen_states.add(_frontier_state_key(env))
+            with maybe_measure(self.profiler, "beam_expand_prune"):
+                action = min(
+                    actions,
+                    key=lambda candidate: self._score_frontier_action(
+                        env,
+                        candidate,
+                        seen_states=seen_states,
+                        recent_actions=recent_actions,
+                    ),
+                )
+                _, _, terminated, truncated, _ = env.step(int(action))
+                trace.append(int(action))
+                recent_actions.append(int(action))
+                seen_states.add(_frontier_state_key(env))
             if terminated or truncated:
                 break
         return FrontierRescueResult(
@@ -763,15 +775,17 @@ class NPQRRuntime:
         message: str,
         components: dict[str, bool | int | float | None | dict[str, float | int | bool]],
     ) -> NPQRRuntimeResult:
-        replay = replay_action_trace(
-            circuit,
-            self.coupling_map,
-            initial_mapping,
-            list(final_trace),
-            max_steps=max(self.config.max_steps, self.config.frontier_max_steps, len(final_trace) + 1),
-        )
-        compiled_circuit = build_routed_circuit_from_replay(circuit, self.coupling_map, replay)
-        topology_check = verify_routed_circuit_topology(compiled_circuit, self.coupling_map)
+        with maybe_measure(self.profiler, "postprocessing"):
+            with maybe_measure(self.profiler, "trace_replay_validation"):
+                replay = replay_action_trace(
+                    circuit,
+                    self.coupling_map,
+                    initial_mapping,
+                    list(final_trace),
+                    max_steps=max(self.config.max_steps, self.config.frontier_max_steps, len(final_trace) + 1),
+                )
+                compiled_circuit = build_routed_circuit_from_replay(circuit, self.coupling_map, replay)
+                topology_check = verify_routed_circuit_topology(compiled_circuit, self.coupling_map)
         if not topology_check.passed:
             return NPQRRuntimeResult(
                 algorithm=algorithm,

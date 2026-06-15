@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import re
-import zipfile
 from dataclasses import dataclass
-from html import unescape
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -20,7 +18,6 @@ REPORT_SOURCE_PATHS = [
     *sorted((PROJECT_ROOT / "docs" / "report_latex" / "sections").glob("*.tex")),
     *sorted((PROJECT_ROOT / "docs" / "report_latex" / "tables").glob("*.tex")),
 ]
-PPTX_PATH = PROJECT_ROOT / "docs" / "slides" / "quantum-routing-algorithm-showcase-final.pptx"
 MODEL_PATH = PROJECT_ROOT / "models" / "default" / "npqr-default.pt"
 REST_APP = PROJECT_ROOT / "src" / "server" / "app.py"
 MCP_APP = PROJECT_ROOT / "src" / "server" / "mcp_app.py"
@@ -80,25 +77,6 @@ def _status(ok: bool) -> str:
     return "READY" if ok else "BLOCKED"
 
 
-def _pptx_text(path: Path = PPTX_PATH) -> str:
-    if not path.exists():
-        return ""
-    with zipfile.ZipFile(path) as deck:
-        slide_names = sorted(
-            [
-                name
-                for name in deck.namelist()
-                if name.startswith("ppt/slides/slide") and name.endswith(".xml")
-            ],
-            key=lambda name: int(re.search(r"slide(\d+)\.xml", name).group(1)),
-        )
-        parts: list[str] = []
-        for slide_name in slide_names:
-            xml = deck.read(slide_name).decode("utf-8", errors="ignore")
-            parts.extend(unescape(text) for text in re.findall(r"<a:t>(.*?)</a:t>", xml))
-        return "\n".join(parts)
-
-
 def _has_forbidden_public_terms(text: str) -> bool:
     normalized = text.replace(ALLOWED_ASSIGNMENT_PHRASE, "")
     return any(re.search(pattern, normalized) for pattern in FORBIDDEN_PUBLIC_PATTERNS)
@@ -120,10 +98,9 @@ def check_readiness() -> list[ReadinessItem]:
     evidence = _read_text(EVIDENCE_MODULE)
     package_script = _read_text(PACKAGE_SCRIPT)
     matrix_script = _read_text(MATRIX_SCRIPT)
-    pptx_text = _pptx_text()
     report_source = _report_source_text()
     public_docs = "\n".join(
-        [readme, project_guide, user_guide, ai_disclosure, final_closure, report_source, pptx_text]
+        [readme, project_guide, user_guide, ai_disclosure, final_closure, report_source]
     )
 
     return [
@@ -273,12 +250,6 @@ def check_readiness() -> list[ReadinessItem]:
                 and "--csv" in matrix_script
             ),
             "scripts/experiment_algorithm_matrix.py",
-        ),
-        ReadinessItem(
-            "slides",
-            "Presentation material exists",
-            _status(PPTX_PATH.exists() and ("NPQR" in pptx_text or PPTX_PATH.stat().st_size > 0)),
-            "docs/slides/quantum-routing-algorithm-showcase-final.pptx",
         ),
     ]
 
