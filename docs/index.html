@@ -2362,11 +2362,11 @@
 
     body.instrument-v2 #main-part {
       display: grid;
-      grid-template-columns: 286px minmax(560px, 1fr) 352px;
+      grid-template-columns: 272px minmax(520px, 1fr) 328px;
       grid-template-areas:
         "data topology output"
         "inspector inspector inspector";
-      min-height: calc(100vh - 86px);
+      min-height: calc(100vh - 76px);
       background: var(--lab-paper);
       border: 1px solid var(--lab-line);
       border-top: 2px solid var(--lab-orange);
@@ -2382,7 +2382,7 @@
     }
 
     body.instrument-v2 .column {
-      padding: 14px 16px 16px;
+      padding: 11px 13px 13px;
       background: var(--lab-paper);
       color: var(--lab-ink);
       border-left: 1px solid var(--lab-line);
@@ -2558,8 +2558,8 @@
     }
 
     body.instrument-v2 textarea {
-      min-height: 250px;
-      padding: 9px;
+      min-height: 210px;
+      padding: 8px;
       resize: vertical;
     }
 
@@ -2568,8 +2568,8 @@
     }
 
     body.instrument-v2 .qasm-replay {
-      min-height: 250px;
-      max-height: 360px;
+      min-height: 210px;
+      max-height: 270px;
       border: 1px solid var(--lab-line-dark);
       background:
         linear-gradient(180deg, rgba(0, 111, 174, 0.025), transparent 120px),
@@ -2679,7 +2679,7 @@
     }
 
     body.instrument-v2 .topology-stage-wrap {
-      aspect-ratio: 16 / 10.4;
+      aspect-ratio: 16 / 9.4;
       border: 1px solid #c4d3dd;
       background:
         linear-gradient(90deg, rgba(43, 92, 120, 0.11) 1px, transparent 1px),
@@ -2747,6 +2747,10 @@
       transition: stroke 0.18s ease, stroke-width 0.18s ease, opacity 0.18s ease;
     }
 
+    body.instrument-v2 .topology-edge.is-dimmed {
+      opacity: 0.16;
+    }
+
     body.instrument-v2 .topology-edge.gate-edge {
       stroke: #1296b8;
       opacity: 0.95;
@@ -2791,6 +2795,13 @@
       transition: fill 0.18s ease, stroke 0.18s ease, stroke-width 0.18s ease, filter 0.18s ease;
     }
 
+    body.instrument-v2 .topology-node.is-dimmed {
+      fill: #f8fafb;
+      stroke: #c8d5dd;
+      opacity: 0.42;
+      filter: none;
+    }
+
     body.instrument-v2 .topology-node.mapped {
       fill: #eaf7fb;
       stroke: #188eac;
@@ -2798,10 +2809,10 @@
     }
 
     body.instrument-v2 .topology-node.mapping-focus {
-      fill: #def7fd;
+      fill: #d8f8ff;
       stroke: var(--lab-cyan);
-      stroke-width: 2.4;
-      filter: drop-shadow(0 2px 6px rgba(20, 169, 214, 0.24));
+      stroke-width: 2.9;
+      filter: drop-shadow(0 2px 8px rgba(20, 169, 214, 0.3));
     }
 
     body.instrument-v2 .topology-node.active {
@@ -2893,7 +2904,7 @@
     body.instrument-v2 .node-map-label.is-swapping {
       fill: var(--lab-orange);
       font-weight: 700;
-      animation: swap-label-shift 0.7s ease-in-out;
+      animation: swap-label-shift 1s ease-in-out;
     }
 
     @keyframes swap-label-shift {
@@ -2995,9 +3006,9 @@
     body.instrument-v2 .route-inspector {
       grid-area: inspector;
       display: grid;
-      grid-template-columns: 250px 1fr 1.1fr;
-      gap: 10px;
-      padding: 12px 16px 16px;
+      grid-template-columns: 230px 0.9fr 1.1fr;
+      gap: 8px;
+      padding: 8px 12px 10px;
       border-top: 1px solid var(--lab-line);
       background: #f6f7f8;
       scroll-margin-top: 92px;
@@ -3018,7 +3029,7 @@
     }
 
     body.instrument-v2 .route-timeline {
-      max-height: 158px;
+      max-height: 118px;
       overflow: auto;
       overscroll-behavior: contain;
       scroll-behavior: auto;
@@ -3133,7 +3144,7 @@
     body.instrument-v2 .delta-grid {
       display: grid;
       grid-template-columns: 1fr;
-      margin-top: 10px;
+      margin-top: 8px;
       border: 1px solid var(--lab-line);
       border-radius: 0;
       overflow: hidden;
@@ -3143,8 +3154,8 @@
       display: grid;
       grid-template-columns: 64px minmax(0, 1fr);
       align-items: baseline;
-      min-height: 30px;
-      padding: 6px 9px;
+      min-height: 28px;
+      padding: 5px 8px;
       background: linear-gradient(180deg, #fff, #f8fafc);
       border-top: 1px solid var(--lab-line);
       border-color: var(--lab-line);
@@ -3163,9 +3174,9 @@
     }
 
     body.instrument-v2 .message {
-      min-height: 30px;
-      margin: 10px 0;
-      padding: 7px 9px;
+      min-height: 28px;
+      margin: 8px 0;
+      padding: 6px 8px;
       border-left: 2px solid var(--lab-cyan);
       background: linear-gradient(90deg, #f0fbff 0%, #fbfdfe 100%);
       color: #40515d;
@@ -3180,7 +3191,7 @@
     }
 
     body.instrument-v2 .qasm-details {
-      margin: 10px 0 0;
+      margin: 8px 0 0;
       border: 1px solid var(--lab-line);
       border-top: 0;
       background: linear-gradient(180deg, #fff, #fbfcfd);
@@ -3191,7 +3202,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 10px;
-      padding: 8px 9px;
+      padding: 6px 8px;
       border-top: 1px solid var(--lab-line);
       color: var(--lab-ink);
       font-weight: 650;
@@ -3204,7 +3215,7 @@
       grid-template-columns: minmax(0, 1fr) auto auto;
       gap: 8px;
       align-items: center;
-      margin: 8px;
+      margin: 6px;
     }
 
     body.instrument-v2 .compiled-head h4 {
@@ -3240,10 +3251,10 @@
     }
 
     body.instrument-v2 #compiled-qasm-output {
-      min-height: 170px;
-      max-height: 280px;
-      margin: 8px;
-      padding: 9px;
+      min-height: 122px;
+      max-height: 182px;
+      margin: 6px;
+      padding: 8px;
       background: var(--lab-code);
       color: #101820;
       border-color: var(--lab-line-dark);
@@ -4468,6 +4479,7 @@ cx q[0],q[1];`
       step: 0,
       trace: [],
       traceIndex: 0,
+      previousTraceIndex: -1,
       replayRows: [],
       replaySignature: "",
       timelineSignature: "",
@@ -4607,6 +4619,7 @@ cx q[0],q[1];`
       state.step = 0;
       state.trace = [];
       state.traceIndex = 0;
+      state.previousTraceIndex = -1;
       state.replayRows = [];
       state.replaySignature = "";
       state.timelineSignature = "";
@@ -5050,6 +5063,7 @@ cx q[0],q[1];`
       state.activeRouteView = view;
       state.trace = routeTrace(view);
       state.traceIndex = state.trace.length ? -1 : 0;
+      state.previousTraceIndex = -1;
       state.step = state.trace.length ? 1 : 0;
       state.paused = Boolean(state.trace.length);
       state.visualPhase = state.trace.length ? "paused" : "idle";
@@ -5127,7 +5141,9 @@ cx q[0],q[1];`
       if (event.kind === "swap") {
         return `插入 SWAP ${qubits}，位置 ${formatOptional(event.insertion_index)} · 逻辑位 ${logical}`;
       }
-      return `${event.op || "门"} ${logical} → ${qubits}`;
+      const skipped = Math.max(0, state.traceIndex - state.previousTraceIndex - 1);
+      const jumpText = skipped > 0 ? ` · 快进 ${skipped} 个门` : "";
+      return `${event.op || "门"} ${logical} → ${qubits}${jumpText}`;
     }
 
     function formatOptional(value) {
@@ -5204,6 +5220,9 @@ cx q[0],q[1];`
         line.setAttribute("x2", to.x);
         line.setAttribute("y2", to.y);
         line.classList.add("topology-edge");
+        if (state.compilePhase === "mapping" && (!mapped.has(a) || !mapped.has(b))) {
+          line.classList.add("is-dimmed");
+        }
         line.addEventListener("mousemove", (event) => showTooltip(event, `${state.activeRouteView.toUpperCase()} 耦合边 p${a}-p${b}`));
         line.addEventListener("mouseleave", hideTooltip);
         el.svg.appendChild(line);
@@ -5269,6 +5288,9 @@ cx q[0],q[1];`
         circle.setAttribute("cy", y);
         circle.setAttribute("r", 16);
         circle.classList.add("topology-node");
+        if (state.compilePhase === "mapping" && !mapped.has(id)) {
+          circle.classList.add("is-dimmed");
+        }
         if (mapped.has(id)) {
           circle.classList.add("mapped");
           if (state.compilePhase === "mapping") {
@@ -5400,6 +5422,7 @@ cx q[0],q[1];`
             `<span class="timeline-insert">g${formatOptional(event.insertion_index)}</span>`
           ].join("");
           row.addEventListener("click", () => {
+            state.previousTraceIndex = index - 1;
             state.traceIndex = index;
             state.compilePhase = index >= trace.length - 1 ? "output" : "routing";
             state.swapPhase = event.kind === "swap" ? "after" : "none";
@@ -5451,6 +5474,7 @@ cx q[0],q[1];`
       state.visualPhase = "replaying";
       state.compilePhase = "routing";
       state.swapPhase = "none";
+      state.previousTraceIndex = state.traceIndex;
       state.traceIndex = (state.traceIndex + 1) % state.trace.length;
       if (state.traceIndex === state.trace.length - 1) {
         state.compilePhase = "output";
@@ -5509,15 +5533,14 @@ cx q[0],q[1];`
       return limit;
     }
 
-    function traceAdvanceDelay(event, previousIndex) {
+    function traceAdvanceDelay(event) {
       if (!event) {
-        return 8;
+        return 100;
       }
       if (event.kind === "swap") {
-        return 700;
+        return 500;
       }
-      const skipped = Math.max(1, state.traceIndex - previousIndex);
-      return skipped > 1 ? 18 : state.trace.length > 80 ? 12 : 22;
+      return 100;
     }
 
     function scheduleTraceAdvance(initialDelay = 120) {
@@ -5527,7 +5550,7 @@ cx q[0],q[1];`
           state.swapPhase = "after";
           renderFlow();
           renderTopology();
-          state.timer = window.setTimeout(advance, 360);
+          state.timer = window.setTimeout(advance, 500);
           return;
         }
         if (state.traceIndex >= state.trace.length - 1) {
@@ -5541,6 +5564,7 @@ cx q[0],q[1];`
           return;
         }
         const previousIndex = state.traceIndex;
+        state.previousTraceIndex = previousIndex;
         state.traceIndex = nextReplayIndex();
         state.compilePhase = "routing";
         state.visualPhase = "replaying";
@@ -5548,7 +5572,7 @@ cx q[0],q[1];`
         state.swapPhase = nextEvent?.kind === "swap" ? "before" : "none";
         renderFlow();
         renderTopology();
-        state.timer = window.setTimeout(advance, traceAdvanceDelay(nextEvent, previousIndex));
+        state.timer = window.setTimeout(advance, traceAdvanceDelay(nextEvent));
       };
 
       state.timer = window.setTimeout(advance, initialDelay);
@@ -5585,6 +5609,7 @@ cx q[0],q[1];`
       if (!state.trace.length) {
         return;
       }
+      state.previousTraceIndex = -1;
       state.traceIndex = -1;
       state.compilePhase = "mapping";
       state.swapPhase = "none";

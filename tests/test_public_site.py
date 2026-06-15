@@ -34,7 +34,7 @@ def test_public_site_has_one_formal_entry_page():
     assert "量子编译实验台" in html
     assert "Lab Instrument Playground V2" in html
     assert "Quantum Studio" not in html
-    assert "grid-template-columns: 286px minmax(560px, 1fr) 352px" in html
+    assert "grid-template-columns: 272px minmax(520px, 1fr) 328px" in html
     assert 'grid-template-areas: "data topology output";' in html
 
 
@@ -160,8 +160,12 @@ def test_public_site_uses_truthful_compile_replay_state_machine():
     assert "state.replaySignature !== signature" in html
     assert "state.timelineSignature !== signature" in html
     assert 'state.compilePhase = "parsing";' in html
-    assert "return 700;" in html
+    assert "return 100;" in html
+    assert "return 500;" in html
+    assert "快进 ${skipped} 个门" in html
     assert "mapping-focus" in html
+    assert "is-dimmed" in html
+    assert "animation: swap-label-shift 1s ease-in-out;" in html
     assert 'setRunVisual("replaying");' in html
     assert 'state.swapPhase = "before";' not in html
     assert 'state.swapPhase = nextEvent?.kind === "swap" ? "before" : "none";' in html
