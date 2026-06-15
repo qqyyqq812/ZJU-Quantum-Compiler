@@ -2233,6 +2233,25 @@
       cursor: pointer;
     }
 
+    body.instrument-v2 .interface-button {
+      height: 24px;
+      padding: 0 9px;
+      border: 1px solid rgba(159, 170, 180, 0.42);
+      background: rgba(255, 255, 255, 0.035);
+      color: #dce8f2;
+      border-radius: 0;
+      font-family: var(--sans);
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    body.instrument-v2 .interface-button[aria-expanded="true"],
+    body.instrument-v2 .interface-button:hover,
+    body.instrument-v2 .tour-button:hover {
+      border-color: rgba(22, 166, 201, 0.72);
+      background: rgba(22, 166, 201, 0.1);
+    }
+
     body.instrument-v2 #top-controls {
       background:
         linear-gradient(180deg, #fbfcfd 0%, #e9eef2 100%);
@@ -2369,11 +2388,11 @@
 
     body.instrument-v2 #main-part {
       display: grid;
-      grid-template-columns: 286px minmax(520px, 1fr) 328px;
+      grid-template-columns: 276px minmax(600px, 1fr) 314px;
       grid-template-areas: "data topology output";
-      height: calc(100vh - 100px);
-      min-height: 680px;
-      max-height: 924px;
+      height: min(860px, calc(100vh - 112px));
+      min-height: 600px;
+      max-height: 860px;
       background: var(--lab-paper);
       border: 1px solid var(--lab-line);
       border-top: 2px solid var(--lab-orange);
@@ -2393,7 +2412,7 @@
       flex-direction: column;
       min-height: 0;
       overflow: hidden;
-      padding: 11px 13px 13px;
+      padding: 10px 11px 11px;
       background: var(--lab-paper);
       color: var(--lab-ink);
       border-left: 1px solid var(--lab-line);
@@ -2426,6 +2445,10 @@
     body.instrument-v2 .column.output > .message,
     body.instrument-v2 .column.output > .event-card {
       flex: 0 0 auto;
+    }
+
+    body.instrument-v2 .column.topology > .topology-area {
+      min-height: 0;
     }
 
     body.instrument-v2 h4 {
@@ -2689,9 +2712,25 @@
 
     body.instrument-v2 .topology-area {
       flex: 1 1 auto;
-      display: grid;
-      grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+      display: flex;
+      flex-direction: column;
       min-height: 0;
+    }
+
+    body.instrument-v2 .route-layout {
+      flex: 1 1 auto;
+      display: flex;
+      align-items: stretch;
+      min-height: 0;
+    }
+
+    body.instrument-v2 .route-layout > div {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
     }
 
     body.instrument-v2 .route-toolbar,
@@ -2716,8 +2755,10 @@
     }
 
     body.instrument-v2 .topology-stage-wrap {
-      height: clamp(270px, 38vh, 400px);
-      min-height: 0;
+      flex: 1 1 260px;
+      width: 100%;
+      height: auto;
+      min-height: 248px;
       border: 1px solid #c4d3dd;
       background:
         linear-gradient(90deg, rgba(43, 92, 120, 0.11) 1px, transparent 1px),
@@ -2982,11 +3023,17 @@
       border-top: 2px solid #d7e3ea;
     }
 
+    body.instrument-v2 .flow-rail {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
     body.instrument-v2 .flow-stage {
       display: grid;
+      grid-template-columns: 13px minmax(0, 1fr);
       align-content: center;
-      min-height: 30px;
-      padding: 4px 7px 4px 20px;
+      align-items: center;
+      min-height: 31px;
+      padding: 4px 7px;
       color: var(--lab-muted);
       font-size: 10px;
       text-transform: none;
@@ -2994,22 +3041,35 @@
     }
 
     body.instrument-v2 .flow-stage b {
+      display: block;
       color: var(--lab-ink);
-      font-size: 11px;
+      font-size: 12px;
+      line-height: 1.05;
+    }
+
+    body.instrument-v2 .flow-stage span {
+      display: block;
+      min-width: 0;
+      overflow: hidden;
+      color: var(--lab-muted);
+      line-height: 1.1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     body.instrument-v2 .flow-stage::before {
-      left: 7px;
-      top: 12px;
-      width: 7px;
-      height: 7px;
+      position: static;
+      grid-column: 1;
+      grid-row: 1 / span 2;
+      width: 8px;
+      height: 8px;
       border-color: #b8c9d3;
       background: #f7fafb;
     }
 
     body.instrument-v2 .flow-stage::after {
-      left: 14px;
-      top: 15px;
+      left: 20px;
+      top: 16px;
       background: #dce7ed;
     }
 
@@ -3065,7 +3125,8 @@
 
     body.instrument-v2 .flow-stage[data-elapsed]:not([data-elapsed=""]) b::after {
       content: attr(data-elapsed);
-      margin-left: 6px;
+      display: block;
+      margin-left: 0;
       color: #6f8490;
       font-family: var(--mono);
       font-size: 9px;
@@ -3135,7 +3196,7 @@
 
     body.instrument-v2 .mapping-panel {
       flex: 0 0 auto;
-      margin-top: 7px;
+      margin-top: 6px;
     }
 
     body.instrument-v2 .event-field,
@@ -3156,23 +3217,29 @@
 
     body.instrument-v2 .mapping-grid {
       grid-template-columns: repeat(10, minmax(0, 1fr));
-      gap: 3px;
-      max-height: 152px;
+      gap: 2px;
+      max-height: 88px;
       overflow: auto;
-      padding: 7px;
+      padding: 5px;
     }
 
     body.instrument-v2 .event-grid {
-      margin: 7px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin: 6px;
     }
 
     body.instrument-v2 .event-field {
-      padding: 5px 7px;
+      padding: 4px 6px;
     }
 
     body.instrument-v2 .mapping-cell {
-      min-height: 25px;
-      padding: 3px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 4px;
+      min-height: 20px;
+      padding: 2px 4px;
+      font-size: 10px;
     }
 
     body.instrument-v2 .timeline-row {
@@ -3309,13 +3376,15 @@
 
     body.instrument-v2 .qasm-details {
       display: flex;
-      flex: 1 1 auto;
+      flex: 1 1 150px;
       flex-direction: column;
       min-height: 0;
+      max-height: 230px;
       margin: 6px 0 0;
       border: 1px solid var(--lab-line);
       border-top: 0;
       background: linear-gradient(180deg, #fff, #fbfcfd);
+      overflow: hidden;
     }
 
     body.instrument-v2 .qasm-details summary {
@@ -3375,62 +3444,113 @@
 
     body.instrument-v2 #compiled-qasm-output {
       flex: 1 1 auto;
-      min-height: 88px;
+      min-height: 0;
       max-height: none;
       margin: 0 5px 5px;
       padding: 7px;
+      overflow: auto;
       background: var(--lab-code);
       color: #101820;
       border-color: var(--lab-line-dark);
     }
 
     body.instrument-v2 #advanced {
-      position: fixed;
-      right: 10px;
-      bottom: 10px;
-      z-index: 24;
-      width: min(560px, calc(100vw - 28px));
-      max-height: min(72vh, 620px);
       margin: 0;
-      overflow: auto;
       background: #fff;
       border: 1px solid var(--lab-line);
       border-top: 2px solid var(--lab-header);
-      box-shadow: 0 16px 40px rgba(8, 16, 26, 0.18);
+      box-shadow: 0 24px 70px rgba(8, 16, 26, 0.28);
     }
 
-    body.instrument-v2 #advanced:not([open]) {
-      width: 38px;
-      height: 30px;
-      overflow: hidden;
+    body.instrument-v2 #advanced summary {
+      display: none;
+      color: var(--lab-ink);
     }
 
-    body.instrument-v2 #advanced:not([open]) summary {
-      display: grid;
-      place-items: center;
-      width: 100%;
-      height: 100%;
-      padding: 0;
-      font-size: 0;
-      white-space: nowrap;
+    body.instrument-v2 .service-panel {
+      position: fixed;
+      inset: 52px 18px auto auto;
+      z-index: 24;
+      width: min(760px, calc(100vw - 36px));
+      max-height: calc(100vh - 76px);
+      overflow: auto;
     }
 
-    body.instrument-v2 #advanced:not([open]) summary::before {
-      content: "▸";
+    body.instrument-v2 .service-panel[hidden] {
+      display: none !important;
+    }
+
+    body.instrument-v2 .service-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--lab-line);
+      background: linear-gradient(180deg, #f7fafc, #eef3f7);
+    }
+
+    body.instrument-v2 .service-head strong {
       color: var(--lab-ink);
       font-size: 13px;
     }
 
-    body.instrument-v2 #advanced summary {
+    body.instrument-v2 .service-head span {
+      color: var(--lab-muted);
+      font-size: 11px;
+    }
+
+    body.instrument-v2 .service-close {
+      width: 26px;
+      height: 24px;
+      border: 1px solid var(--lab-line-dark);
+      background: #fff;
       color: var(--lab-ink);
+      cursor: pointer;
     }
 
     body.instrument-v2 .advanced-body {
       border-top: 1px solid var(--lab-line);
+      grid-template-columns: 1.05fr 1.25fr;
     }
 
     body.instrument-v2 .advanced-body section {
       border-left: 1px solid var(--lab-line);
+    }
+
+    body.instrument-v2 .advanced-body h4 {
+      margin-bottom: 8px;
+    }
+
+    body.instrument-v2 .endpoint-note,
+    body.instrument-v2 .service-copy {
+      margin: 6px 0;
+      color: var(--lab-muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    body.instrument-v2 .service-table {
+      display: grid;
+      border: 1px solid var(--lab-line);
+      border-bottom: 0;
+      margin-top: 8px;
+    }
+
+    body.instrument-v2 .service-table div {
+      display: grid;
+      grid-template-columns: 122px minmax(0, 1fr);
+      gap: 8px;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--lab-line);
+      background: #fff;
+      font-size: 11px;
+    }
+
+    body.instrument-v2 .service-table code,
+    body.instrument-v2 .tool-list strong {
+      font-family: var(--mono);
+      color: #173244;
     }
 
     body.instrument-v2 .advanced-body p,
@@ -3628,6 +3748,13 @@
         max-height: none;
         margin: 12px 8px 18px;
       }
+
+      body.instrument-v2 .service-panel {
+        position: static;
+        width: auto;
+        max-height: none;
+        margin: 0;
+      }
     }
   </style>
 </head>
@@ -3638,6 +3765,7 @@
         <h1>量子编译实验台</h1>
       </div>
       <div class="header-meta" aria-label="实验台状态">
+        <button class="interface-button" id="service-button" type="button" aria-expanded="false" aria-controls="advanced">接口</button>
         <button class="tour-button" id="tour-button" type="button">教程</button>
         <span id="backend-copy">检测中</span>
       </div>
@@ -3697,7 +3825,7 @@
         <div class="section">
           <div class="input-tabs" aria-label="输入范围">
             <button type="button" data-input-group="small" data-input-mode="examples" aria-pressed="true">10/20</button>
-            <button type="button" data-input-group="large" data-input-mode="examples" aria-pressed="false">35/50</button>
+            <button type="button" data-input-group="large" data-input-mode="examples" aria-pressed="false">30/50</button>
             <button type="button" data-input-group="custom" data-input-mode="custom" aria-pressed="false">自定义</button>
           </div>
         </div>
@@ -3775,15 +3903,15 @@
             <div>
               <div class="topology-stage-wrap">
                 <div class="chip-scale" aria-hidden="true"></div>
-                <svg class="topology-stage" id="tokyo-topology" viewBox="0 0 640 480" preserveAspectRatio="xMidYMin meet" role="img" aria-label="IBM Tokyo 20Q topology replay"></svg>
+                <svg class="topology-stage" id="tokyo-topology" viewBox="0 0 640 480" preserveAspectRatio="xMidYMid meet" role="img" aria-label="IBM Tokyo 20Q topology replay"></svg>
                 <div class="topology-tooltip" id="topology-tooltip" role="status"></div>
               </div>
               <div class="compiler-flow" aria-label="路由事件进度">
                 <div class="flow-rail">
-                  <div class="flow-stage is-active" data-stage="0"><b>解析</b>QASM</div>
-                  <div class="flow-stage" data-stage="1"><b>映射</b>逻辑→物理</div>
-                  <div class="flow-stage" data-stage="2"><b>路由</b>门/SWAP</div>
-                  <div class="flow-stage" data-stage="3"><b>输出</b>QASM</div>
+                  <div class="flow-stage is-active" data-stage="0"><b>解析</b><span>QASM</span></div>
+                  <div class="flow-stage" data-stage="1"><b>映射</b><span>逻辑→物理</span></div>
+                  <div class="flow-stage" data-stage="2"><b>路由</b><span>门/SWAP</span></div>
+                  <div class="flow-stage" data-stage="3"><b>输出</b><span>QASM</span></div>
                 </div>
                 <div class="trace-readout">
                   <div class="trace-op" id="trace-op">待运行</div>
@@ -3875,31 +4003,39 @@
     </div>
   </aside>
 
-  <details class="page" id="advanced" aria-label="高级 MCP 和部署入口">
-    <summary>高级入口</summary>
+  <aside class="service-panel" id="advanced" aria-label="REST API 和 MCP 服务接口" hidden>
+    <div class="service-head">
+      <div>
+        <strong>Service Interfaces</strong>
+        <span>REST API / MCP Server</span>
+      </div>
+      <button class="service-close" id="service-close" type="button" aria-label="关闭接口面板">×</button>
+    </div>
     <div class="advanced-body">
       <section>
-        <h4><span>维护者 REST API</span></h4>
-        <p>普通用户不需要部署。页面默认调用项目方部署的 FastAPI REST 后端；维护者可用 URL 参数覆盖。网页里的 SABRE 基准固定为 Qiskit 默认 basic；高级 REST 直连仍兼容显式 heuristic 参数。</p>
-        <p>网页操作说明见 <a href="playground-user-guide.md">使用说明</a>（Playground user guide）；这里保留部署和调试入口。</p>
+        <h4><span>REST API</span></h4>
+        <p class="service-copy">浏览器调用项目部署的 FastAPI 服务；URL 参数 `?api=` 可覆盖目标地址。</p>
         <label class="endpoint-label" for="api-base-input">REST API</label>
         <div class="endpoint-control">
           <input id="api-base-input" type="url" spellcheck="false" aria-describedby="api-base-note">
           <button id="apply-api-base" type="button">应用</button>
         </div>
         <p class="endpoint-note" id="api-base-note">当前地址</p>
-        <pre><code>uvicorn src.server.app:app --host 0.0.0.0 --port $PORT
-?api=https://your-api.example
-uvicorn src.server.app:app --reload --port 8765
-?api=http://127.0.0.1:8765</code></pre>
-        <p>API 不可用时，页面只显示简短错误；公开页面不会自动探测访问者电脑上的本地服务。</p>
+        <div class="service-table" aria-label="REST API 端点">
+          <div><code>POST /api/validate</code><span>校验 OpenQASM 与目标拓扑容量。</span></div>
+          <div><code>POST /api/compile/jobs</code><span>创建真实编译任务，返回阶段状态。</span></div>
+          <div><code>GET /api/compile/jobs/{id}</code><span>轮询解析、映射、路由、输出阶段。</span></div>
+          <div><code>POST /api/compile</code><span>同步编译入口，保留脚本兼容。</span></div>
+        </div>
       </section>
       <section>
-        <h4><span>MCP 工具</span></h4>
-        <p>MCP `/mcp` 保留给高级客户端和审阅流程，不是第一屏主入口。</p>
-        <pre><code>qcompiler-mcp-http
-uvicorn src.server.mcp_app:app --host 0.0.0.0 --port $PORT
-POST /mcp</code></pre>
+        <h4><span>MCP Server</span></h4>
+        <p class="service-copy">MCP 面向 ChatGPT/Codex 等高级客户端，使用同一套编译能力，不作为普通课堂首屏路径。</p>
+        <div class="service-table" aria-label="MCP 启动与端点">
+          <div><code>qcompiler-mcp-http</code><span>HTTP 模式启动命令。</span></div>
+          <div><code>POST /mcp</code><span>MCP JSON-RPC 入口。</span></div>
+          <div><code>src.server.mcp_app:app</code><span>部署用 ASGI 应用。</span></div>
+        </div>
         <div class="tool-list">
           <div><strong>compile_qasm</strong><p>输入 OpenQASM 2，返回 NPQR 路由后的 QASM。</p></div>
           <div><strong>compile_npqr</strong><p>用 NPQR 编译项目内置示例。</p></div>
@@ -3912,7 +4048,7 @@ POST /mcp</code></pre>
         </div>
       </section>
     </div>
-  </details>
+  </aside>
 
   <script>
     const PUBLIC_API_BASE = "http://1.95.70.10";
@@ -4713,10 +4849,10 @@ cx q[0],q[1];`
     function generateGridTopology(id, label, rows, cols) {
       const nodes = [];
       const edges = [];
-      const left = cols > 6 ? 42 : 70;
-      const right = cols > 6 ? 598 : 570;
-      const top = 56;
-      const bottom = 424;
+      const left = cols > 6 ? 28 : 56;
+      const right = cols > 6 ? 612 : 584;
+      const top = 42;
+      const bottom = 438;
       for (let row = 0; row < rows; row += 1) {
         for (let col = 0; col < cols; col += 1) {
           const qubit = row * cols + col;
@@ -4896,6 +5032,9 @@ cx q[0],q[1];`
       traceOp: document.getElementById("trace-op"),
       traceProgress: document.getElementById("trace-progress"),
       traceBar: document.getElementById("trace-bar"),
+      serviceButton: document.getElementById("service-button"),
+      servicePanel: document.getElementById("advanced"),
+      serviceClose: document.getElementById("service-close"),
       tourButton: document.getElementById("tour-button"),
       tourOverlay: document.getElementById("tour-overlay"),
       tourCard: document.getElementById("tour-card"),
@@ -4981,6 +5120,11 @@ cx q[0],q[1];`
       el.apiBaseInput.value = apiBase;
       el.apiBaseNote.textContent = note || `当前 API: ${apiBase}`;
       el.backend.title = apiBase;
+    }
+
+    function setServicePanel(open) {
+      el.servicePanel.hidden = !open;
+      el.serviceButton.setAttribute("aria-expanded", String(open));
     }
 
     function apiCandidates() {
@@ -5301,7 +5445,7 @@ cx q[0],q[1];`
       return sourceTwoQubitGateLookup().get(numeric)?.lineNumber || null;
     }
 
-    function eventSourceLine(event) {
+    function directEventSourceLine(event) {
       const line = Number(event?.source_line);
       if (Number.isFinite(line) && line > 0) {
         return line;
@@ -5310,6 +5454,46 @@ cx q[0],q[1];`
         return sourceLineForTwoQubitGateIndex(eventGateKey(event)) || sourceLineForGateIndex(eventGateKey(event));
       }
       return sourceLineForGateIndex(eventGateKey(event));
+    }
+
+    function traceIndexForEvent(event) {
+      return state.trace.findIndex((candidate) => candidate === event);
+    }
+
+    function fallbackEventSourceLine(event) {
+      const targetIndex = traceIndexForEvent(event);
+      if (targetIndex < 0) {
+        return null;
+      }
+      const sourceGates = Array.from(sourceTwoQubitGateLookup().values());
+      if (!sourceGates.length) {
+        return null;
+      }
+      let sourceCursor = 0;
+      let fallbackLine = null;
+      for (let index = 0; index <= targetIndex; index += 1) {
+        const traceEvent = state.trace[index];
+        const directLine = directEventSourceLine(traceEvent);
+        if (directLine) {
+          fallbackLine = directLine;
+          const directIndex = sourceGates.findIndex((gate) => gate.lineNumber === directLine);
+          if (traceEvent.kind !== "swap" && directIndex >= sourceCursor) {
+            sourceCursor = directIndex + 1;
+          }
+        } else if (traceEvent.kind === "swap") {
+          fallbackLine = sourceGates[sourceCursor]?.lineNumber || sourceGates[sourceGates.length - 1].lineNumber;
+        } else {
+          fallbackLine = sourceGates[sourceCursor]?.lineNumber || null;
+          if (fallbackLine && sourceCursor < sourceGates.length - 1) {
+            sourceCursor += 1;
+          }
+        }
+      }
+      return fallbackLine;
+    }
+
+    function eventSourceLine(event) {
+      return directEventSourceLine(event) || fallbackEventSourceLine(event);
     }
 
     function eventGateKey(event) {
@@ -5471,6 +5655,9 @@ cx q[0],q[1];`
     }
 
     function setRouteView(view) {
+      if (state.running && state.visualPhase === "compiling") {
+        return;
+      }
       stopAnimation();
       state.activeRouteView = view;
       state.trace = routeTrace(view);
@@ -5485,6 +5672,10 @@ cx q[0],q[1];`
       renderFlow();
       renderTopology();
       renderRouteInspector();
+    }
+
+    function bestRouteView(npqrResult = state.results.npqr, sabreResult = state.results.sabre) {
+      return normalizeTrace(npqrResult?.route_trace).length ? "npqr" : "sabre";
     }
 
     function currentTraceEvent() {
@@ -5532,7 +5723,23 @@ cx q[0],q[1];`
       const events = Array.isArray(trace) ? trace : [];
       const edges = events.filter(traceEdge).length;
       const nodes = events.filter((event) => traceNode(event) !== null).length;
-      return { total: events.length, edges, nodes };
+      const swaps = events.filter((event) => event.kind === "swap").length;
+      const gates = events.filter((event) => event.kind === "gate").length;
+      return { total: events.length, edges, nodes, swaps, gates };
+    }
+
+    function replaySpeedProfile() {
+      const stats = traceStats();
+      if (stats.swaps >= 60 || stats.total >= 160) {
+        return { gateWindow: 7, gateDelay: 70, swapDelay: 100 };
+      }
+      if (stats.swaps >= 30 || stats.total >= 90) {
+        return { gateWindow: 5, gateDelay: 90, swapDelay: 125 };
+      }
+      if (stats.swaps >= 12 || stats.total >= 45) {
+        return { gateWindow: 3, gateDelay: 110, swapDelay: 220 };
+      }
+      return { gateWindow: 1, gateDelay: 140, swapDelay: 500 };
     }
 
     function describeTraceEvent(event) {
@@ -5638,7 +5845,10 @@ cx q[0],q[1];`
       el.routeCount.textContent = total
         ? `${state.activeRouteView.toUpperCase()} · ${total} 个事件 · ${stats.edges} 条边 · ${stats.nodes} 个节点`
         : state.visualPhase === "compiling" ? "编译中" : "0 个事件";
-      setPressed("[data-route-view]", "routeView", state.activeRouteView);
+      const pressedRouteView = state.running && state.visualPhase === "compiling"
+        ? "npqr"
+        : state.activeRouteView;
+      setPressed("[data-route-view]", "routeView", pressedRouteView);
       renderSourceReplay();
     }
 
@@ -5959,7 +6169,7 @@ cx q[0],q[1];`
     }
 
     function fastReplayWindow() {
-      return state.trace.length > 120 ? 18 : state.trace.length > 80 ? 12 : 6;
+      return replaySpeedProfile().gateWindow;
     }
 
     function nextReplayIndex() {
@@ -5978,13 +6188,14 @@ cx q[0],q[1];`
     }
 
     function traceAdvanceDelay(event) {
+      const profile = replaySpeedProfile();
       if (!event) {
-        return 100;
+        return profile.gateDelay;
       }
       if (event.kind === "swap") {
-        return 500;
+        return profile.swapDelay;
       }
-      return 100;
+      return profile.gateDelay;
     }
 
     function scheduleTraceAdvance(initialDelay = 120) {
@@ -5994,7 +6205,7 @@ cx q[0],q[1];`
           state.swapPhase = "after";
           renderFlow();
           renderTopology();
-          state.timer = window.setTimeout(advance, 500);
+          state.timer = window.setTimeout(advance, traceAdvanceDelay(event));
           return;
         }
         if (state.traceIndex >= state.trace.length - 1) {
@@ -6259,7 +6470,7 @@ cx q[0],q[1];`
         `// 离线的是 REST API，不是 MCP。最后错误：${reason}。`,
         `// 当前 API: ${apiBase}`,
         "// 普通用户需要项目方部署的 REST API 保持在线。",
-        "// 维护者可在高级入口或用 ?api=... 覆盖地址。"
+        "// 维护者可在接口面板或用 ?api=... 覆盖地址。"
       ].join("\n");
     }
 
@@ -6363,6 +6574,7 @@ cx q[0],q[1];`
       state.swapPhase = "none";
       state.activeQasmView = "npqr";
       state.activeRouteView = "npqr";
+      state.phaseBackend = "npqr";
       setResultMetrics("npqr", null);
       setResultMetrics("sabre", null);
       updateDelta(null, null);
@@ -6374,12 +6586,14 @@ cx q[0],q[1];`
     }
 
     function showComparisonResult(npqrResult, sabreResult, npqrError = null, sabreError = null) {
+      const nextRouteView = bestRouteView(npqrResult, sabreResult);
       state.results = {
         npqr: npqrResult || null,
         sabre: sabreResult || null
       };
       state.activeQasmView = npqrResult?.compiled_qasm ? "npqr" : "sabre";
-      state.activeRouteView = normalizeTrace(npqrResult?.route_trace).length ? "npqr" : "sabre";
+      state.activeRouteView = nextRouteView;
+      state.phaseBackend = nextRouteView;
       state.trace = routeTrace(state.activeRouteView);
       state.traceIndex = state.trace.length ? -1 : 0;
       state.step = state.trace.length ? 1 : 3;
@@ -6425,10 +6639,9 @@ cx q[0],q[1];`
       } else if (sabreSettled && sabreData?.compiled_qasm && !state.results.npqr?.compiled_qasm) {
         state.activeQasmView = "sabre";
       }
-      if (npqrSettled && normalizeTrace(npqrData?.route_trace).length) {
-        state.activeRouteView = "npqr";
-      } else if (sabreSettled && normalizeTrace(sabreData?.route_trace).length && !normalizeTrace(state.results.npqr?.route_trace).length) {
-        state.activeRouteView = "sabre";
+      if (!state.running) {
+        state.activeRouteView = bestRouteView();
+        state.phaseBackend = state.activeRouteView;
       }
       if (npqrSettled) {
         setResultMetrics("npqr", state.results.npqr, npqrError);
@@ -6492,8 +6705,8 @@ cx q[0],q[1];`
       state.swapPhase = "none";
       state.results = { npqr: null, sabre: null };
       state.activeQasmView = "npqr";
+      state.activeRouteView = "npqr";
       const largeTopologyRun = isLargeTopologyRun();
-      state.activeRouteView = largeTopologyRun ? "sabre" : "npqr";
       state.phaseBackend = largeTopologyRun ? "sabre" : "npqr";
       setRunVisual("running");
       setCompiledState("busy", "生成中");
@@ -6774,6 +6987,8 @@ cx q[0],q[1];`
     el.download.addEventListener("click", downloadQasm);
     el.generateQasm.addEventListener("click", generateQasmIntoEditor);
     el.applyApiBase.addEventListener("click", applyApiBase);
+    el.serviceButton.addEventListener("click", () => setServicePanel(el.servicePanel.hidden));
+    el.serviceClose.addEventListener("click", () => setServicePanel(false));
     el.tourButton.addEventListener("click", () => openTour(true));
     el.tourSkip.addEventListener("click", () => closeTour(true));
     el.tourOverlay.addEventListener("click", () => closeTour(true));
@@ -6786,6 +7001,11 @@ cx q[0],q[1];`
     el.apiBaseInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         applyApiBase();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        setServicePanel(false);
       }
     });
 

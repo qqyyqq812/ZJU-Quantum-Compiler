@@ -13,7 +13,7 @@ def _html() -> str:
 
 def _first_screen(html: str) -> str:
     body = html.split('<body class="instrument-v2">', 1)[1]
-    return body.split('<details class="page" id="advanced"', 1)[0]
+    return body.split('<aside class="service-panel" id="advanced"', 1)[0]
 
 
 def _embedded_example_qasm(html: str, example: str) -> str:
@@ -34,8 +34,8 @@ def test_public_site_has_one_formal_entry_page():
     assert "量子编译实验台" in html
     assert "Lab Instrument Playground V2" in html
     assert "Quantum Studio" not in html
-    assert "grid-template-columns: 286px minmax(520px, 1fr) 328px" in html
-    assert "height: calc(100vh - 100px)" in html
+    assert "grid-template-columns: 276px minmax(600px, 1fr) 314px" in html
+    assert "height: min(860px, calc(100vh - 112px))" in html
     assert 'grid-template-areas: "data topology output";' in html
     assert '"inspector inspector' not in html
 
@@ -50,7 +50,7 @@ def test_public_site_keeps_first_screen_action_focused():
     assert 'data-input-group="large"' in first_screen
     assert 'data-input-group="custom"' in first_screen
     assert ">10/20</button>" in first_screen
-    assert ">35/50</button>" in first_screen
+    assert ">30/50</button>" in first_screen
     assert 'id="tour-button"' in first_screen
     assert 'id="validation-bar"' in first_screen
     assert "等待校验" in first_screen
@@ -65,6 +65,7 @@ def test_public_site_keeps_first_screen_action_focused():
 
 def test_public_site_uses_public_remote_rest_api():
     html = _html()
+    first_screen = _first_screen(html)
 
     assert 'const PUBLIC_API_BASE = "http://1.95.70.10";' in html
     assert 'const PUBLIC_APP_BASE = "http://1.95.70.10/";' in html
@@ -74,9 +75,10 @@ def test_public_site_uses_public_remote_rest_api():
     assert "function apiCandidates()" in html
     assert "return [apiBase].map(normalizeApiBase);" in html
     assert "运行会同时调用 NPQR 和固定 SABRE 基准，结果来自公网 REST API。" in html
-    assert "API 不可用时，页面只显示简短错误" in html
-    assert "?api=https://your-api.example" in html
-    assert "?api=http://127.0.0.1:8765" in html
+    assert "浏览器调用项目部署的 FastAPI 服务" in html
+    assert 'id="service-button"' in first_screen
+    assert "Service Interfaces" in html
+    assert "POST /api/compile/jobs" in html
     assert "http://localhost:8765/api/compile" not in html
     assert "http://127.0.0.1:8765/api/compile" not in html
     assert "GitHub Pages 默认使用内置示例结果" not in html
@@ -200,13 +202,18 @@ def test_public_site_uses_truthful_compile_replay_state_machine():
     assert 'state.compilePhase = "output";' in html
     assert "function nextReplayIndex()" in html
     assert "function fastReplayWindow()" in html
+    assert "function replaySpeedProfile()" in html
+    assert "function bestRouteView(" in html
+    assert "directEventSourceLine" in html
+    assert "fallbackEventSourceLine" in html
     assert "state.trace[index]?.kind === \"swap\"" in html
     assert "state.traceIndex = nextReplayIndex();" in html
     assert "state.replaySignature !== signature" in html
     assert "state.timelineSignature !== signature" in html
     assert 'state.compilePhase = "parsing";' in html
-    assert "return 100;" in html
-    assert "return 500;" in html
+    assert "swapDelay: 100" in html
+    assert "swapDelay: 500" in html
+    assert "gateDelay: 90" in html
     assert "快进 ${skipped} 个门" in html
     assert "mapping-focus" in html
     assert "is-dimmed" in html
@@ -229,6 +236,7 @@ def test_public_site_renders_dynamic_topology_and_trace_review():
 
     assert '<svg class="topology-stage" id="tokyo-topology"' in html
     assert 'aria-label="IBM Tokyo 20Q topology replay"' in html
+    assert 'preserveAspectRatio="xMidYMid meet"' in html
     assert 'id="topology-title"' in html
     assert "const topologyNodes = [" in html
     assert "const topologyEdges = [" in html
@@ -282,13 +290,14 @@ def test_public_site_keeps_mcp_as_folded_advanced_entry():
     html = _html()
     first_screen = _first_screen(html)
 
-    assert '<details class="page" id="advanced"' in html
-    assert "高级入口" in html
-    assert "MCP `/mcp` 保留给高级客户端和审阅流程" in html
+    assert '<aside class="service-panel" id="advanced" aria-label="REST API 和 MCP 服务接口" hidden>' in html
+    assert "Service Interfaces" in html
+    assert "MCP 面向 ChatGPT/Codex 等高级客户端" in html
     assert "qcompiler-mcp-http" in html
-    assert "uvicorn src.server.mcp_app:app --host 0.0.0.0 --port $PORT" in html
+    assert "src.server.mcp_app:app" in html
     assert "POST /mcp" in html
     assert "MCP" not in first_screen
+    assert "高级入口" not in html
 
     for tool in [
         "compile_qasm",
@@ -310,7 +319,7 @@ def test_public_site_preserves_accessibility_and_responsive_basics():
     assert 'aria-label="一键量子编译 Playground"' in html
     assert 'aria-label="运行控制"' in html
     assert 'aria-label="NPQR 与 SABRE 对比"' in html
-    assert 'aria-label="高级 MCP 和部署入口"' in html
+    assert 'aria-label="REST API 和 MCP 服务接口"' in html
     assert "@media (max-width: 1120px)" in html
     assert "@media (max-width: 760px)" in html
 
