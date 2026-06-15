@@ -153,8 +153,13 @@ def test_public_site_uses_truthful_compile_replay_state_machine():
     assert 'state.compilePhase = "mapping";' in html
     assert 'state.compilePhase = "routing";' in html
     assert 'state.compilePhase = "output";' in html
-    assert "function traceAdvanceDelay(event)" in html
-    assert "return state.trace.length > 80 ? 12 : 22;" in html
+    assert "function nextReplayIndex()" in html
+    assert "function fastReplayWindow()" in html
+    assert "state.trace[index]?.kind === \"swap\"" in html
+    assert "state.traceIndex = nextReplayIndex();" in html
+    assert "state.replaySignature !== signature" in html
+    assert "state.timelineSignature !== signature" in html
+    assert 'state.compilePhase = "parsing";' in html
     assert "return 700;" in html
     assert "mapping-focus" in html
     assert 'setRunVisual("replaying");' in html

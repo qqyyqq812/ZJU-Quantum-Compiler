@@ -4469,6 +4469,8 @@ cx q[0],q[1];`
       trace: [],
       traceIndex: 0,
       replayRows: [],
+      replaySignature: "",
+      timelineSignature: "",
       visualPhase: "idle",
       compilePhase: "idle",
       swapPhase: "none",
@@ -4605,6 +4607,9 @@ cx q[0],q[1];`
       state.step = 0;
       state.trace = [];
       state.traceIndex = 0;
+      state.replayRows = [];
+      state.replaySignature = "";
+      state.timelineSignature = "";
       state.visualPhase = "idle";
       state.compilePhase = "idle";
       state.swapPhase = "none";
@@ -4962,42 +4967,53 @@ cx q[0],q[1];`
       el.qasmReplay.hidden = !enabled;
       if (!enabled) {
         state.replayRows = [];
+        state.replaySignature = "";
         el.qasmReplay.textContent = "";
         return;
       }
       const activeKey = currentSourceReplayKey();
       const currentEvent = currentTraceEvent();
       const currentGateKey = eventGateKey(currentEvent);
-      state.replayRows = buildSourceReplayRows();
-      el.qasmReplay.textContent = "";
-      state.replayRows.forEach((row) => {
-        const line = document.createElement("div");
-        const rowGateKey = row.type === "source"
-          ? String(state.trace.find((event) => event.kind === "gate" && eventSourceLine(event) === row.lineNumber)?.gate_index ?? "")
-          : "";
-        line.className = "qasm-replay-row";
-        line.dataset.key = row.key;
-        line.dataset.type = row.type;
-        if (row.traceIndex !== null && row.traceIndex <= state.traceIndex) {
-          line.classList.add("is-seen");
-        }
-        if (row.key === activeKey) {
-          line.classList.add("is-active");
-        }
-        if (row.type === "source" && currentGateKey && rowGateKey === currentGateKey) {
-          line.classList.add("is-current-gate");
-        }
-        if (row.type === "swap") {
-          line.classList.add("is-insert");
-        }
-        line.innerHTML = [
-          `<span class="qasm-line-no">${row.type === "swap" ? "+" : row.lineNumber}</span>`,
-          `<span class="qasm-line-kind">${row.type === "swap" ? "SWAP" : "QASM"}</span>`,
-          `<span class="qasm-line-code"></span>`,
-          `<span class="qasm-line-meta">${row.meta}</span>`
-        ].join("");
-        line.querySelector(".qasm-line-code").textContent = row.code || " ";
-        el.qasmReplay.appendChild(line);
+      const signature = `${state.activeRouteView}:${state.trace.length}:${qasmLines().length}:${el.qasm.value.length}`;
+      if (state.replaySignature !== signature) {
+        const gateByLine = new Map();
+        state.trace.forEach((event) => {
+          if (event.kind === "gate") {
+            const sourceLine = eventSourceLine(event);
+            if (sourceLine) {
+              gateByLine.set(sourceLine, String(event.gate_index ?? ""));
+            }
+          }
+        });
+        state.replayRows = buildSourceReplayRows();
+        state.replaySignature = signature;
+        el.qasmReplay.textContent = "";
+        state.replayRows.forEach((row) => {
+          const line = document.createElement("div");
+          line.className = "qasm-replay-row";
+          line.dataset.key = row.key;
+          line.dataset.type = row.type;
+          line.dataset.traceIndex = row.traceIndex === null ? "" : String(row.traceIndex);
+          line.dataset.gateKey = row.type === "source" ? gateByLine.get(row.lineNumber) || "" : "";
+          if (row.type === "swap") {
+            line.classList.add("is-insert");
+          }
+          line.innerHTML = [
+            `<span class="qasm-line-no">${row.type === "swap" ? "+" : row.lineNumber}</span>`,
+            `<span class="qasm-line-kind">${row.type === "swap" ? "SWAP" : "QASM"}</span>`,
+            `<span class="qasm-line-code"></span>`,
+            `<span class="qasm-line-meta">${row.meta}</span>`
+          ].join("");
+          line.querySelector(".qasm-line-code").textContent = row.code || " ";
+          el.qasmReplay.appendChild(line);
+        });
+      }
+      el.qasmReplay.querySelectorAll(".qasm-replay-row").forEach((line) => {
+        const traceIndex = Number(line.dataset.traceIndex);
+        const hasTraceIndex = line.dataset.traceIndex !== "";
+        line.classList.toggle("is-seen", hasTraceIndex && traceIndex <= state.traceIndex);
+        line.classList.toggle("is-active", line.dataset.key === activeKey);
+        line.classList.toggle("is-current-gate", line.dataset.type === "source" && Boolean(currentGateKey) && line.dataset.gateKey === currentGateKey);
       });
       keepSourceRowVisible();
     }
@@ -5357,33 +5373,43 @@ cx q[0],q[1];`
       const swapCount = trace.filter((event) => event.kind === "swap").length;
       const gateCount = trace.filter((event) => event.kind === "gate").length;
       el.timelineSummary.textContent = trace.length ? `${gateCount} 个门 · ${swapCount} 个 SWAP` : "等待";
-      el.routeTimeline.textContent = "";
       if (!trace.length) {
+        state.timelineSignature = "";
+        el.routeTimeline.textContent = "";
         const empty = document.createElement("div");
         empty.className = "timeline-row";
         empty.textContent = "运行后加载路由事件。";
         el.routeTimeline.appendChild(empty);
         return;
       }
-      trace.forEach((event, index) => {
-        const row = document.createElement("button");
-        row.type = "button";
-        row.className = "timeline-row";
-        row.dataset.kind = event.kind;
-        row.setAttribute("aria-current", String(index === state.traceIndex));
-        row.innerHTML = [
-          `<span>${index + 1}</span>`,
-          `<span class="timeline-kind">${displayEventKind(event.kind)}</span>`,
-          `<span class="timeline-main">${timelineText(event)}</span>`,
-          `<span class="timeline-insert">g${formatOptional(event.insertion_index)}</span>`
-        ].join("");
-        row.addEventListener("click", () => {
-          state.traceIndex = index;
-          state.compilePhase = index >= trace.length - 1 ? "output" : "routing";
-          state.swapPhase = event.kind === "swap" ? "after" : "none";
-          pauseTraceReplay();
+      const signature = `${state.activeRouteView}:${trace.length}:${swapCount}:${gateCount}`;
+      if (state.timelineSignature !== signature) {
+        state.timelineSignature = signature;
+        el.routeTimeline.textContent = "";
+        trace.forEach((event, index) => {
+          const row = document.createElement("button");
+          row.type = "button";
+          row.className = "timeline-row";
+          row.dataset.kind = event.kind;
+          row.dataset.index = String(index);
+          row.setAttribute("aria-current", "false");
+          row.innerHTML = [
+            `<span>${index + 1}</span>`,
+            `<span class="timeline-kind">${displayEventKind(event.kind)}</span>`,
+            `<span class="timeline-main">${timelineText(event)}</span>`,
+            `<span class="timeline-insert">g${formatOptional(event.insertion_index)}</span>`
+          ].join("");
+          row.addEventListener("click", () => {
+            state.traceIndex = index;
+            state.compilePhase = index >= trace.length - 1 ? "output" : "routing";
+            state.swapPhase = event.kind === "swap" ? "after" : "none";
+            pauseTraceReplay();
+          });
+          el.routeTimeline.appendChild(row);
         });
-        el.routeTimeline.appendChild(row);
+      }
+      el.routeTimeline.querySelectorAll(".timeline-row").forEach((row) => {
+        row.setAttribute("aria-current", String(Number(row.dataset.index) === state.traceIndex));
       });
       keepTimelineRowVisible();
     }
@@ -5436,10 +5462,26 @@ cx q[0],q[1];`
     function startAnimation() {
       stopAnimation();
       state.visualPhase = "compiling";
-      state.compilePhase = "requesting";
+      state.compilePhase = "parsing";
       state.swapPhase = "none";
       renderFlow();
       renderTopology();
+      state.timer = window.setTimeout(() => {
+        if (!state.running || state.paused || state.compilePhase !== "parsing") {
+          return;
+        }
+        state.compilePhase = "mapping";
+        renderFlow();
+        renderTopology();
+        state.timer = window.setTimeout(() => {
+          if (!state.running || state.paused || state.compilePhase !== "mapping") {
+            return;
+          }
+          state.compilePhase = "requesting";
+          renderFlow();
+          renderTopology();
+        }, 360);
+      }, 260);
     }
 
     function stopAnimation() {
@@ -5448,17 +5490,34 @@ cx q[0],q[1];`
       state.timer = null;
     }
 
-    function traceAdvanceDelay(event) {
+    function fastReplayWindow() {
+      return state.trace.length > 120 ? 18 : state.trace.length > 80 ? 12 : 6;
+    }
+
+    function nextReplayIndex() {
+      if (!state.trace.length) {
+        return 0;
+      }
+      const start = Math.max(0, state.traceIndex + 1);
+      const windowSize = fastReplayWindow();
+      const limit = Math.min(state.trace.length - 1, start + windowSize - 1);
+      for (let index = start; index <= limit; index += 1) {
+        if (state.trace[index]?.kind === "swap") {
+          return index;
+        }
+      }
+      return limit;
+    }
+
+    function traceAdvanceDelay(event, previousIndex) {
       if (!event) {
         return 8;
       }
       if (event.kind === "swap") {
         return 700;
       }
-      if (!traceEdge(event)) {
-        return 8;
-      }
-      return state.trace.length > 80 ? 12 : 22;
+      const skipped = Math.max(1, state.traceIndex - previousIndex);
+      return skipped > 1 ? 18 : state.trace.length > 80 ? 12 : 22;
     }
 
     function scheduleTraceAdvance(initialDelay = 120) {
@@ -5481,14 +5540,15 @@ cx q[0],q[1];`
           stopAnimation();
           return;
         }
-        state.traceIndex = Math.min(state.trace.length - 1, state.traceIndex + 1);
+        const previousIndex = state.traceIndex;
+        state.traceIndex = nextReplayIndex();
         state.compilePhase = "routing";
         state.visualPhase = "replaying";
         const nextEvent = currentTraceEvent();
         state.swapPhase = nextEvent?.kind === "swap" ? "before" : "none";
         renderFlow();
         renderTopology();
-        state.timer = window.setTimeout(advance, traceAdvanceDelay(nextEvent));
+        state.timer = window.setTimeout(advance, traceAdvanceDelay(nextEvent, previousIndex));
       };
 
       state.timer = window.setTimeout(advance, initialDelay);
