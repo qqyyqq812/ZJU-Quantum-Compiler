@@ -3691,7 +3691,7 @@ POST /mcp</code></pre>
     if (
       window.location.protocol === "https:" &&
       window.location.hostname.endsWith("github.io") &&
-      !params.get("api")
+      (!params.get("api") || normalizeApiBase(params.get("api"))?.startsWith("http://"))
     ) {
       const target = new URL(PUBLIC_APP_BASE);
       target.search = window.location.search;
