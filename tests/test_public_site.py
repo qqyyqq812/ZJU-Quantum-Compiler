@@ -120,7 +120,7 @@ def test_public_site_runs_remote_compile_without_embedded_fallback():
         "ghz10",
         "vqe10",
         "line_ghz30",
-        "random30d4",
+        "random30_d4",
         "line_ghz50",
         "ring_sparse50",
         "custom",
@@ -292,7 +292,7 @@ def test_public_site_keeps_mcp_as_folded_advanced_entry():
 
     assert '<aside class="service-panel" id="advanced" aria-label="REST API 和 MCP 服务接口" hidden>' in html
     assert "Service Interfaces" in html
-    assert "MCP 面向 ChatGPT/Codex 等高级客户端" in html
+    assert "MCP 面向工具客户端和自动化流程" in html
     assert "qcompiler-mcp-http" in html
     assert "src.server.mcp_app:app" in html
     assert "POST /mcp" in html

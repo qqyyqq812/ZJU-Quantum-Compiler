@@ -34,6 +34,9 @@ def test_playground_user_guide_explains_metrics_mapping_and_trace():
 
     assert "IBM Tokyo 20Q" in guide
     assert "20 points are physical qubits" in guide
+    assert "grid_5x6" in guide
+    assert "grid_5x10" in guide
+    assert "50 physical qubits" in guide
     assert "logical-to-physical mapping" in guide
     assert "SWAP" in guide
     assert "Depth" in guide
@@ -69,9 +72,8 @@ def test_readme_and_public_site_link_to_playground_user_guide():
     html = Path("docs/index.html").read_text(encoding="utf-8")
 
     assert "docs/playground-user-guide.md" in readme
-    assert "唯一网页入口" in readme
-    assert "GitHub Pages 打开后默认使用内置示例结果" in readme
-    assert "固定 SABRE 基线" in readme
-    assert "Tokyo 映射" in readme
+    assert "The public browser console is available" in readme
+    assert "fixed Qiskit baseline" in readme
+    assert "Tokyo has 20 physical qubits" in readme
     assert 'href="playground-user-guide.md"' in html
-    assert "Playground user guide" in html
+    assert "指南" in html

@@ -40,7 +40,8 @@ The left side of the Playground controls the circuit that will be compiled.
 Changing the input does not call the backend until you click **Run**.
 
 - **Examples** loads checked-in OpenQASM examples from the project. Use this for
-  demos and repeatable comparisons.
+  demos and repeatable comparisons. The 10/20 group uses IBM Tokyo 20Q, and the
+  30/50 group uses selected grid topologies.
 - **Custom QASM** lets you paste OpenQASM 2 text. The input must start with
   `OPENQASM 2.0;` and include a valid circuit.
 - **Generate** creates a valid OpenQASM 2 circuit in the editor. It supports
@@ -88,18 +89,25 @@ main review surface for a run.
 
 The **compiled_qasm** panel shows the routed output circuit. Use **NPQR QASM**
 and **SABRE QASM** to switch between the two outputs. The output is physical
-OpenQASM on the Tokyo coupling graph, so it usually uses `qreg q[20];` even
-when the logical input circuit has fewer qubits.
+OpenQASM on the active coupling graph, so it may allocate more physical qubits
+than the logical input uses.
 
-## Tokyo topology and mapping
+## Topology and mapping
 
-The center panel visualizes IBM Tokyo 20Q. The 20 points are physical qubits on
-the chip. A line between two points means the hardware can directly run a
+The center panel visualizes the active hardware topology. IBM Tokyo 20Q is used
+for circuits with 20 or fewer logical qubits. The 20 points are physical qubits
+on the chip. A line between two points means the hardware can directly run a
 two-qubit operation between those two physical qubits.
 
+The large examples switch topology automatically. `LineGHZ30` and
+`Random30-d4` use `grid_5x6`, which provides 30 physical qubits. `LineGHZ50`
+and `RingSparse50` use `grid_5x10`, which provides 50 physical qubits. A
+30-qubit or 50-qubit circuit cannot be compiled on Tokyo because Tokyo has only
+20 physical qubits.
+
 Input QASM uses logical qubits such as `q[0]`, `q[1]`, and `q[2]`. The compiler
-must choose where those logical qubits live on the physical Tokyo nodes. This is
-the logical-to-physical mapping. For example, a mapping may place logical
+must choose where those logical qubits live on the physical nodes. This is the
+logical-to-physical mapping. For example, a mapping may place logical
 `q[0]` on physical `p3` and logical `q[1]` on physical `p8`.
 
 If the next two-qubit gate needs logical qubits that are not adjacent on the
@@ -169,7 +177,7 @@ REST API and MCP are separate surfaces.
 - The **REST API** is the live compiler path. **Run** calls `/api/compile` when
   a reachable HTTPS backend is configured. Normal GitHub Pages review of the
   bundled examples does not require deployment.
-- MCP is an advanced helper for AI clients, reviewers, and tool workflows.
+- MCP is an advanced helper for tool clients, reviewers, and automation.
   It exposes tools such as `compile_qasm`, `compile_npqr`, and `compile_sabre`.
   The public page keeps MCP in the **Advanced** section because it is not needed
   for normal browser use.

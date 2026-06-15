@@ -3765,6 +3765,7 @@
         <h1>量子编译实验台</h1>
       </div>
       <div class="header-meta" aria-label="实验台状态">
+        <a class="guide-link" href="playground-user-guide.md">指南</a>
         <button class="interface-button" id="service-button" type="button" aria-expanded="false" aria-controls="advanced">接口</button>
         <button class="tour-button" id="tour-button" type="button">教程</button>
         <span id="backend-copy">检测中</span>
@@ -3799,7 +3800,7 @@
           <option value="ghz10">GHZ 10</option>
           <option value="vqe10">VQE 10</option>
           <option value="line_ghz30">LineGHZ30</option>
-          <option value="random30d4">Random30-d4</option>
+          <option value="random30_d4">Random30-d4</option>
           <option value="line_ghz50">LineGHZ50</option>
           <option value="ring_sparse50">RingSparse50</option>
           <option value="custom">自定义</option>
@@ -3840,7 +3841,7 @@
             <button class="dataset" type="button" data-example="ghz10" data-example-group="small" aria-pressed="false"><b>GHZ 10</b><span>长链</span></button>
             <button class="dataset" type="button" data-example="vqe10" data-example-group="small" aria-pressed="false"><b>VQE 10</b><span>变分线路</span></button>
             <button class="dataset" type="button" data-example="line_ghz30" data-example-group="large" aria-pressed="false"><b>LineGHZ30</b><span>Grid 30Q</span></button>
-            <button class="dataset" type="button" data-example="random30d4" data-example-group="large" aria-pressed="false"><b>Random30-d4</b><span>Grid 30Q</span></button>
+            <button class="dataset" type="button" data-example="random30_d4" data-example-group="large" aria-pressed="false"><b>Random30-d4</b><span>Grid 30Q</span></button>
             <button class="dataset" type="button" data-example="line_ghz50" data-example-group="large" aria-pressed="false"><b>LineGHZ50</b><span>Grid 50Q</span></button>
             <button class="dataset" type="button" data-example="ring_sparse50" data-example-group="large" aria-pressed="false"><b>RingSparse50</b><span>Grid 50Q</span></button>
             <button class="dataset" type="button" data-example="custom" data-example-group="custom" aria-pressed="false"><b>自定义</b><span>手写 QASM</span></button>
@@ -4030,7 +4031,7 @@
       </section>
       <section>
         <h4><span>MCP Server</span></h4>
-        <p class="service-copy">MCP 面向 ChatGPT/Codex 等高级客户端，使用同一套编译能力，不作为普通课堂首屏路径。</p>
+        <p class="service-copy">MCP 面向工具客户端和自动化流程，使用同一套编译能力，不作为普通浏览器首屏路径。</p>
         <div class="service-table" aria-label="MCP 启动与端点">
           <div><code>qcompiler-mcp-http</code><span>HTTP 模式启动命令。</span></div>
           <div><code>POST /mcp</code><span>MCP JSON-RPC 入口。</span></div>
@@ -4771,7 +4772,7 @@ cx q[0],q[1];`
       qubits: 30,
       qasm: generateScaleExampleQasm("line_ghz", 30)
     };
-    examples.random30d4 = {
+    examples.random30_d4 = {
       name: "Random30-d4",
       qubits: 30,
       qasm: generateScaleExampleQasm("random_depth4", 30)
@@ -4951,7 +4952,7 @@ cx q[0],q[1];`
 
     const exampleGroups = {
       small: ["qft5", "ghz5", "qaoa5", "qft10", "qaoa10", "ghz10", "vqe10"],
-      large: ["line_ghz30", "random30d4", "line_ghz50", "ring_sparse50"],
+      large: ["line_ghz30", "random30_d4", "line_ghz50", "ring_sparse50"],
       custom: ["custom"]
     };
 

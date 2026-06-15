@@ -67,36 +67,67 @@ EXAMPLES: dict[str, dict[str, str]] = {
         "name": "QFT 5",
         "path": "examples/qft5.qasm",
         "description": "A compact quantum Fourier transform example.",
+        "topology": "tokyo",
     },
     "ghz5": {
         "name": "GHZ 5",
         "path": "examples/ghz5.qasm",
         "description": "A small entanglement-chain circuit.",
+        "topology": "tokyo",
     },
     "qaoa5": {
         "name": "QAOA 5",
         "path": "examples/qaoa5.qasm",
         "description": "One QAOA-style optimization layer.",
+        "topology": "tokyo",
     },
     "qft10": {
         "name": "QFT 10",
         "path": "examples/qft10.qasm",
         "description": "A larger dense-routing quantum Fourier transform example.",
+        "topology": "tokyo",
     },
     "qaoa10": {
         "name": "QAOA 10",
         "path": "examples/qaoa10.qasm",
         "description": "A 10-qubit QAOA-style optimization layer.",
+        "topology": "tokyo",
     },
     "ghz10": {
         "name": "GHZ 10",
         "path": "examples/ghz10.qasm",
         "description": "A 10-qubit entanglement-chain circuit.",
+        "topology": "tokyo",
     },
     "vqe10": {
         "name": "VQE-like 10",
         "path": "examples/vqe10.qasm",
         "description": "A 10-qubit RealAmplitudes-style variational ansatz.",
+        "topology": "tokyo",
+    },
+    "line_ghz30": {
+        "name": "LineGHZ30",
+        "path": "examples/line_ghz30.qasm",
+        "description": "A 30-qubit GHZ chain for the 5x6 grid topology.",
+        "topology": "grid_5x6",
+    },
+    "random30_d4": {
+        "name": "Random30-d4",
+        "path": "examples/random30_d4.qasm",
+        "description": "A deterministic 30-qubit depth-4 random-style routing case.",
+        "topology": "grid_5x6",
+    },
+    "line_ghz50": {
+        "name": "LineGHZ50",
+        "path": "examples/line_ghz50.qasm",
+        "description": "A 50-qubit GHZ chain for the 5x10 grid topology.",
+        "topology": "grid_5x10",
+    },
+    "ring_sparse50": {
+        "name": "RingSparse50",
+        "path": "examples/ring_sparse50.qasm",
+        "description": "A sparse 50-qubit ring interaction case for the 5x10 grid topology.",
+        "topology": "grid_5x10",
     },
 }
 
@@ -134,6 +165,7 @@ class ExampleInfo(BaseModel):
     name: str
     path: str
     description: str
+    topology: str
 
 
 class ValidateRequest(BaseModel):
@@ -407,6 +439,13 @@ def _request_qasm_source(req: CompileRequest) -> str | None:
     return path.read_text(encoding="utf-8") if path.exists() else None
 
 
+def _request_topology(req: CompileRequest) -> str:
+    if req.topology != "tokyo" or req.qasm:
+        return req.topology
+    spec = EXAMPLES.get(req.example or "qft5")
+    return spec.get("topology", req.topology) if spec else req.topology
+
+
 def _load_request_circuit(req: CompileRequest) -> QuantumCircuit:
     if req.qasm and req.example:
         raise HTTPException(status_code=400, detail="Provide either qasm or example, not both.")
@@ -502,7 +541,7 @@ def _validate_qasm_source(qasm: str, topology: str = "tokyo") -> ValidateRespons
     if circuit.num_qubits > coupling_map.size():
         return ValidateResponse(
             status="Invalid",
-            message=f"电路有 {circuit.num_qubits} 个量子位，IBM Tokyo 只有 {coupling_map.size()} 个物理量子位。",
+            message=f"电路有 {circuit.num_qubits} 个量子位，当前拓扑只有 {coupling_map.size()} 个物理量子位。",
             input_qubits=circuit.num_qubits,
             gate_count=len(circuit.data),
             cx_count=dict(circuit.count_ops()).get("cx", 0),
@@ -848,7 +887,8 @@ def _compile_request(
 ) -> CompileResponse:
     if phase_reporter:
         phase_reporter("parsing")
-    topo_name, coupling_map = _resolve_topology(req.topology)
+    topology = _request_topology(req)
+    topo_name, coupling_map = _resolve_topology(topology)
     qasm_source = _request_qasm_source(req)
     circuit = _load_request_circuit(req)
     if circuit.num_qubits > coupling_map.size():
@@ -890,7 +930,7 @@ def _compile_request(
             if phase_reporter:
                 phase_reporter("mapping")
             runtime = _npqr_runtime_for(
-                req.topology,
+                topology,
                 str(DEFAULT_NPQR_MODEL),
                 req.max_steps,
                 req.npqr_frontier_pruning_policy,
@@ -1022,5 +1062,5 @@ async def api_topology(name: str) -> dict:
     return {
         "name": topo_name,
         "info": get_topology_info(coupling_map),
-        "edges": coupling_map.get_edges(),
+        "edges": [[int(a), int(b)] for a, b in coupling_map.get_edges()],
     }

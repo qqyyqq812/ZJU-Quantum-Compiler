@@ -12,7 +12,20 @@ from src.server.app import app
 
 client = TestClient(app)
 
-PUBLIC_EXAMPLES = ["qft5", "qaoa5", "ghz5", "qft10", "qaoa10", "ghz10", "vqe10"]
+SMALL_PUBLIC_EXAMPLES = ["qft5", "qaoa5", "ghz5", "qft10", "qaoa10", "ghz10", "vqe10"]
+PUBLIC_EXAMPLES = [
+    "qft5",
+    "qaoa5",
+    "ghz5",
+    "qft10",
+    "qaoa10",
+    "ghz10",
+    "vqe10",
+    "line_ghz30",
+    "random30_d4",
+    "line_ghz50",
+    "ring_sparse50",
+]
 
 
 def _assert_routed_qasm_matches_tokyo(compiled_qasm: str) -> None:
@@ -55,8 +68,23 @@ def test_api_examples_lists_public_qasm_files():
     response = client.get("/api/examples")
 
     assert response.status_code == 200
-    ids = {row["id"] for row in response.json()}
+    rows = response.json()
+    ids = {row["id"] for row in rows}
     assert set(PUBLIC_EXAMPLES) <= ids
+    by_id = {row["id"]: row for row in rows}
+    assert by_id["line_ghz30"]["topology"] == "grid_5x6"
+    assert by_id["line_ghz50"]["topology"] == "grid_5x10"
+
+
+def test_api_topology_returns_json_safe_grid_edges():
+    for name, qubits in [("tokyo", 20), ("grid_5x6", 30), ("grid_5x10", 50)]:
+        response = client.get(f"/api/topology/{name}")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["info"]["n_qubits"] == qubits
+        assert body["edges"]
+        assert isinstance(body["edges"][0], list)
+        assert all(isinstance(value, int) for value in body["edges"][0])
 
 
 def test_api_validate_accepts_valid_openqasm2():
@@ -107,6 +135,27 @@ cx q[0],q[49];
     assert ok50.status_code == 200
     assert ok50.json()["status"] == "OK"
     assert ok50.json()["input_qubits"] == 50
+
+
+def test_api_compile_checked_in_large_examples_with_sabre_grid_topologies():
+    cases = [
+        ("line_ghz30", "grid_5x6", 30),
+        ("random30_d4", "grid_5x6", 30),
+        ("line_ghz50", "grid_5x10", 50),
+        ("ring_sparse50", "grid_5x10", 50),
+    ]
+    for example, topology, qubits in cases:
+        response = client.post(
+            "/api/compile",
+            json={"example": example, "backend": "sabre", "topology": topology},
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "OK"
+        assert body["backend"] == "sabre"
+        assert body["topology"] == topology
+        assert body["input_qubits"] == qubits
+        assert body["route_trace"]
 
 
 def test_api_validate_rejects_invalid_openqasm2():
@@ -406,7 +455,7 @@ def test_api_compile_exposes_10q_heuristic_examples():
 
 
 def test_api_compile_checked_in_examples_with_npqr_route_trace():
-    for example in PUBLIC_EXAMPLES:
+    for example in SMALL_PUBLIC_EXAMPLES:
         response = client.post(
             "/api/compile",
             json={"example": example, "backend": "npqr", "topology": "tokyo"},

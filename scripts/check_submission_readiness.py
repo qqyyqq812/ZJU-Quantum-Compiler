@@ -1,4 +1,4 @@
-"""Check the public release tree for final course-project readiness."""
+"""Check the public release tree for project readiness."""
 
 from __future__ import annotations
 
@@ -11,8 +11,9 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 README_PATH = PROJECT_ROOT / "README.md"
 SITE_PATH = PROJECT_ROOT / "docs" / "index.html"
-WORK_SPLIT_PATH = PROJECT_ROOT / "docs" / "plans" / "组员分工.md"
 PROJECT_GUIDE_PATH = PROJECT_ROOT / "docs" / "项目说明.md"
+USER_GUIDE_PATH = PROJECT_ROOT / "docs" / "playground-user-guide.md"
+AI_DISCLOSURE_PATH = PROJECT_ROOT / "docs" / "ai-collaboration.md"
 PPTX_PATH = PROJECT_ROOT / "docs" / "slides" / "quantum-routing-algorithm-showcase-final.pptx"
 MODEL_PATH = PROJECT_ROOT / "models" / "default" / "npqr-default.pt"
 REST_APP = PROJECT_ROOT / "src" / "server" / "app.py"
@@ -30,6 +31,16 @@ FORBIDDEN_PUBLIC_PATTERNS = [
     "checkpoint_" + "ep",
     "wave2_" + "stage",
     "results/" + "npqr_",
+    "组员分工",
+    "大作业",
+    "人工PR",
+]
+
+LARGE_EXAMPLE_FILES = [
+    PROJECT_ROOT / "examples" / "line_ghz30.qasm",
+    PROJECT_ROOT / "examples" / "random30_d4.qasm",
+    PROJECT_ROOT / "examples" / "line_ghz50.qasm",
+    PROJECT_ROOT / "examples" / "ring_sparse50.qasm",
 ]
 
 
@@ -75,15 +86,16 @@ def _has_forbidden_public_terms(text: str) -> bool:
 def check_readiness() -> list[ReadinessItem]:
     readme = _read_text(README_PATH)
     site = _read_text(SITE_PATH)
-    work_split = _read_text(WORK_SPLIT_PATH)
     project_guide = _read_text(PROJECT_GUIDE_PATH)
+    user_guide = _read_text(USER_GUIDE_PATH)
+    ai_disclosure = _read_text(AI_DISCLOSURE_PATH)
     rest_app = _read_text(REST_APP)
     mcp_app = _read_text(MCP_APP)
     evidence = _read_text(EVIDENCE_MODULE)
     package_script = _read_text(PACKAGE_SCRIPT)
     matrix_script = _read_text(MATRIX_SCRIPT)
     pptx_text = _pptx_text()
-    public_docs = "\n".join([readme, work_split])
+    public_docs = "\n".join([readme, project_guide, user_guide, ai_disclosure])
 
     return [
         ReadinessItem(
@@ -94,12 +106,15 @@ def check_readiness() -> list[ReadinessItem]:
         ),
         ReadinessItem(
             "api",
-            "REST API defaults to NPQR",
+            "REST API defaults to NPQR and exposes large examples",
             _status(
                 'backend: Literal["npqr", "sabre"] = "npqr"' in rest_app
                 and "models\" / \"default\" / \"npqr-default.pt" in rest_app
                 and '"sabre_fallback": False' in rest_app
                 and '@app.post("/api/compile"' in rest_app
+                and '"line_ghz50"' in rest_app
+                and '"grid_5x10"' in rest_app
+                and '[[int(a), int(b)] for a, b in coupling_map.get_edges()]' in rest_app
                 and "AI" + "Router" not in rest_app
             ),
             "src/server/app.py",
@@ -132,16 +147,17 @@ def check_readiness() -> list[ReadinessItem]:
         ),
         ReadinessItem(
             "docs",
-            "README explains install, API, MCP, and algorithm",
+            "README explains install, API, MCP, examples, and algorithm",
             _status(
                 "# ZJU Quantum Compiler" in readme
-                and "启动 REST API" in readme
-                and "启动 MCP 服务" in readme
-                and "算法说明" in readme
-                and "课程算法概念对应" in readme
+                and "REST API" in readme
+                and "MCP service" in readme
+                and "Algorithm overview" in readme
+                and "algorithmic ideas" in readme
                 and "models/default/npqr-default.pt" in readme
                 and "docs/项目说明.md" in readme
-                and "docs/plans/组员分工.md" in readme
+                and "docs/ai-collaboration.md" in readme
+                and "examples/line_ghz50.qasm" in readme
                 and "清" + "理版" not in readme
                 and "按" + "要求" not in readme
                 and "提示" + "词" not in readme
@@ -150,22 +166,20 @@ def check_readiness() -> list[ReadinessItem]:
         ),
         ReadinessItem(
             "docs",
-            "Public docs hide internal experiment names",
-            _status(not _has_forbidden_public_terms(public_docs + "\n" + project_guide)),
-            "README.md + docs/plans/组员分工.md + docs/项目说明.md",
+            "Public docs hide internal process terms",
+            _status(not _has_forbidden_public_terms(public_docs)),
+            "README.md + docs/项目说明.md + docs/playground-user-guide.md + docs/ai-collaboration.md",
         ),
         ReadinessItem(
             "docs",
-            "Team report guide uses course algorithm language",
+            "AI collaboration disclosure is concise and reviewable",
             _status(
-                "图问题" in work_split
-                and "变治法" in work_split
-                and "贪婪" in work_split
-                and "时空权衡" in work_split
-                and "神经网络" in work_split
-                and "SABRE 是主要基线算法" in work_split
+                "AI collaboration disclosure" in ai_disclosure
+                and "Human-controlled decisions" in ai_disclosure
+                and "Verification" in ai_disclosure
+                and "prompt" not in ai_disclosure.lower()
             ),
-            "docs/plans/组员分工.md",
+            "docs/ai-collaboration.md",
         ),
         ReadinessItem(
             "docs",
@@ -176,21 +190,31 @@ def check_readiness() -> list[ReadinessItem]:
                 and "接口说明" in project_guide
                 and "目录结构" in project_guide
                 and "结果边界" in project_guide
-                and "SABRE 是对比基线" in project_guide
+                and "算法设计要点" in project_guide
+                and "SABRE 是固定" in project_guide
             ),
             "docs/项目说明.md",
         ),
         ReadinessItem(
-            "website",
-            "Website opens from GitHub Pages with optional HTTPS REST",
+            "examples",
+            "Checked-in 30/50Q examples are public",
             _status(
-                "ZJU Quantum Compiler Console" in site
-                and "量子电路编译控制台" in site
-                and "Embedded review data active" in site
-                and 'const PUBLIC_API_BASE = "";' in site
-                and "?api=https://your-api.example" in site
-                and "compileWithBestAvailableBackend(\"npqr\")" in site
-                and "compileWithBestAvailableBackend(\"sabre\")" in site
+                all(path.exists() for path in LARGE_EXAMPLE_FILES)
+                and "qreg q[30];" in _read_text(PROJECT_ROOT / "examples" / "line_ghz30.qasm")
+                and "qreg q[50];" in _read_text(PROJECT_ROOT / "examples" / "line_ghz50.qasm")
+            ),
+            "examples/",
+        ),
+        ReadinessItem(
+            "website",
+            "Website opens from GitHub Pages with optional REST and MCP",
+            _status(
+                "量子编译实验台" in site
+                and 'const PUBLIC_API_BASE = "http://1.95.70.10";' in site
+                and "createCompileJob" in site
+                and "pollCompileJob" in site
+                and "random30_d4" in site
+                and 'href="playground-user-guide.md"' in site
                 and "Service Interfaces" in site
                 and "MCP Server" in site
                 and "POST /mcp" in site
@@ -203,6 +227,8 @@ def check_readiness() -> list[ReadinessItem]:
             _status(
                 "public_algorithm_evidence.json" in package_script
                 and "algorithm_summary.md" in package_script
+                and "docs/ai-collaboration.md" in package_script
+                and "examples/line_ghz50.qasm" in package_script
                 and "npqr_" + "stage" not in package_script
                 and "St" + "age" not in package_script
             ),

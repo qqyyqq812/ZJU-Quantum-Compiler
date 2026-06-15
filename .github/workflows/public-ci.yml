@@ -1,0 +1,45 @@
+name: Public CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  public-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Run public tests
+        run: |
+          python -m pytest -q \
+            tests/test_public_api.py \
+            tests/test_public_site.py \
+            tests/test_public_deploy_config.py \
+            tests/test_readme_contract.py \
+            tests/test_submission_readiness.py \
+            tests/test_algorithm_matrix.py \
+            tests/test_demo_scripts.py \
+            tests/test_playground_user_guide.py
+
+      - name: Run readiness check
+        run: python scripts/check_submission_readiness.py
+
+      - name: Check whitespace
+        run: git diff --check

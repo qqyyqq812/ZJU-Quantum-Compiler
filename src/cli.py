@@ -27,6 +27,10 @@ _TOPOLOGY_ALIAS: dict[str, str] = {
     "linear_5": "linear_5",
     "grid3x3": "grid_3x3",
     "grid_3x3": "grid_3x3",
+    "grid5x6": "grid_5x6",
+    "grid_5x6": "grid_5x6",
+    "grid5x10": "grid_5x10",
+    "grid_5x10": "grid_5x10",
 }
 
 _EXAMPLES = {
@@ -37,6 +41,17 @@ _EXAMPLES = {
     "qaoa10": "examples/qaoa10.qasm",
     "ghz10": "examples/ghz10.qasm",
     "vqe10": "examples/vqe10.qasm",
+    "line_ghz30": "examples/line_ghz30.qasm",
+    "random30_d4": "examples/random30_d4.qasm",
+    "line_ghz50": "examples/line_ghz50.qasm",
+    "ring_sparse50": "examples/ring_sparse50.qasm",
+}
+
+_EXAMPLE_TOPOLOGIES = {
+    "line_ghz30": "grid_5x6",
+    "random30_d4": "grid_5x6",
+    "line_ghz50": "grid_5x10",
+    "ring_sparse50": "grid_5x10",
 }
 
 _BASIS_GATES = ["cx", "id", "rz", "sx", "x", "swap"]
@@ -100,13 +115,21 @@ def _cmd_info(_: argparse.Namespace) -> int:
 
 
 def _cmd_compile(args: argparse.Namespace) -> int:
-    qasm_path = Path(args.qasm_path).expanduser().resolve()
+    if args.example:
+        qasm_path = (_PROJECT_ROOT / _EXAMPLES[args.example]).resolve()
+        topology = args.topology or _EXAMPLE_TOPOLOGIES.get(args.example, "tokyo")
+    elif args.qasm_path:
+        qasm_path = Path(args.qasm_path).expanduser().resolve()
+        topology = args.topology or "tokyo"
+    else:
+        print("[error] provide a QASM path or --example.", file=sys.stderr)
+        return 2
     if not qasm_path.exists():
         print(f"[error] QASM file not found: {qasm_path}", file=sys.stderr)
         return 2
 
     try:
-        topo_name, coupling_map = _resolve_topology(args.topology)
+        topo_name, coupling_map = _resolve_topology(topology)
     except ValueError as exc:
         print(f"[error] {exc}", file=sys.stderr)
         return 2
@@ -117,7 +140,7 @@ def _cmd_compile(args: argparse.Namespace) -> int:
 
     if args.backend == "npqr":
         try:
-            result = _compile_npqr(circuit, args.topology, args.max_steps)
+            result = _compile_npqr(circuit, topology, args.max_steps)
         except Exception as exc:  # noqa: BLE001
             print(f"[error] NPQR compile failed: {exc}", file=sys.stderr)
             return 3
@@ -169,8 +192,9 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_compile = sub.add_parser("compile", help="Compile a QASM circuit")
-    p_compile.add_argument("qasm_path", help="Path to an OpenQASM 2 file")
-    p_compile.add_argument("--topology", default="tokyo", help="Topology alias, default: tokyo")
+    p_compile.add_argument("qasm_path", nargs="?", help="Path to an OpenQASM 2 file")
+    p_compile.add_argument("--example", choices=sorted(_EXAMPLES), help="Checked-in example id")
+    p_compile.add_argument("--topology", default=None, help="Topology alias, default: example-specific or tokyo")
     p_compile.add_argument("--backend", default="npqr", choices=["npqr", "sabre"])
     p_compile.add_argument(
         "--heuristic",

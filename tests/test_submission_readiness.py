@@ -13,14 +13,15 @@ def test_submission_readiness_marks_public_release_ready():
 
     expected_ready = [
         "Default NPQR model is present",
-        "REST API defaults to NPQR",
+        "REST API defaults to NPQR and exposes large examples",
         "HTTP MCP exposes final compiler tools",
         "Public evidence avoids internal experiment logs",
-        "README explains install, API, MCP, and algorithm",
-        "Public docs hide internal experiment names",
-        "Team report guide uses course algorithm language",
+        "README explains install, API, MCP, examples, and algorithm",
+        "Public docs hide internal process terms",
+        "AI collaboration disclosure is concise and reviewable",
         "Detailed Chinese project guide exists",
-        "Website opens from GitHub Pages with optional HTTPS REST",
+        "Checked-in 30/50Q examples are public",
+        "Website opens from GitHub Pages with optional REST and MCP",
         "Final package script is user-facing",
         "Algorithm matrix remains reproducible",
         "Presentation material exists",
@@ -34,8 +35,9 @@ def test_submission_readiness_markdown_is_reviewable():
 
     assert "| category | item | status | evidence |" in markdown
     assert "Default NPQR model is present" in markdown
-    assert "REST API defaults to NPQR" in markdown
+    assert "REST API defaults to NPQR and exposes large examples" in markdown
     assert "HTTP MCP exposes final compiler tools" in markdown
+    assert "AI collaboration disclosure is concise and reviewable" in markdown
     assert "All public release checks are ready." in markdown
 
 

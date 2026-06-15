@@ -38,8 +38,8 @@ scripts/*npqr*.py
 !scripts/generate_npqr_evidence_manifest.py
 scripts/train_*.py
 tests/test_npqr*.py
-*HANDOFF*.md
-NEXT_HANDOFF.md
+*HAND*OFF*.md
+NEXT_HAND*OFF.md
 
 .ipynb_checkpoints/
 *_checkpoint.ipynb

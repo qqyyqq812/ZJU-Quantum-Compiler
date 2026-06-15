@@ -3,6 +3,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from qiskit import QuantumCircuit
+
+from src import cli
+from src.server.mcp_app import compile_sabre, list_examples
+
 
 def test_public_demo_script_uses_default_npqr_and_api_smoke():
     script = Path("run_public_demo.sh").read_text(encoding="utf-8")
@@ -36,19 +41,24 @@ def test_submission_package_script_defines_public_review_manifest():
         "README.md",
         "docs/index.html",
         "docs/项目说明.md",
+        "docs/playground-user-guide.md",
+        "docs/ai-collaboration.md",
         "docs/final-closure-report.md",
         "docs/report_latex/main.pdf",
-        "docs/plans/组员分工.md",
         "docs/slides/quantum-routing-algorithm-showcase-final.pptx",
         "examples/qft5.qasm",
+        "examples/line_ghz30.qasm",
+        "examples/random30_d4.qasm",
+        "examples/line_ghz50.qasm",
+        "examples/ring_sparse50.qasm",
         "readiness.md",
         "algorithm_matrix.json",
         "public_algorithm_evidence.json",
         "algorithm_summary.md",
-        "npqr-course-report.pdf",
+        "npqr-technical-report.pdf",
         "results/submission_package",
         "项目说明.md",
-        "组员分工.md",
+        "ai-collaboration.md",
     ]
 
     for entry in required_entries:
@@ -56,3 +66,33 @@ def test_submission_package_script_defines_public_review_manifest():
 
     assert "npqr_" + "stage" not in script
     assert "St" + "age" not in script
+
+
+def test_cli_and_mcp_expose_checked_in_large_examples():
+    assert "line_ghz50" in cli._EXAMPLES
+    assert cli._EXAMPLE_TOPOLOGIES["line_ghz50"] == "grid_5x10"
+
+    examples = {row["id"]: row for row in list_examples()["examples"]}
+    assert examples["line_ghz30"]["topology"] == "grid_5x6"
+    assert examples["ring_sparse50"]["topology"] == "grid_5x10"
+
+    result = compile_sabre(
+        example="line_ghz30",
+        heuristic="basic",
+        topology="grid_5x6",
+    )
+    assert result["status"] == "OK"
+    assert result["backend"] == "sabre"
+    assert result["topology"] == "grid_5x6"
+    assert result["input_qubits"] == 30
+
+
+def test_checked_in_large_qasm_files_are_parseable():
+    for path in [
+        Path("examples/line_ghz30.qasm"),
+        Path("examples/random30_d4.qasm"),
+        Path("examples/line_ghz50.qasm"),
+        Path("examples/ring_sparse50.qasm"),
+    ]:
+        circuit = QuantumCircuit.from_qasm_file(str(path))
+        assert circuit.num_qubits in {30, 50}

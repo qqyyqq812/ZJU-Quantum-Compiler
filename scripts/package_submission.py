@@ -15,9 +15,10 @@ PACKAGE_MANIFEST = [
     ("README.md", "README.md"),
     ("docs/index.html", "website/index.html"),
     ("docs/项目说明.md", "项目说明.md"),
+    ("docs/playground-user-guide.md", "playground-user-guide.md"),
+    ("docs/ai-collaboration.md", "ai-collaboration.md"),
     ("docs/final-closure-report.md", "final-closure-report.md"),
-    ("docs/report_latex/main.pdf", "report/npqr-course-report.pdf"),
-    ("docs/plans/组员分工.md", "组员分工.md"),
+    ("docs/report_latex/main.pdf", "report/npqr-technical-report.pdf"),
     (
         "docs/slides/quantum-routing-algorithm-showcase-final.pptx",
         "slides/quantum-routing-algorithm-showcase-final.pptx",
@@ -25,6 +26,10 @@ PACKAGE_MANIFEST = [
     ("examples/qft5.qasm", "examples/qft5.qasm"),
     ("examples/ghz5.qasm", "examples/ghz5.qasm"),
     ("examples/qaoa5.qasm", "examples/qaoa5.qasm"),
+    ("examples/line_ghz30.qasm", "examples/line_ghz30.qasm"),
+    ("examples/random30_d4.qasm", "examples/random30_d4.qasm"),
+    ("examples/line_ghz50.qasm", "examples/line_ghz50.qasm"),
+    ("examples/ring_sparse50.qasm", "examples/ring_sparse50.qasm"),
     ("results/submission_package/readiness.md", "readiness.md"),
     ("results/submission_package/algorithm_matrix.json", "algorithm_matrix.json"),
     ("results/submission_package/public_algorithm_evidence.json", "public_algorithm_evidence.json"),
@@ -57,17 +62,17 @@ NPQR 是一个神经辅助量子路由流程。它使用默认神经网络模型
 SABRE 是对比基线。项目使用它进行指标对比和算法说明，不把它作为自研算法，
 也不把它作为 NPQR 的隐藏完成路径。
 
-最终课程报告使用 SABRE basic 作为主要质量基线。NPQR 在代表性 10/20 比特
-电路上 10/10 完成，并且 10/10 的 SWAP 数低于 SABRE basic。30/50 比特扩展
-测试中，NPQR 4/4 完成，并且 4/4 优于 SABRE basic。80 比特 LineGHZ 在
-240 秒 CPU 有界运行内未完成，100 比特没有作为最终能力声明。
+公开证据使用 SABRE basic 作为主要质量基线。NPQR 在代表性 10/20 比特电路上
+10/10 完成，并且 10/10 的 SWAP 数低于 SABRE basic。30/50 比特扩展测试中，
+NPQR 4/4 完成，并且 4/4 优于 SABRE basic。80 比特 LineGHZ 在 240 秒 CPU
+有界运行内未完成，100 比特没有作为当前能力声明。
 
-报告中可以使用的课程概念包括：
+算法设计要点包括：
 
-- 图问题：硬件拓扑是耦合图。
-- 变治法：路由被转化为图约束下的映射和搜索。
-- 贪婪思想：前沿门距离可辅助评价局部动作。
-- 减治法：每执行一个门都会减少剩余任务。
+- 图建模：硬件拓扑是耦合图。
+- 问题转化：路由被转化为图约束下的映射和搜索。
+- 局部评分：前沿门距离可辅助评价局部动作。
+- 递进执行：每执行一个门都会减少剩余任务。
 - 时空权衡：距离矩阵和候选路线减少重复计算。
 - 迭代改进：SWAP 和后缀修复逐步改进路线。
 - 搜索剪枝：束宽、触发规则和动作限制控制搜索规模。

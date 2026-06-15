@@ -1,27 +1,46 @@
 # ZJU Quantum Compiler
 
-这是一个面向受限量子硬件的神经辅助量子路由编译器。输入
-OpenQASM 2 电路后，系统会把逻辑量子比特映射到真实芯片拓扑上，
-插入必要的 SWAP 门，并输出满足硬件连接约束的路由后电路。
+ZJU Quantum Compiler is a neural-assisted quantum circuit routing compiler for
+restricted hardware topologies. It accepts OpenQASM 2 circuits, maps logical
+qubits to physical qubits, inserts the required SWAP gates, and returns a
+routed circuit that satisfies the target coupling graph.
 
-默认编译流程是 NPQR。NPQR 使用神经网络进行动作评分，并结合初始映射
-选择、束搜索、动作剪枝和局部修复来完成路由。SABRE 作为固定对比基线，
-用于展示传统启发式算法的效果，不参与 NPQR 的路线生成。
+The default compiler path is NPQR. NPQR combines neural action scoring with
+initial mapping selection, bounded beam search, action pruning, local suffix
+repair, and trace replay validation. SABRE is kept as a fixed Qiskit baseline
+for reproducible comparison and is not used as a hidden fallback for NPQR.
 
-## 项目内容
+## Online demo
 
-仓库中的主要内容如下：
+The public browser console is available at:
 
-- `src/`：量子路由编译器、NPQR 运行时、REST API 和 MCP 服务。
-- `examples/`：可直接运行的 OpenQASM 示例电路。
-- `models/default/npqr-default.pt`：默认 NPQR 推理模型。
-- `docs/`：网页、项目说明、PPT 和报告分工材料。
-- `scripts/`：可复现实验矩阵、提交检查和材料打包脚本。
-- `tests/`：公开接口、网页、部署、文档和检查脚本的测试。
+```text
+https://qqyyqq812.github.io/ZJU-Quantum-Compiler/
+```
 
-## 安装
+The page is served from `docs/index.html`. It can call the deployed REST API
+when the API is reachable, and it also documents the MCP endpoint in the folded
+service panel. The user guide is available at
+`docs/playground-user-guide.md`.
 
-建议使用 Python 3.10 或更高版本。
+## Repository contents
+
+The repository keeps the runnable compiler, browser console, public examples,
+and technical report materials in one place:
+
+- `src/`: NPQR runtime, compiler utilities, REST API, and MCP service.
+- `examples/`: checked-in OpenQASM examples for 5, 10, 30, and 50 qubits.
+- `models/default/npqr-default.pt`: default NPQR inference checkpoint.
+- `docs/index.html`: the GitHub Pages compiler console.
+- `docs/项目说明.md`: detailed Chinese technical guide.
+- `docs/ai-collaboration.md`: concise AI collaboration disclosure.
+- `docs/report_latex/main.pdf`: technical report PDF.
+- `scripts/`: reproducibility, readiness, and packaging scripts.
+- `tests/`: public API, site, documentation, and release contract tests.
+
+## Installation
+
+Use Python 3.10 or newer.
 
 ```bash
 git clone https://github.com/qqyyqq812/ZJU-Quantum-Compiler.git
@@ -32,31 +51,35 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-检查环境和默认模型状态：
+Check the installed command and default model:
 
 ```bash
 qcompiler info
 ```
 
-## 启动 REST API
+## REST API
 
-REST API 适合网页、脚本和普通后端调用。
+Start the FastAPI service for browser, script, or backend calls:
 
 ```bash
 uvicorn src.server.app:app --host 0.0.0.0 --port 8765
 ```
 
-常用接口如下：
+The public REST surface is:
 
-| 接口 | 作用 |
+| Endpoint | Purpose |
 | --- | --- |
-| `GET /api/status` | 查看后端状态、默认编译器、模型路径和模型加载状态。 |
-| `GET /api/examples` | 获取仓库内置的 OpenQASM 示例。 |
-| `POST /api/compile` | 使用 NPQR 或 SABRE 编译示例电路或自定义 QASM。 |
-| `GET /api/benchmarks` | 查看算法边界和固定示例摘要。 |
-| `GET /api/npqr/evidence` | 获取机器可读的 NPQR 算法说明。 |
+| `GET /api/status` | Return backend, model, and default compiler status. |
+| `GET /api/examples` | List checked-in OpenQASM examples and default topologies. |
+| `POST /api/validate` | Validate inline OpenQASM against a selected topology. |
+| `POST /api/compile` | Compile a checked-in example or inline QASM. |
+| `POST /api/compile/jobs` | Create an asynchronous compile job with real phase timing. |
+| `GET /api/compile/jobs/{job_id}` | Poll an asynchronous compile job. |
+| `GET /api/topology/{name}` | Return topology metadata and JSON-safe edges. |
+| `GET /api/benchmarks` | Return public benchmark and boundary summaries. |
+| `GET /api/npqr/evidence` | Return machine-readable NPQR evidence. |
 
-使用默认 NPQR 编译内置示例：
+Compile a small checked-in example with NPQR:
 
 ```bash
 curl -s http://127.0.0.1:8765/api/compile \
@@ -64,7 +87,15 @@ curl -s http://127.0.0.1:8765/api/compile \
   -d '{"example":"ghz5","topology":"tokyo"}'
 ```
 
-使用默认 NPQR 编译自定义 OpenQASM：
+Compile a 50-qubit checked-in example on the 5x10 grid with SABRE:
+
+```bash
+curl -s http://127.0.0.1:8765/api/compile \
+  -H 'Content-Type: application/json' \
+  -d '{"example":"line_ghz50","backend":"sabre","topology":"grid_5x10"}'
+```
+
+Compile custom OpenQASM:
 
 ```bash
 curl -s http://127.0.0.1:8765/api/compile \
@@ -72,185 +103,155 @@ curl -s http://127.0.0.1:8765/api/compile \
   -d '{"qasm":"OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\ncx q[0],q[1];\n"}'
 ```
 
-返回结果包含路由后的 QASM、SWAP 数、电路深度、运行时间、路线轨迹和
-SABRE 对比结果。`components` 字段中的 `sabre_fallback` 为 `false`，
-表示 NPQR 结果不是由 SABRE 代替完成的。
+Compile responses include routed QASM, SWAP count, depth, elapsed time,
+route trace events, initial and final mappings, and the SABRE comparison
+baseline. The `components.sabre_fallback` flag is `false` for NPQR results.
 
-## 启动 MCP 服务
+## MCP service
 
-MCP 服务适合工具客户端和自动化调用。
+Start the HTTP MCP service for tool clients:
 
 ```bash
 qcompiler-mcp-http
 ```
 
-默认 MCP 地址为：
+The default endpoint is:
 
 ```text
 http://127.0.0.1:8000/mcp
 ```
 
-健康检查：
+Health check:
 
 ```bash
 curl -s http://127.0.0.1:8000/health
 ```
 
-主要 MCP 工具如下：
+The MCP tools expose the same read-only compiler capabilities:
 
-| 工具 | 作用 |
+| Tool | Purpose |
 | --- | --- |
-| `qcompiler_status` | 查看默认编译器、模型和算法边界。 |
-| `list_examples` | 列出内置 QASM 示例。 |
-| `compile_npqr` | 使用 NPQR 编译内置示例。 |
-| `compile_sabre` | 使用 SABRE 编译内置示例。 |
-| `compile_qasm` | 编译用户提供的 OpenQASM 2 文本。 |
-| `get_benchmarks` | 返回公开的基准和声明边界。 |
-| `get_npqr_boundary` | 说明 NPQR 的能力范围和不声明内容。 |
-| `get_algorithm_evidence` | 返回面向课程报告的算法组成说明。 |
+| `qcompiler_status` | Return compiler, model, and boundary status. |
+| `list_examples` | List checked-in QASM examples. |
+| `compile_npqr` | Compile a checked-in example with NPQR. |
+| `compile_sabre` | Compile a checked-in example with SABRE. |
+| `compile_qasm` | Compile user-provided OpenQASM 2 text. |
+| `get_benchmarks` | Return public benchmark summaries. |
+| `get_npqr_boundary` | Return explicit NPQR claims and non-claims. |
+| `get_algorithm_evidence` | Return algorithm component evidence. |
 
-## 命令行用法
+## Command line
 
-查看项目信息：
+Inspect the installation:
 
 ```bash
 qcompiler info
 ```
 
-编译示例电路：
+Compile a checked-in example:
 
 ```bash
 qcompiler compile --example qft5 --backend npqr
 ```
 
-生成快速对比矩阵：
+Compile a QASM file:
+
+```bash
+qcompiler compile examples/qft5.qasm --backend sabre --topology tokyo
+```
+
+Generate the reproducible comparison matrix:
 
 ```bash
 qcompiler matrix --quick
 ```
 
-## 算法说明
+## Examples and topologies
 
-量子芯片可以看成一个无向图，物理量子比特是顶点，硬件连接是边。
-输入电路中的双比特门只有在对应物理量子比特相邻时才能直接执行。
-如果不相邻，编译器需要插入 SWAP 门来移动逻辑量子态。
+Small and medium examples use IBM Tokyo 20Q. Larger examples use selected grid
+topologies that match their input size.
 
-NPQR 的流程如下：
+| Example | Qubits | Default topology | File |
+| --- | ---: | --- | --- |
+| QFT 5 | 5 | `tokyo` | `examples/qft5.qasm` |
+| GHZ 5 | 5 | `tokyo` | `examples/ghz5.qasm` |
+| QAOA 5 | 5 | `tokyo` | `examples/qaoa5.qasm` |
+| QFT 10 | 10 | `tokyo` | `examples/qft10.qasm` |
+| QAOA 10 | 10 | `tokyo` | `examples/qaoa10.qasm` |
+| GHZ 10 | 10 | `tokyo` | `examples/ghz10.qasm` |
+| VQE-like 10 | 10 | `tokyo` | `examples/vqe10.qasm` |
+| LineGHZ30 | 30 | `grid_5x6` | `examples/line_ghz30.qasm` |
+| Random30-d4 | 30 | `grid_5x6` | `examples/random30_d4.qasm` |
+| LineGHZ50 | 50 | `grid_5x10` | `examples/line_ghz50.qasm` |
+| RingSparse50 | 50 | `grid_5x10` | `examples/ring_sparse50.qasm` |
 
-1. 解析 OpenQASM 电路和 IBM Tokyo 20Q 拓扑。
-2. 构建门依赖关系，识别当前可执行的前沿门。
-3. 生成逻辑量子比特到物理量子比特的初始映射候选。
-4. 使用神经网络对合法 SWAP 动作进行评分。
-5. 使用有界束搜索保留多条候选路线，降低一步贪心失误的影响。
-6. 在较难的交互模式上触发更强的前沿搜索。
-7. 通过动作剪枝控制候选规模和运行时间。
-8. 在路线接近完成但局部卡住时进行有界后缀修复。
-9. 复放最终轨迹，确认每一步都满足芯片拓扑约束，再输出 QASM。
+Supported topology aliases include `tokyo`, `grid_5x6`, and `grid_5x10`.
+Tokyo has 20 physical qubits. A 30-qubit circuit must use `grid_5x6`, and a
+50-qubit circuit must use `grid_5x10`.
 
-SABRE 是对比基线。它是 Qiskit 中常用的量子路由启发式方法，主要根据
-前沿门和后续门的距离估计选择 SWAP。项目中保留 SABRE 是为了进行稳定、
-可复现的对比。
+## Algorithm overview
 
-## 课程算法概念对应
+Quantum routing is a graph-constrained optimization problem. Physical qubits
+are graph vertices, and hardware couplings are graph edges. A two-qubit gate can
+run directly only when the two mapped physical qubits are adjacent. Otherwise,
+the compiler inserts SWAP gates to move logical states across valid edges.
 
-项目可以用下列算法设计概念解释：
+NPQR follows this pipeline:
 
-| 课程概念 | 在项目中的体现 |
-| --- | --- |
-| 图问题 | 芯片拓扑是图，量子比特是顶点，硬件连接是边。 |
-| 变治法 | 把电路路由转化为图约束下的映射和路径规划问题。 |
-| 贪婪思想 | 前沿门距离的下降可作为局部 SWAP 质量判断。 |
-| 减治法 | 每执行一个合法门，剩余待路由任务就减少。 |
-| 时空权衡 | 距离矩阵、候选映射和候选路线会占用空间，但减少重复计算。 |
-| 迭代改进 | 路线通过 SWAP、映射更新和局部修复逐步改进。 |
-| 搜索剪枝 | 束宽、动作剪枝和触发规则限制搜索树规模。 |
-| 近似求解 | 系统追求有限时间内的高质量可行解，不保证全局最优。 |
-| 神经网络 | 模型在搜索过程中提供动作偏好。 |
+1. Parse the OpenQASM circuit and selected hardware topology.
+2. Build gate dependencies and identify executable frontier gates.
+3. Generate candidate logical-to-physical initial mappings.
+4. Score legal SWAP actions with a neural model.
+5. Keep multiple route candidates with bounded beam search.
+6. Apply trigger-gated frontier search on difficult interaction patterns.
+7. Prune low-value actions to control runtime and candidate growth.
+8. Repair difficult suffixes with bounded local search.
+9. Replay the selected trace and emit QASM only after topology validation.
 
-## 示例电路
+The design combines standard algorithmic ideas: graph modeling, problem
+transformation, greedy local scoring, decremental progress through executed
+gates, space-time tradeoffs in cached distances and candidate states, iterative
+improvement through SWAPs, search pruning, and bounded approximate solving.
 
-仓库内置示例覆盖不同路由压力：
+## Results and boundaries
 
-| 示例 | 说明 |
-| --- | --- |
-| `examples/ghz5.qasm` | 小规模纠缠链。 |
-| `examples/qft5.qasm` | 小规模密集交互电路。 |
-| `examples/qaoa5.qasm` | 小规模 QAOA 风格电路。 |
-| `examples/qft10.qasm` | 路由压力更高的密集交互电路。 |
-| `examples/qaoa10.qasm` | 中等规模优化风格电路。 |
-| `examples/ghz10.qasm` | 更长的纠缠链。 |
-| `examples/vqe10.qasm` | VQE 风格 ansatz。 |
+The public evidence uses SABRE basic as the fixed quality baseline. The final
+local evaluation shows that NPQR completes the representative 10/20-qubit set
+and returns fewer SWAP gates than SABRE basic on all listed rows. The selected
+30/50-qubit examples also complete and show useful scaling behavior.
 
-运行快速矩阵：
-
-```bash
-python scripts/experiment_algorithm_matrix.py --quick
-```
-
-生成 JSON 结果，便于整理报告表格：
-
-```bash
-python scripts/experiment_algorithm_matrix.py --quick --json
-```
-
-## 网页和报告材料
-
-`docs/index.html` 是唯一网页入口。GitHub Pages 打开后默认使用内置示例结果，
-可以直接展示 NPQR 与固定 SABRE 基线的对比、Tokyo 映射和路线回放。维护者
-可以用 HTTPS REST API 覆盖为实时编译。
-
-`docs/playground-user-guide.md` 说明网页中的 **Run**、**Step**、**Reset**、
-示例电路、自定义 QASM、生成电路、Tokyo 映射、路线轨迹和 `compiled_qasm`
-结果面板。
-
-`docs/项目说明.md` 提供更完整的中文项目说明，覆盖背景、算法、接口、
-目录结构、运行方式、测试和结果边界。
-
-`docs/plans/组员分工.md` 是组员报告分工说明，内容围绕算法流程、课程概念、
-复杂度分析、对比基线、PPT 结构和口播材料展开。
-
-PPT 材料位于 `docs/slides/`。
-
-## 结果摘要
-
-本课程项目把 SABRE basic 作为主要质量基线。最终本地评测显示，NPQR 在
-代表性 10/20 比特电路上全部完成路由，并且 SWAP 数均低于 SABRE basic。
-所有完成结果都不依赖 SABRE 回退路径，并通过轨迹复放验证。
-
-| 规模 | 电路数 | NPQR 完成 | 优于 SABRE basic | 说明 |
+| Scale | Cases | NPQR completed | NPQR lower than SABRE basic | Role |
 | --- | ---: | ---: | ---: | --- |
-| 10/20 比特代表电路 | 10 | 10 | 10 | 主性能结论。 |
-| 30/50 比特扩展测试 | 4 | 4 | 4 | 展示扩展潜力，但不是全面胜出声明。 |
-| 80/100 比特边界测试 | 4 | 0 | 0 | 用于界定上限，不作为完成能力声明。 |
+| Representative 10/20Q | 10 | 10 | 10 | Main quality evidence. |
+| Selected 30/50Q | 4 | 4 | 4 | Bounded scaling evidence. |
+| 80/100Q boundary rows | 4 | 0 | 0 | Boundary definition only. |
 
-30/50 比特扩展测试中，NPQR 在 LineGHZ30、Random30-d4、LineGHZ50 和
-RingSparse50 上均完成并优于 SABRE basic。
-80 比特 LineGHZ 在 240 秒 CPU 有界运行内未完成，100 比特没有作为最终能力
-声明。因此，项目可以宣称 NPQR 在代表性 10/20 比特任务上稳定优于 SABRE basic，
-并已证明部分 30/50 比特电路可完成且优于 basic；当前最大已证明完成规模为
-50 比特，不能宣称所有大规模电路都优于 SABRE。
+The project does not claim that NPQR beats SABRE on every circuit. It does not
+claim state-of-the-art quantum routing. SABRE lookahead is not the primary
+comparison target. The current demonstrated completion boundary is selected
+50-qubit structures under the documented test budget.
 
-## 部署
+## Deployment
 
-REST API 镜像：
+Build and run the REST API container:
 
 ```bash
 docker build -f Dockerfile.api -t zju-quantum-compiler-api .
 docker run --rm -p 8080:8080 zju-quantum-compiler-api
 ```
 
-MCP 镜像：
+Build and run the MCP container:
 
 ```bash
 docker build -f Dockerfile.mcp -t zju-quantum-compiler-mcp .
 docker run --rm -p 8081:8081 zju-quantum-compiler-mcp
 ```
 
-Render 配置文件为 `render.yaml` 和 `render-mcp.yaml`。
+Render blueprints are provided in `render.yaml` and `render-mcp.yaml`.
 
-## 检查命令
+## Verification
 
-发布或演示前可以运行以下检查：
+Run the public test set before publishing changes:
 
 ```bash
 python -m pytest -q \
@@ -266,19 +267,11 @@ python scripts/check_submission_readiness.py
 git diff --check
 ```
 
-生成本地材料包：
+Generate a local review package:
 
 ```bash
 python scripts/package_submission.py
 ```
 
-生成文件位于 `results/submission_package/`。
-
-## 结果边界
-
-NPQR 是一个可运行的神经辅助量子路由流程。它的核心是神经网络推理，但完整
-路由结果依赖映射选择、搜索、剪枝、修复和轨迹校验共同完成。
-
-项目不声明 NPQR 在所有电路上都优于 SABRE，也不声明默认模型是最先进的量子
-路由模型。SABRE 在这里是强基线和对比对象，不是 NPQR 结果的隐藏完成路径。
-SABRE lookahead 不是本课程项目的主比较目标。
+Generated files are written to `results/submission_package/` and are not
+committed.
