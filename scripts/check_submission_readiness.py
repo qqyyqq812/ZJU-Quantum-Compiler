@@ -190,14 +190,15 @@ def check_readiness() -> list[ReadinessItem]:
             "docs",
             "Playground guide explains the three-minute review path",
             _status(
-                "Three-minute review" in user_guide
+                "三分钟体验" in user_guide
                 and "ghz5" in user_guide
                 and "qft5" in user_guide
                 and "qaoa5" in user_guide
-                and "extension-scale examples" in user_guide
+                and "扩展规模" in user_guide
                 and "GitHub Pages" in user_guide
-                and "Real compiler backend" in user_guide
-                and "not required for normal browser use" in user_guide
+                and "运行位置" in user_guide
+                and "本地后端" in user_guide
+                and "不是普通网页体验的必需入口" in user_guide
             ),
             "docs/playground-user-guide.md",
         ),
@@ -248,11 +249,13 @@ def check_readiness() -> list[ReadinessItem]:
             _status(
                 "量子编译实验台" in site
                 and 'const PUBLIC_API_BASE = "http://1.95.70.10";' in site
+                and 'const LOCAL_API_BASE = "http://127.0.0.1:8765";' in site
                 and "createCompileJob" in site
                 and "pollCompileJob" in site
                 and "random30_d4" in site
                 and 'href="playground-user-guide.md"' in site
                 and "Service Interfaces" in site
+                and "运行位置" in site
                 and "MCP Server" in site
                 and "POST /mcp" in site
             ),

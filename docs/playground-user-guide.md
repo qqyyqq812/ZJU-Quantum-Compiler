@@ -1,114 +1,101 @@
-# Quantum Compiler Playground user guide
+# 网页体验指南
 
-This guide explains how to review the public browser console for the 量子信息基础大作业.
-The page is designed for a quick first pass: open it, run a small example, and
-inspect the route trace, QASM output, topology, and NPQR/SABRE comparison.
+本指南说明量子信息基础大作业网页如何使用。页面用于查看 OpenQASM
+输入、硬件拓扑、SWAP 轨迹回放、路由后 QASM，以及 NPQR 与 SABRE
+basic 的指标对比。
 
-## Three-minute review
+## 三分钟体验
 
-Use this flow for the first browser check.
+第一次打开页面时，建议先运行小规模示例。
 
-1. Open the GitHub Pages console or local `docs/index.html`.
-2. Select `ghz5`, `qft5`, or `qaoa5`.
-3. Click **Run**.
-4. Read the NPQR and SABRE columns: status, SWAP count, depth, and `elapsed_ms`.
-5. Click **Step** to move through the route trace.
-6. Switch between **NPQR QASM** and **SABRE QASM** to inspect the routed output.
-7. Check that the topology panel explains which physical edge is used by each
-   gate or inserted SWAP.
+1. 打开 GitHub Pages 页面或本地网页。
+2. 选择 `ghz5`、`qft5` 或 `qaoa5`。
+3. 点击 **Run**。
+4. 查看 NPQR 和 SABRE basic 两列的状态、SWAP 数、深度和 `elapsed_ms`。
+5. 点击 **Step**，按步骤查看 `route_trace`。
+6. 在 **NPQR QASM** 和 **SABRE QASM** 之间切换，查看 `compiled_qasm`。
+7. 对照拓扑图，观察每个双比特门或 SWAP 使用的物理连边。
 
-The 5Q and 10Q examples are the recommended first pass. They load quickly and
-make the route trace easy to inspect. The 30Q and 50Q examples are
-extension-scale examples; `LineGHZ30` and `Random30-d4` use `grid_5x6`, and
-`LineGHZ50` and `RingSparse50` use `grid_5x10`. Use them when a backend service
-is deployed and the runtime budget is sufficient.
+5Q 和 10Q 示例适合首次体验，轨迹短，拓扑关系清楚。30Q 和 50Q 示例是
+扩展规模；`LineGHZ30` 与 `Random30-d4` 使用 `grid_5x6`，`LineGHZ50`
+与 `RingSparse50` 使用 `grid_5x10`。这些示例需要 REST API 后端支持。
 
-## What to look at
+## 页面与后端
 
-The browser page has three review surfaces.
+网页入口和编译后端是两层。
 
-| Surface | What it shows | Why it matters |
+| 入口 | 面向对象 | 作用 |
 | --- | --- | --- |
-| QASM input | Checked-in examples, custom OpenQASM, generated circuits | Confirms the compiler input is visible. |
-| Topology and trace | Physical graph, gate events, SWAP events, mappings | Explains how routing satisfies hardware coupling. |
-| Result columns | NPQR, SABRE, SWAP, depth, elapsed time, routed QASM | Shows the fixed comparison used by the report. |
+| GitHub Pages | 浏览器用户 | 打开网页界面，查看输入、拓扑、回放和结果。 |
+| REST API | 网页、脚本、部署环境 | 执行真实 NPQR 和 SABRE basic 编译。 |
+| MCP | 工具客户端和自动化流程 | 面向进阶工具调用，不是普通网页体验的必需入口。 |
 
-For a useful review, confirm that the page opens, QASM is readable, the topology
-matches the selected scale, SWAP replay explains the route, and the NPQR/SABRE
-comparison is visible without reading source code.
+服务面板里的 **运行位置** 决定 REST API 地址：
 
-## Inputs
+- **公共服务器** 使用当前部署的在线后端。
+- **本地后端** 使用 `http://127.0.0.1:8765`。
+- **自定义地址** 用于测试自己的 REST API 部署。
 
-The left panel controls the circuit.
+网页可以从 GitHub Pages 打开，也可以在本地打开。公共服务器不可用时，
+克隆仓库并启动本地 REST API，然后用本地网页地址进入：
 
-- **Examples** loads checked-in OpenQASM examples. Use this for repeatable
-  review. The 5Q and 10Q examples use IBM Tokyo 20Q. The 30Q and 50Q examples
-  use grid topologies.
-- **Custom QASM** lets you paste OpenQASM 2 text. The input must start with
-  `OPENQASM 2.0;`.
-- **Generate** writes a small OpenQASM circuit into the editor. Click **Run** to
-  send it to the compiler.
+```text
+http://127.0.0.1:5500/?mode=local
+```
 
-## GitHub Pages, REST API, and MCP
+也可以用 GitHub Pages 地址加 `?mode=local` 进入本地后端模式。如果在线
+页面调用本地 HTTP 后端受浏览器限制，使用本地网页地址。
 
-These surfaces serve different users.
+## 输入区域
 
-| Surface | Audience | Role |
-| --- | --- | --- |
-| GitHub Pages | People reading and trying the project | Human-facing browser entry. |
-| REST API | Browser page, scripts, deployments | Real compiler backend for NPQR and SABRE calls. |
-| MCP | Tool clients and automation | Advanced interface; not required for normal browser use. |
+左侧面板控制电路输入。
 
-The browser can use an HTTPS REST API when one is configured. A local HTTP API
-can be used from a local page, but published GitHub Pages may block plain HTTP
-requests through browser security rules. Use the API input or `?api=` query
-parameter when testing a deployed backend.
+- **Examples** 载入仓库内置 OpenQASM 示例。5Q 和 10Q 示例使用
+  IBM Tokyo 20Q，30Q 和 50Q 示例使用网格拓扑。
+- **Custom QASM** 用于粘贴 OpenQASM 2 文本，第一行需要是
+  `OPENQASM 2.0;`。
+- **Generate** 生成一个小型 OpenQASM 电路，生成后点击 **Run** 编译。
 
-## Results
+## 结果区域
 
-The result columns show the main metrics.
+结果列展示主要指标。
 
-- **Status** reports whether the route finished.
-- **SWAP** counts the inserted SWAP gates.
-- **Depth** reports routed circuit depth.
-- **elapsed_ms** reports backend compute time for that request.
-- **Delta values** compare NPQR with SABRE for the selected run.
+- **Status** 表示路由是否完成。
+- **SWAP** 表示插入的 SWAP 门数量。
+- **Depth** 表示路由后线路深度。
+- **elapsed_ms** 表示本次请求的后端计算耗时。
+- **Delta values** 表示 NPQR 与 SABRE basic 的差值。
 
-The **compiled_qasm** panel shows the routed output circuit. Use **NPQR QASM**
-and **SABRE QASM** to switch between outputs.
+`compiled_qasm` 面板展示路由后的输出线路。使用 **NPQR QASM** 和
+**SABRE QASM** 可以切换两种输出。
 
-## Topology and route trace
+## 拓扑与轨迹
 
-The topology panel shows physical qubits and coupling edges. A two-qubit gate
-can run directly only when the mapped physical qubits are adjacent. If they are
-not adjacent, the compiler inserts SWAP gates along valid hardware edges.
+拓扑图展示物理量子位和硬件连边。映射后的两个物理量子位相邻时，双比特
+门可以直接执行；不相邻时，编译器需要沿合法连边插入 SWAP。
 
-The route trace is returned in the `route_trace` field.
+后端返回的 `route_trace` 记录每一步路由事件。
 
-- A `gate` event means a routed operation can run at the current physical
-  locations.
-- A `swap` event means the compiler inserted a SWAP before a later gate.
-- `logical_qubits` and `physical_qubits` identify the operation.
-- `mapping_before` and `mapping_after` show how logical qubits move.
+- `gate` 表示当前映射下可以执行的门。
+- `swap` 表示为了后续门插入的 SWAP。
+- `logical_qubits` 和 `physical_qubits` 标识逻辑量子位与物理量子位。
+- `mapping_before` 和 `mapping_after` 展示 SWAP 前后的映射变化。
 
-The trace tabs let you inspect NPQR and SABRE routes separately.
+轨迹标签页可以分别查看 NPQR 和 SABRE basic 的路由过程。
 
-## Backend algorithms
+## 后端方法
 
-NPQR is the project compiler. It parses OpenQASM, builds gate dependencies,
-selects initial mappings, scores legal SWAP actions, keeps bounded search
-candidates, repairs difficult suffixes, and replays the final trace before
-returning routed QASM.
+NPQR 是项目默认路由方法。它解析 OpenQASM，建立门依赖，生成初始映射
+候选，筛选合法 SWAP 动作，进行动作评分和有界搜索，并在返回结果前复放
+轨迹。
 
-SABRE basic is the fixed Qiskit baseline. The comparison uses the same input circuit, topology, and metric fields for both compilers.
+SABRE basic 是固定 Qiskit baseline。两种方法使用同一输入线路、同一拓扑
+和同一组指标字段。
 
-## Troubleshooting
+## 常见问题
 
-- If the page opens but compile fails, check whether the configured REST API is
-  reachable from the browser.
-- If GitHub Pages is used with a local HTTP API, browser mixed-content rules may
-  block the request.
-- If custom QASM fails immediately, check that the first line is
-  `OPENQASM 2.0;`.
-- If a 30Q or 50Q example takes too long, return to a 5Q or 10Q example for the
-  first review and use a deployed backend for extension-scale runs.
+- 页面能打开但编译失败时，先检查服务面板中的 REST API 地址。
+- 本地运行时，先启动 `uvicorn` 后端，再打开本地网页。
+- GitHub Pages 页面调用本地 HTTP 后端受限时，改用本地网页地址。
+- 自定义 QASM 立即失败时，检查第一行是否为 `OPENQASM 2.0;`。
+- 30Q 或 50Q 示例耗时较长时，先使用 5Q 或 10Q 示例确认流程。

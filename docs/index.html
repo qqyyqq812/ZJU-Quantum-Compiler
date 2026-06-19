@@ -1539,6 +1539,30 @@
       font-size: 12px;
     }
 
+    .runtime-options {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin: 0 0 8px;
+    }
+
+    .runtime-options button {
+      min-height: 30px;
+      border: 1px solid var(--tf-line-dark);
+      border-radius: 0;
+      background: var(--qc-editor);
+      color: var(--tf-text);
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .runtime-options button[aria-pressed="true"] {
+      border-color: var(--tf-blue);
+      background: rgba(8, 119, 189, 0.12);
+      color: var(--tf-blue);
+      font-weight: 600;
+    }
+
     .endpoint-note {
       margin-top: 0;
       font-family: var(--mono);
@@ -4015,7 +4039,14 @@
     <div class="advanced-body">
       <section>
         <h4><span>REST API</span></h4>
-        <p class="service-copy">浏览器调用项目部署的 FastAPI 服务；URL 参数 `?api=` 可覆盖目标地址。</p>
+        <p class="service-copy">网页负责展示，REST API 负责真实编译；两者可以来自公共服务器，也可以在本地分别启动。</p>
+        <label class="endpoint-label">运行位置</label>
+        <div class="runtime-options" role="group" aria-label="选择编译后端运行位置">
+          <button type="button" data-api-mode="public" aria-pressed="false">公共服务器</button>
+          <button type="button" data-api-mode="local" aria-pressed="false">本地后端</button>
+          <button type="button" data-api-mode="custom" aria-pressed="false">自定义地址</button>
+        </div>
+        <p class="endpoint-note" id="page-origin-note">页面来源</p>
         <label class="endpoint-label" for="api-base-input">REST API</label>
         <div class="endpoint-control">
           <input id="api-base-input" type="url" spellcheck="false" aria-describedby="api-base-note">
@@ -4054,6 +4085,7 @@
   <script>
     const PUBLIC_API_BASE = "http://1.95.70.10";
     const PUBLIC_APP_BASE = "http://1.95.70.10/";
+    const LOCAL_API_BASE = "http://127.0.0.1:8765";
     const API_TIMEOUT_MS = 120000;
     const API_STATUS_TIMEOUT_MS = 20000;
     const JOB_CREATE_TIMEOUT_MS = 20000;
@@ -4062,17 +4094,20 @@
     const MAX_INLINE_QASM_CHARS = 8000;
 
     const params = new URLSearchParams(window.location.search);
+    const initialMode = params.get("mode");
+    const requestedApiBase = normalizeApiBase(params.get("api"));
     if (
       window.location.protocol === "https:" &&
       window.location.hostname.endsWith("github.io") &&
-      (!params.get("api") || normalizeApiBase(params.get("api"))?.startsWith("http://"))
+      initialMode !== "local" &&
+      (!requestedApiBase || (requestedApiBase.startsWith("http://") && !isLoopbackApiBase(requestedApiBase)))
     ) {
       const target = new URL(PUBLIC_APP_BASE);
       target.search = window.location.search;
       target.hash = window.location.hash;
       window.location.replace(target.toString());
     }
-    let apiBase = normalizeApiBase(params.get("api") || PUBLIC_API_BASE);
+    let apiBase = normalizeApiBase(params.get("api") || (initialMode === "local" ? LOCAL_API_BASE : PUBLIC_API_BASE));
 
     const examples = {
       qft5: {
@@ -5030,6 +5065,8 @@ cx q[0],q[1];`
       apiBaseInput: document.getElementById("api-base-input"),
       applyApiBase: document.getElementById("apply-api-base"),
       apiBaseNote: document.getElementById("api-base-note"),
+      apiModeButtons: document.querySelectorAll("[data-api-mode]"),
+      pageOriginNote: document.getElementById("page-origin-note"),
       traceOp: document.getElementById("trace-op"),
       traceProgress: document.getElementById("trace-progress"),
       traceBar: document.getElementById("trace-bar"),
@@ -5050,7 +5087,7 @@ cx q[0],q[1];`
     const tourSteps = [
       { selector: "#examples-panel", title: "选择电路", copy: "先用示例快速跑通，也可以切到自定义或生成 OpenQASM。" },
       { selector: "#qasm-input", title: "检查输入", copy: "这里是当前电路。校验条会提示 OpenQASM 是否能提交。" },
-      { selector: "#run-button", title: "运行编译", copy: "运行会同时调用 NPQR 和固定 SABRE 基准，结果来自公网 REST API。" },
+      { selector: "#run-button", title: "运行编译", copy: "运行会同时调用 NPQR 和固定 SABRE 基准，结果来自当前 REST API。" },
       { selector: "#tokyo-topology", title: "查看拓扑", copy: "编译完成后，单步只回放后端返回的真实路由事件。" },
       { selector: ".comparison-table", title: "比较结果", copy: "右侧只保留 SWAP、深度和耗时，便于理解路由效果。" },
       { selector: "#qasm-details", title: "导出 QASM", copy: "编译完成后自动显示 NPQR/SABRE 的编译后 QASM，可复制或下载。" }
@@ -5114,11 +5151,72 @@ cx q[0],q[1];`
       document.body.classList.toggle("is-replaying", state.visualPhase === "replaying");
     }
 
+    function sameApiBase(left, right) {
+      return normalizeApiBase(left) === normalizeApiBase(right);
+    }
+
+    function isLoopbackApiBase(base) {
+      try {
+        const url = new URL(normalizeApiBase(base));
+        return ["127.0.0.1", "localhost"].includes(url.hostname);
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function currentApiMode() {
+      if (sameApiBase(apiBase, PUBLIC_API_BASE)) {
+        return "public";
+      }
+      if (sameApiBase(apiBase, LOCAL_API_BASE)) {
+        return "local";
+      }
+      return "custom";
+    }
+
+    function pageOriginText() {
+      if (window.location.hostname.endsWith("github.io")) {
+        return "页面来源：GitHub Pages。";
+      }
+      if (sameApiBase(window.location.origin, PUBLIC_APP_BASE)) {
+        return "页面来源：公共服务器。";
+      }
+      if (["127.0.0.1", "localhost"].includes(window.location.hostname)) {
+        return "页面来源：本地网页。";
+      }
+      if (window.location.protocol === "file:") {
+        return "页面来源：本地文件。";
+      }
+      return `页面来源：${window.location.host || "当前页面"}。`;
+    }
+
+    function backendModeText() {
+      const mode = currentApiMode();
+      if (mode === "public") {
+        return "运行位置：公共服务器后端。";
+      }
+      if (mode === "local") {
+        return "运行位置：本地 REST 后端。";
+      }
+      return "运行位置：自定义 REST 后端。";
+    }
+
+    function syncApiModeButtons() {
+      const mode = currentApiMode();
+      el.apiModeButtons?.forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.apiMode === mode));
+      });
+    }
+
     function syncApiControls(note) {
       if (!el.apiBaseInput) {
         return;
       }
       el.apiBaseInput.value = apiBase;
+      syncApiModeButtons();
+      if (el.pageOriginNote) {
+        el.pageOriginNote.textContent = `${pageOriginText()} ${backendModeText()}`;
+      }
       el.apiBaseNote.textContent = note || `当前 API: ${apiBase}`;
       el.backend.title = apiBase;
     }
@@ -6471,8 +6569,22 @@ cx q[0],q[1];`
         `// 离线的是 REST API，不是 MCP。最后错误：${reason}。`,
         `// 当前 API: ${apiBase}`,
         "// 普通用户运行实时编译时需要 REST API 保持在线。",
-        "// 维护者可在接口面板或用 ?api=... 覆盖地址。"
+        "// 可在接口面板选择公共服务器、本地后端或自定义地址。"
       ].join("\n");
+    }
+
+    function selectApiMode(mode) {
+      if (mode === "public") {
+        apiBase = normalizeApiBase(PUBLIC_API_BASE);
+      } else if (mode === "local") {
+        apiBase = normalizeApiBase(LOCAL_API_BASE);
+      } else {
+        el.apiBaseInput?.focus();
+        syncApiControls("输入 REST API 地址后点击应用。");
+        return;
+      }
+      syncApiControls();
+      checkBackend();
     }
 
     function applyApiBase() {
@@ -6988,6 +7100,9 @@ cx q[0],q[1];`
     el.download.addEventListener("click", downloadQasm);
     el.generateQasm.addEventListener("click", generateQasmIntoEditor);
     el.applyApiBase.addEventListener("click", applyApiBase);
+    el.apiModeButtons.forEach((button) => {
+      button.addEventListener("click", () => selectApiMode(button.dataset.apiMode));
+    });
     el.serviceButton.addEventListener("click", () => setServicePanel(el.servicePanel.hidden));
     el.serviceClose.addEventListener("click", () => setServicePanel(false));
     el.tourButton.addEventListener("click", () => openTour(true));

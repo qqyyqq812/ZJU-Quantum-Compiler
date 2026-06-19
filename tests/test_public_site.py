@@ -69,13 +69,16 @@ def test_public_site_uses_public_remote_rest_api():
 
     assert 'const PUBLIC_API_BASE = "http://1.95.70.10";' in html
     assert 'const PUBLIC_APP_BASE = "http://1.95.70.10/";' in html
+    assert 'const LOCAL_API_BASE = "http://127.0.0.1:8765";' in html
     assert 'window.location.hostname.endsWith("github.io")' in html
-    assert 'normalizeApiBase(params.get("api"))?.startsWith("http://")' in html
-    assert 'window.location.replace(target.toString());' in html
+    assert 'initialMode === "local" ? LOCAL_API_BASE : PUBLIC_API_BASE' in html
     assert "function apiCandidates()" in html
     assert "return [apiBase].map(normalizeApiBase);" in html
-    assert "运行会同时调用 NPQR 和固定 SABRE 基准，结果来自公网 REST API。" in html
-    assert "浏览器调用项目部署的 FastAPI 服务" in html
+    assert "运行会同时调用 NPQR 和固定 SABRE 基准，结果来自当前 REST API。" in html
+    assert "网页负责展示，REST API 负责真实编译" in html
+    assert "运行位置" in html
+    assert "本地后端" in html
+    assert "自定义地址" in html
     assert 'id="service-button"' in first_screen
     assert "Service Interfaces" in html
     assert "POST /api/compile/jobs" in html

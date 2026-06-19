@@ -24,6 +24,10 @@
 网页和脚本调用的真实编译后端；MCP 面向工具客户端和自动化流程，不是
 普通浏览器体验的必需入口。
 
+网页入口和编译后端是两层：网页可以从 GitHub Pages、公共服务器或本地
+静态服务打开，真实编译由页面中的 **运行位置** 决定。公共服务器不可用
+时，可以克隆仓库，在本地启动 REST API 和本地网页，继续运行同一套示例。
+
 ## 三类使用路径
 
 | 路径 | 第一步 | 主要入口 |
@@ -53,6 +57,20 @@
 
 建议使用 Python 3.10 或更新版本。
 
+Windows PowerShell 使用下面的命令：
+
+```powershell
+git clone https://github.com/qqyyqq812/ZJU-Quantum-Compiler.git
+cd ZJU-Quantum-Compiler
+python -m venv .venv
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+pip install -e .
+```
+
+Linux 或 macOS 使用下面的命令：
+
 ```bash
 git clone https://github.com/qqyyqq812/ZJU-Quantum-Compiler.git
 cd ZJU-Quantum-Compiler
@@ -61,6 +79,9 @@ source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
 ```
+
+Windows Git Bash 只需要把激活命令换成
+`source .venv/Scripts/activate`，其他步骤相同。
 
 检查命令行和默认模型：
 
@@ -108,6 +129,32 @@ curl -s http://127.0.0.1:8765/api/compile \
 
 返回结果包含路由后 QASM、SWAP 数、线路深度、耗时、轨迹事件、
 初始/最终映射，以及 SABRE basic 对照指标。
+
+## 本地网页
+
+公共服务器不可用时，可以在本地同时启动网页和 REST API。先启动后端：
+
+```powershell
+uvicorn src.server.app:app --host 127.0.0.1 --port 8765
+```
+
+再开一个终端，在仓库根目录启动静态网页：
+
+```powershell
+python -m http.server 5500 -d docs
+```
+
+浏览器访问：
+
+```text
+http://127.0.0.1:5500/?mode=local
+```
+
+页面服务面板中的 **运行位置** 可以切换 **公共服务器**、**本地后端**
+和 **自定义地址**。如果在线页面调用本地 HTTP 后端受浏览器限制，使用
+上面的本地网页地址。也可以用
+`https://qqyyqq812.github.io/ZJU-Quantum-Compiler/?mode=local` 从
+GitHub Pages 进入本地后端模式。
 
 ## MCP 服务
 
@@ -280,6 +327,12 @@ GitHub Pages is the human-facing page. REST API performs real compiler calls
 for the page and scripts. MCP is an advanced interface for tool clients and
 automation.
 
+The browser page and compiler backend are separate. The page can come from
+GitHub Pages, the public server, or a local static server. The **runtime
+location** selector chooses the REST backend. If the public server is
+unavailable, clone the repository and run both the REST API and the static page
+locally.
+
 ## Paths
 
 | Path | First action | Main surface |
@@ -315,6 +368,23 @@ curl -s http://127.0.0.1:8765/api/compile \
   -H 'Content-Type: application/json' \
   -d '{"example":"ghz5","topology":"tokyo"}'
 ```
+
+## Run the local page
+
+Start the REST API, then open another terminal from the repository root:
+
+```bash
+python -m http.server 5500 -d docs
+```
+
+Open:
+
+```text
+http://127.0.0.1:5500/?mode=local
+```
+
+You can also open the GitHub Pages URL with `?mode=local`, but the local page
+is the most reliable path when the backend runs on `127.0.0.1`.
 
 ## Run MCP
 
