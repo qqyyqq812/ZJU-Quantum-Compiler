@@ -169,14 +169,16 @@ def check_readiness() -> list[ReadinessItem]:
             "README provides reviewer quick entry",
             _status(
                 "# ZJU Quantum Compiler" in readme
-                and "Quick entry for reviewers" in readme
-                and "Reviewer deployment" in readme
-                and "Browser experience" in readme
-                and "Tool workflow" in readme
+                and "语言 / Language" in readme
+                and "## 快速入口" in readme
+                and "普通体验" in readme
+                and "本地部署" in readme
+                and "工具调用" in readme
+                and "English version" in readme
                 and "GitHub Pages" in readme
                 and "REST API" in readme
-                and "MCP service" in readme
-                and "extension-scale examples and require a deployed backend" in readme
+                and "MCP" in readme
+                and "30Q 和 50Q 示例属于扩展规模，需要部署" in readme
                 and "docs/项目说明.md" in readme
                 and "docs/playground-user-guide.md" in readme
                 and "docs/ai-collaboration.md" in readme

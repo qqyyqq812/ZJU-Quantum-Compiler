@@ -32,6 +32,12 @@ def test_readme_documents_public_run_paths():
     readme = Path("README.md").read_text(encoding="utf-8")
 
     assert "# ZJU Quantum Compiler" in readme
+    assert "语言 / Language" in readme
+    assert "## 快速入口" in readme
+    assert "普通体验" in readme
+    assert "本地部署" in readme
+    assert "工具调用" in readme
+    assert "English version" in readme
     assert "pip install -r requirements.txt" in readme
     assert "qcompiler info" in readme
     assert "uvicorn src.server.app:app --host 0.0.0.0 --port 8765" in readme
@@ -40,21 +46,22 @@ def test_readme_documents_public_run_paths():
     assert "curl -s http://127.0.0.1:8000/health" in readme
     assert "models/default/npqr-default.pt" in readme
     assert "REST API" in readme
-    assert "MCP service" in readme
+    assert "MCP 服务" in readme
     assert "docs/项目说明.md" in readme
     assert "docs/ai-collaboration.md" in readme
 
 
 def test_readme_documents_algorithm_without_internal_experiment_names():
     readme = Path("README.md").read_text(encoding="utf-8")
+    compact = readme.replace("\n", "")
 
-    assert "Score legal SWAP actions with a neural model" in readme
-    assert "candidate logical-to-physical initial mappings" in readme
-    assert "bounded beam search" in readme
-    assert "Repair difficult suffixes" in readme
-    assert "SABRE basic is kept as the fixed Qiskit baseline" in readme
-    assert "Algorithm overview" in readme
-    assert "algorithmic ideas" in readme
+    assert "使用神经模型对合法 SWAP 动作评分" in readme
+    assert "初始映射候选" in readme
+    assert "有界束搜索" in readme
+    assert "局部修复" in readme
+    assert "SABRE basic 作为固定对照基线" in compact
+    assert "方法概述" in readme
+    assert "图约束下的近似优化问题" in readme
 
     for pattern in FORBIDDEN_PUBLIC_PATTERNS:
         assert re.search(pattern, readme) is None
@@ -79,19 +86,18 @@ def test_readme_documents_api_and_mcp_tools():
         assert term in readme
 
 
-def test_readme_documents_readiness_and_package_commands():
+def test_readme_documents_readiness_commands():
     readme = Path("README.md").read_text(encoding="utf-8")
 
     assert "qcompiler matrix --quick" in readme
     assert "python scripts/check_submission_readiness.py" in readme
-    assert "python scripts/package_submission.py" in readme
     assert "git diff --check" in readme
-    assert "results/submission_package/" in readme
     assert "examples/line_ghz50.qasm" in readme
 
 
 def test_readme_uses_objective_project_language_without_process_notes():
     readme = Path("README.md").read_text(encoding="utf-8")
+    compact = readme.replace("\n", "")
 
     forbidden_terms = [
         "清" + "理版",
@@ -117,9 +123,9 @@ def test_readme_uses_objective_project_language_without_process_notes():
     for term in forbidden_terms:
         assert term not in readme
 
-    assert "neural-assisted quantum circuit routing compiler" in readme
-    assert "Quick entry for reviewers" in readme
-    assert "Reviewer deployment" in readme
-    assert "Browser experience" in readme
-    assert "Tool workflow" in readme
-    assert "extension-scale examples and require a deployed backend" in readme
+    assert "受限硬件拓扑的量子线路路由编译器" in compact
+    assert "快速入口" in readme
+    assert "普通体验" in readme
+    assert "本地部署" in readme
+    assert "MCP 面向工具客户端" in compact
+    assert "30Q 和 50Q 示例属于扩展规模，需要部署" in compact

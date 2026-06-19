@@ -62,8 +62,8 @@ def test_readme_and_public_site_link_to_playground_user_guide():
     html = Path("docs/index.html").read_text(encoding="utf-8")
 
     assert "docs/playground-user-guide.md" in readme
-    assert "Quick entry for reviewers" in readme
+    assert "快速入口" in readme
     assert "fixed Qiskit baseline" in readme
-    assert "Tokyo has 20 physical qubits" in readme
+    assert "IBM Tokyo 20Q" in readme
     assert 'href="playground-user-guide.md"' in html
     assert "指南" in html
