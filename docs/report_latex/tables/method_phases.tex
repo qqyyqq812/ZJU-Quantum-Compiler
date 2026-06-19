@@ -1,0 +1,15 @@
+\begin{table}[H]
+  \centering
+  \caption{阶段变化}
+  \label{tab:method-phases}
+  \begin{tabularx}{\linewidth}{lYY}
+    \toprule
+    阶段 & 主要变化 & 解决的问题 \\
+    \midrule
+    路由闭环 & 建立线路依赖、映射维护、SWAP 插入和轨迹复放 & 先保证输出线路拓扑合法、语义一致。\\
+    初始映射 & 根据逻辑交互结构选择初始布局 & 减少从不合适起点开始搜索带来的额外交换。\\
+    束搜索 & 从单步选择扩展到多候选路线保留 & 降低局部最优对长距离交互线路的影响。\\
+    学习评分 & 用动作掩码、模型评分和局部修复增强搜索 & 在可解释搜索框架内提高候选动作排序质量。\\
+    \bottomrule
+  \end{tabularx}
+\end{table}

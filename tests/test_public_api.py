@@ -182,10 +182,10 @@ def test_api_benchmarks_returns_public_algorithm_boundary():
     assert body["summary"]["scale_smoke_30_50_basic"]["cases"] == 4
     assert body["summary"]["scale_smoke_30_50_basic"]["npqr_completed"] == 4
     assert body["summary"]["scale_smoke_30_50_basic"]["npqr_beats_sabre_basic"] == 4
-    assert body["summary"]["large_scale_boundary"]["max_completed_qubits"] == 50
-    assert body["summary"]["large_scale_boundary"]["max_sabre_basic_win_qubits"] == 50
+    assert "extension_scope" in body["summary"]
+    assert "30/50-qubit examples" in body["summary"]["extension_scope"]
     assert body["algorithm_components"]
-    assert "NPQR is not claimed to beat SABRE on every circuit." in body["claims"]["not_claimed"]
+    assert "The reported comparison uses SABRE basic as the fixed baseline." in body["claims"]["scope"]
 
 
 def test_api_npqr_evidence_returns_public_manifest():
@@ -202,8 +202,7 @@ def test_api_npqr_evidence_returns_public_manifest():
     assert body["baseline"]["not_our_algorithm"] is True
     assert body["representative_10_20_basic"]["summary"]["npqr_beats_sabre_basic"] == 10
     assert body["scale_smoke_30_50_basic"]["summary"]["npqr_beats_sabre_basic"] == 4
-    assert body["large_scale_boundary"]["max_completed_qubits"] == 50
-    assert body["scale_smoke_30_50_basic"]["known_boundary"]
+    assert body["scale_smoke_30_50_basic"]["extension_scope"]
     assert "graph modeling" in body["concept_mapping"]
 
 

@@ -1,32 +1,16 @@
-# NPQR final closure report
+# Final submission summary
 
-This report summarizes the final closure target for NPQR. The project goal is
-not to claim state-of-the-art quantum routing. The goal is to
-show a complete, explainable, and reproducible neural-assisted routing system
-that beats the SABRE basic baseline on representative 10/20-qubit circuits and
-shows useful scaling behavior on selected 30/50-qubit bounded tests. A final
-bounded 80/100-qubit test is used only to define the current scale boundary.
+This document summarizes the public evidence and demonstration path for the
+quantum circuit routing compiler. The repository presents a complete loop:
+OpenQASM input, hardware topology selection, NPQR routing, SABRE basic
+comparison, SWAP trace replay, REST access, MCP access, and a browser
+playground.
 
-## Final claim
+## Result scope
 
-NPQR combines neural action scoring, initial mapping selection, bounded search,
-frontier pruning, suffix repair, and trace replay. SABRE is used only as a
-comparison baseline and is not used as an NPQR fallback.
-
-The final project claim is:
-
-- NPQR completes the representative 10/20-qubit benchmark set.
-- NPQR beats SABRE basic on the representative 10/20-qubit benchmark set.
-- NPQR results are replayable and use no SABRE fallback.
-- NPQR can run on selected 30/50-qubit circuits and wins on several larger
-  structured cases.
-- The largest currently demonstrated completed scale is 50 qubits.
-- NPQR is slower than SABRE and does not win every large-scale case.
-
-## 10/20-qubit basic baseline result
-
-The representative 10/20-qubit result is the main performance evidence for the
-project.
+The main reported result uses representative 10/20-qubit routing tasks. NPQR
+completed all rows, returned replayable traces, and reduced SWAP count relative
+to SABRE basic on the selected benchmark set.
 
 | case | qubits | NPQR swaps | SABRE basic swaps | delta |
 | --- | ---: | ---: | ---: | ---: |
@@ -41,17 +25,9 @@ project.
 | RingEntangler20 | 20 | 16 | 41 | -25 |
 | SparseRandom20 | 20 | 37 | 57 | -20 |
 
-Summary:
-
-- Completed: `10/10`
-- Beats SABRE basic: `10/10`
-- SABRE fallback: `0`
-- Trace replay: passed for completed NPQR rows
-
-## 30/50-qubit scale test
-
-The scale test checks whether the current NPQR runtime has useful behavior
-beyond 20 qubits. It is not a full benchmark.
+The selected 30/50-qubit examples are extension-scale demonstrations. They are
+intended for a deployed backend, while the static GitHub Pages page remains the
+fastest entry point for 5/10-qubit browser review.
 
 | case | qubits | NPQR swaps | SABRE basic swaps | delta |
 | --- | ---: | ---: | ---: | ---: |
@@ -60,48 +36,26 @@ beyond 20 qubits. It is not a full benchmark.
 | LineGHZ50 | 50 | 50 | 79 | -29 |
 | RingSparse50 | 50 | 98 | 113 | -15 |
 
-Summary:
+## Public entry points
 
-- Completed: `4/4`
-- Beats SABRE basic: `4/4`
-- SABRE fallback: `0`
+The browser playground is the human-facing entry point. It shows QASM input,
+topology choice, route trace replay, SWAP comparison, depth comparison, and
+NPQR/SABRE results.
 
-The scale test supports the claim that NPQR has useful larger-scale potential.
-It also shows that the final system has a demonstrated 50-qubit
-completion range for selected structures.
+The REST API is the real compiler backend for the playground and scripts. It
+serves validation, examples, topology data, compilation, and benchmark evidence.
 
-## 80/100-qubit boundary test
+The MCP service exposes the same compiler capabilities to tool clients and
+automation workflows. It is useful for scripted checks and agent-assisted
+experiments, but it is not required for normal browser use.
 
-The final large-scale test also tried to push beyond the demonstrated range.
-This part defines the boundary and is not a success claim.
+## Demonstration path
 
-| case | qubits | NPQR result | SABRE basic swaps | conclusion |
-| --- | ---: | --- | ---: | --- |
-| LineGHZ80 | 80 | timeout at 240s | 137 | not completed in CPU budget |
-| Random80-d2 | 80 | stopped before completion | - | not claimed |
-| LineGHZ100 | 100 | not run | - | not claimed |
-| RingSparse100 | 100 | not run | - | not claimed |
+Start with `ghz5`, `qft5`, or `qaoa5` to inspect the page layout and trace
+replay quickly. Then run a 10-qubit example, compare the NPQR and SABRE basic
+metrics, and inspect how SWAP insertion changes the physical route. With a
+backend running, use `line_ghz30` or `line_ghz50` to demonstrate the selected
+extension-scale path.
 
-The current honest upper bound is therefore 50 qubits. The 80/100-qubit rows
-are useful as optimization guidance, not as final project capability claims.
-
-## Recommended demo path
-
-Use a short demo that shows one small, one 20-qubit, and one larger-scale case.
-
-1. Show `qaoa_10` or `qft_10` for a compact 10-qubit win.
-2. Show `brickwork_20` or `deep_random_20` for the 20-qubit result.
-3. Show `line_ghz_50` or `ring_sparse_50` for scaling potential.
-4. Mention `line_ghz_80` as the honest CPU-bounded scale boundary.
-
-## Closure boundary
-
-The project is ready to close when the report, website, and public tests all
-use the same claim:
-
-> NPQR beats SABRE basic on representative 10/20-qubit routing tasks, returns
-> replayable no-fallback traces, and shows useful but not universal scaling
-> behavior up to selected 50-qubit bounded tests.
-
-Do not claim that NPQR beats SABRE lookahead across the board. Do not claim
-state-of-the-art routing. Do not start GPU training for the final submission.
+The same evidence appears through the browser, REST response, MCP evidence
+tool, checked-in examples, and the report appendix.

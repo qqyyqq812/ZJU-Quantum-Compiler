@@ -6,6 +6,7 @@
 \usepackage{amssymb}
 \usepackage{booktabs}
 \usepackage{caption}
+\usepackage{subcaption}
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{hyperref}
@@ -13,11 +14,12 @@
 \usepackage{tabularx}
 \usepackage{longtable}
 \usepackage{enumitem}
+\usepackage{placeins}
 \usepackage{array}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,calc}
 
-\graphicspath{{figures/}}
+\graphicspath{{figures/}{figures/template_cover/}}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \hypersetup{
   colorlinks=true,
@@ -29,26 +31,48 @@
 \setlist{nosep}
 \renewcommand{\arraystretch}{1.15}
 \emergencystretch=2em
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\belowcaptionskip}{2pt}
+\ctexset{
+  section = {
+    beforeskip = 1.0ex plus .2ex,
+    afterskip = .6ex plus .1ex
+  },
+  subsection = {
+    beforeskip = .8ex plus .2ex,
+    afterskip = .4ex plus .1ex
+  }
+}
 \setCJKmainfont{Noto Serif CJK SC}[BoldFont=Noto Serif CJK SC Bold]
+\classname{量子线路路由编译实验}
 \makepagestyle{}{}
 
 \begin{document}
+\setcounter{tocdepth}{2}
 
-\begin{center}
-  {\LARGE \textbf{神经辅助量子路由编译器项目报告}}\\[0.5em]
-  {\large 量子信息基础大作业}
-\end{center}
+\maketitlepage{3230105807}
+  {李浩瑄}
+  {量子信息基础}
+  {2026年6月}
+  {钱浩亮}
 
 \begingroup
-\setstretch{1.15}
+\setstretch{1.02}
+\addtocontents{toc}{\protect\enlargethispage{5\baselineskip}}
 \maketoc
 \endgroup
 
 \input{sections/00-abstract}
 \input{sections/01-introduction}
 \input{sections/02-problem-modeling}
+\input{sections/03-baseline}
 \input{sections/03-algorithm-design}
 \input{sections/04-system-implementation}
+\input{sections/05-deployment}
+\input{sections/06-ai-collaboration}
 \input{sections/05-experiments-analysis}
 \input{sections/06-complexity-concepts}
 \input{sections/07-conclusion}

@@ -1,16 +1,20 @@
 \ProvidesPackage{thesis}
 
-\RequirePackage[left=2.5cm,right=2.5cm,top=3.0cm,bottom=2.4cm]{geometry}
+\RequirePackage[left=2.5cm,right=2.5cm,top=3.2cm,bottom=2.3cm]{geometry}
 \RequirePackage{fontspec}
 \RequirePackage{xeCJK}
 \RequirePackage{setspace}
 \RequirePackage{fancyhdr}
+\RequirePackage{lastpage}
 \RequirePackage{xcolor}
 
 \setlength{\headheight}{14.5pt}
 \setlength{\parindent}{2em}
 \addtolength{\parskip}{3pt}
 \onehalfspacing
+
+\newcommand{\classname}[1]{\gdef\@classname{#1}}
+\newcommand{\printclassname}{\@classname}
 
 \newcommand{\makepagestyle}[2]{%
   \pagestyle{fancy}%
@@ -26,4 +30,38 @@
   \newpage
   \pagestyle{fancy}
   \pagenumbering{arabic}
+}
+
+\newcommand{\maketitlepage}[5]{%
+  \begin{titlepage}
+    \thispagestyle{empty}
+    \vspace*{-3cm}
+    \begin{figure}[h]
+      \centering
+      \includegraphics[width=0.65\linewidth]{figures/template_cover/char.png}
+    \end{figure}
+    \begin{figure}[h]
+      \centering
+      \includegraphics[width=0.48\linewidth]{figures/template_cover/logo.png}
+    \end{figure}
+    \vspace{-0.5cm}
+    \begin{center}
+      \huge{\textbf{\printclassname}}\\
+      \vspace{0.4cm}
+      \Large{\textbf{量子信息基础大作业}}
+    \end{center}
+    \vspace*{0.5cm}
+    \begin{center}
+      \Large
+      \makebox[82pt][r]{学号}\quad \underline{\makebox[220pt]{#1}} \\
+      \vspace{0.3cm}
+      \makebox[82pt][r]{姓名}\quad \underline{\makebox[220pt]{#2}}\\
+      \vspace{0.3cm}
+      \makebox[82pt][r]{课程名称}\quad \underline{\makebox[220pt]{#3}}\\
+      \vspace{0.3cm}
+      \makebox[82pt][r]{日期}\quad \underline{\makebox[220pt]{#4}}\\
+      \vspace{0.3cm}
+      \makebox[82pt][r]{指导老师}\quad \underline{\makebox[220pt]{#5}}\\
+    \end{center}
+  \end{titlepage}
 }

@@ -4043,8 +4043,8 @@
           <div><strong>compile_sabre</strong><p>用 SABRE 编译项目内置示例。</p></div>
           <div><strong>list_examples</strong><p>列出可用 QASM 示例。</p></div>
           <div><strong>qcompiler_status</strong><p>查看项目状态和 NPQR 边界。</p></div>
-          <div><strong>get_benchmarks</strong><p>读取公开基准和声明边界。</p></div>
-          <div><strong>get_npqr_boundary</strong><p>查看 NPQR 能力、基准角色和不声明内容。</p></div>
+          <div><strong>get_benchmarks</strong><p>读取公开基准和结果范围。</p></div>
+          <div><strong>get_npqr_boundary</strong><p>查看 NPQR 能力、基准角色和适用范围。</p></div>
           <div><strong>get_algorithm_evidence</strong><p>课程展示用算法组件摘要。</p></div>
         </div>
       </section>
@@ -5051,8 +5051,8 @@ cx q[0],q[1];`
       { selector: "#examples-panel", title: "选择电路", copy: "先用示例快速跑通，也可以切到自定义或生成 OpenQASM。" },
       { selector: "#qasm-input", title: "检查输入", copy: "这里是当前电路。校验条会提示 OpenQASM 是否能提交。" },
       { selector: "#run-button", title: "运行编译", copy: "运行会同时调用 NPQR 和固定 SABRE 基准，结果来自公网 REST API。" },
-      { selector: "#tokyo-topology", title: "审阅拓扑", copy: "编译完成后，单步只回放后端返回的真实路由事件。" },
-      { selector: ".comparison-table", title: "比较结果", copy: "右侧只保留 SWAP、深度和耗时，避免干扰审阅。" },
+      { selector: "#tokyo-topology", title: "查看拓扑", copy: "编译完成后，单步只回放后端返回的真实路由事件。" },
+      { selector: ".comparison-table", title: "比较结果", copy: "右侧只保留 SWAP、深度和耗时，便于理解路由效果。" },
       { selector: "#qasm-details", title: "导出 QASM", copy: "编译完成后自动显示 NPQR/SABRE 的编译后 QASM，可复制或下载。" }
     ];
 
@@ -5749,10 +5749,10 @@ cx q[0],q[1];`
           return backendPhaseReadout();
         }
         if (state.compilePhase === "mapping") {
-          return `映射审阅 · ${Object.keys(resultMapping()).length} 个逻辑位`;
+          return `映射查看 · ${Object.keys(resultMapping()).length} 个逻辑位`;
         }
         if (state.compilePhase === "output") {
-          return "完成 · 可视化审阅";
+          return "完成 · 可视化结果";
         }
         return "待运行";
       }
@@ -6470,7 +6470,7 @@ cx q[0],q[1];`
         "// 暂无编译后 QASM",
         `// 离线的是 REST API，不是 MCP。最后错误：${reason}。`,
         `// 当前 API: ${apiBase}`,
-        "// 普通用户需要项目方部署的 REST API 保持在线。",
+        "// 普通用户运行实时编译时需要 REST API 保持在线。",
         "// 维护者可在接口面板或用 ?api=... 覆盖地址。"
       ].join("\n");
     }

@@ -335,13 +335,7 @@ def get_benchmarks() -> dict[str, Any]:
             "sabre_fallback": manifest["default_route"]["sabre_fallback"],
             "representative_10_20_basic": manifest["representative_10_20_basic"]["summary"],
             "scale_smoke_30_50_basic": manifest["scale_smoke_30_50_basic"]["summary"],
-            "known_scale_boundary": manifest["scale_smoke_30_50_basic"]["known_boundary"],
-            "large_scale_boundary": {
-                "max_completed_qubits": manifest["large_scale_boundary"]["max_completed_qubits"],
-                "max_sabre_basic_win_qubits": manifest["large_scale_boundary"][
-                    "max_sabre_basic_win_qubits"
-                ],
-            },
+            "extension_scope": manifest["scale_smoke_30_50_basic"]["extension_scope"],
         },
         "algorithm_components": manifest["algorithm_components"],
         "claims": manifest["claims"],
@@ -350,7 +344,7 @@ def get_benchmarks() -> dict[str, Any]:
 
 @mcp.tool()
 def get_npqr_boundary() -> dict[str, Any]:
-    """Return explicit NPQR claims, borrowed components, and non-claims."""
+    """Return NPQR claims, baseline role, and evaluation scope."""
     manifest = load_npqr_evidence_manifest()
     return {
         "project_claim": manifest["project_claim"],

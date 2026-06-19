@@ -1,0 +1,38 @@
+\begin{tikzpicture}[
+  x=1.6cm,
+  y=0.055cm,
+  font=\scriptsize,
+  axis/.style={draw=gray!65},
+  init/.style={fill=blue!55},
+  search/.style={fill=orange!70},
+  other/.style={fill=gray!35}
+]
+  \draw[axis] (0,0) -- (5.2,0);
+  \draw[axis] (0,0) -- (0,105);
+  \foreach \y in {25,50,75,100} {
+    \draw[gray!25] (0,\y) -- (4.9,\y);
+    \node[anchor=east] at (-0.08,\y) {\y\%};
+  }
+
+  \draw[init] (0.65,0) rectangle (1.05,92.6);
+  \draw[search] (1.05,0) rectangle (1.45,4.0);
+  \draw[other] (1.45,0) rectangle (1.85,3.4);
+  \node[anchor=north] at (1.25,-3) {QAOA10};
+
+  \draw[init] (2.15,0) rectangle (2.55,4.0);
+  \draw[search] (2.55,0) rectangle (2.95,90.2);
+  \draw[other] (2.95,0) rectangle (3.35,5.8);
+  \node[anchor=north] at (2.75,-3) {QFT10};
+
+  \draw[init] (3.65,0) rectangle (4.05,99.8);
+  \draw[search] (4.05,0) rectangle (4.45,0.1);
+  \draw[other] (4.45,0) rectangle (4.85,0.1);
+  \node[anchor=north] at (4.25,-3) {Brick20};
+
+  \draw[init] (1.05,106) rectangle (1.3,111);
+  \node[anchor=west] at (1.38,108.5) {初始映射};
+  \draw[search] (2.2,106) rectangle (2.45,111);
+  \node[anchor=west] at (2.53,108.5) {主搜索};
+  \draw[other] (3.15,106) rectangle (3.4,111);
+  \node[anchor=west] at (3.48,108.5) {其他};
+\end{tikzpicture}

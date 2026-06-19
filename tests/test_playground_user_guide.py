@@ -15,12 +15,10 @@ def test_playground_user_guide_exists_and_covers_browser_workflow():
     guide = _guide()
 
     assert "# Quantum Compiler Playground user guide" in guide
-    assert "backend indicator" in guide
-    assert "embedded review mode" in guide
-    assert "**内置**" in guide
+    assert "量子信息基础大作业" in guide
+    assert "Three-minute review" in guide
     assert "**Run**" in guide
     assert "**Step**" in guide
-    assert "**Reset**" in guide
     assert "Examples" in guide
     assert "Custom QASM" in guide
     assert "Generate" in guide
@@ -33,11 +31,9 @@ def test_playground_user_guide_explains_metrics_mapping_and_trace():
     guide = _guide()
 
     assert "IBM Tokyo 20Q" in guide
-    assert "20 points are physical qubits" in guide
     assert "grid_5x6" in guide
     assert "grid_5x10" in guide
-    assert "50 physical qubits" in guide
-    assert "logical-to-physical mapping" in guide
+    assert "extension-scale examples" in guide
     assert "SWAP" in guide
     assert "Depth" in guide
     assert "elapsed_ms" in guide
@@ -48,23 +44,17 @@ def test_playground_user_guide_explains_metrics_mapping_and_trace():
     assert "logical_qubits" in guide
 
 
-def test_playground_user_guide_documents_backend_boundary():
+def test_playground_user_guide_documents_surface_roles():
     guide = _guide()
 
+    assert "GitHub Pages" in guide
     assert "REST API" in guide
-    assert "src.server.app:app" in guide
-    assert "POST /api/compile" in guide
-    assert "HTTPS REST API" in guide
-    assert "mixed-content" in guide
-    assert "backend=\"npqr\"" in guide
-    assert "backend=\"sabre\"" in guide
-    assert "neural-assisted selector, search, and repair runtime" in guide
-    assert "Qiskit `SabreSwap`" in guide
-    assert "standard `basic` heuristic" in guide
-    assert "`seed=42`" in guide
-    assert "`trials=1`" in guide
-    assert "does not claim that NPQR always beats SABRE" in guide
-    assert "MCP is an advanced helper" in guide
+    assert "MCP" in guide
+    assert "Human-facing browser entry" in guide
+    assert "Real compiler backend" in guide
+    assert "not required for normal browser use" in guide
+    assert "SABRE basic is the fixed Qiskit baseline" in guide
+    assert "same input circuit, topology, and metric fields" in guide
 
 
 def test_readme_and_public_site_link_to_playground_user_guide():
@@ -72,7 +62,7 @@ def test_readme_and_public_site_link_to_playground_user_guide():
     html = Path("docs/index.html").read_text(encoding="utf-8")
 
     assert "docs/playground-user-guide.md" in readme
-    assert "The public browser console is available" in readme
+    assert "Quick entry for reviewers" in readme
     assert "fixed Qiskit baseline" in readme
     assert "Tokyo has 20 physical qubits" in readme
     assert 'href="playground-user-guide.md"' in html

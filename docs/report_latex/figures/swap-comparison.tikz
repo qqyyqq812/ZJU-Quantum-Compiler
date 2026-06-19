@@ -1,0 +1,35 @@
+\begin{tikzpicture}[
+  x=1.05cm,
+  y=0.09cm,
+  font=\scriptsize,
+  axis/.style={draw=gray!65},
+  npqr/.style={fill=blue!55},
+  sabre/.style={fill=orange!70}
+]
+  \draw[axis] (0,0) -- (7.2,0);
+  \draw[axis] (0,0) -- (0,70);
+  \foreach \y in {20,40,60} {
+    \draw[gray!25] (0,\y) -- (7.0,\y);
+    \node[anchor=east] at (-0.1,\y) {\y};
+  }
+
+  \def\npqrvals{2,6,0,1,17,15,19,16,37,61}
+  \def\sabrevals{6,13,15,4,19,31,38,41,57,67}
+  \foreach \n [count=\i from 1] in \npqrvals {
+    \pgfmathsetmacro{\x}{0.65*\i}
+    \draw[npqr] (\x-0.18,0) rectangle (\x-0.02,\n);
+  }
+  \foreach \s [count=\i from 1] in \sabrevals {
+    \pgfmathsetmacro{\x}{0.65*\i}
+    \draw[sabre] (\x+0.02,0) rectangle (\x+0.18,\s);
+  }
+
+  \foreach \label [count=\i from 1] in {GHZ,QFT,QAOA,VQE,Rand,Brick,Clique,Ring,Sparse,R30} {
+    \pgfmathsetmacro{\x}{0.65*\i}
+    \node[rotate=35, anchor=east] at (\x,-3) {\label};
+  }
+  \draw[npqr] (4.6,68) rectangle (4.85,72);
+  \node[anchor=west] at (4.95,70) {NPQR};
+  \draw[sabre] (5.7,68) rectangle (5.95,72);
+  \node[anchor=west] at (6.05,70) {SABRE};
+\end{tikzpicture}

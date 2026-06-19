@@ -3,38 +3,55 @@
 ZJU Quantum Compiler is a neural-assisted quantum circuit routing compiler for
 restricted hardware topologies. It accepts OpenQASM 2 circuits, maps logical
 qubits to physical qubits, inserts the required SWAP gates, and returns a
-routed circuit that satisfies the target coupling graph.
+routed circuit that satisfies the target coupling graph. The default compiler
+path is NPQR, and SABRE basic is kept as the fixed Qiskit baseline for
+reproducible comparison.
 
-The default compiler path is NPQR. NPQR combines neural action scoring with
-initial mapping selection, bounded beam search, action pruning, local suffix
-repair, and trace replay validation. SABRE is kept as a fixed Qiskit baseline
-for reproducible comparison and is not used as a hidden fallback for NPQR.
+## Quick entry for reviewers
 
-## Online demo
+Use this repository as the public entry for the 量子信息基础大作业. The fastest
+review path is:
 
-The public browser console is available at:
+1. Open the browser console:
+   `https://qqyyqq812.github.io/ZJU-Quantum-Compiler/`
+2. Select `ghz5`, `qft5`, or `qaoa5`.
+3. Click **Run** and compare NPQR with SABRE basic.
+4. Step through the route trace to inspect QASM input, topology, inserted
+   SWAP operations, depth, and routed QASM output.
+5. Read `docs/report_latex/main.pdf` for the report and experimental tables.
 
-```text
-https://qqyyqq812.github.io/ZJU-Quantum-Compiler/
-```
+The 5Q and 10Q examples are the recommended first pass. The 30Q and 50Q
+examples are extension-scale examples and require a deployed backend for live
+compilation. GitHub Pages is the human-facing page, the REST API performs real
+compiler calls for the page and scripts, and MCP is an advanced interface for
+tool clients and automation.
 
-The page is served from `docs/index.html`. It can call the deployed REST API
-when the API is reachable, and it also documents the MCP endpoint in the folded
-service panel. The user guide is available at
-`docs/playground-user-guide.md`.
+## User paths
+
+| User path | First action | Main surface |
+| --- | --- | --- |
+| Reviewer deployment | Clone the repository, install dependencies, run REST, open the page | README, REST API, GitHub Pages |
+| Browser experience | Open GitHub Pages and run 5Q/10Q examples | QASM editor, topology, trace replay, metrics |
+| Tool workflow | Start MCP or use the command line | MCP tools and `qcompiler` |
+
+When people evaluate the project, the most useful signals are whether the page
+opens cleanly, whether the QASM input is understandable, whether topology and
+SWAP replay explain the compilation process, whether the NPQR/SABRE comparison
+is clear, and whether the README commands reproduce the same public surfaces.
 
 ## Repository contents
 
 The repository keeps the runnable compiler, browser console, public examples,
-and technical report materials in one place:
+and report materials in one place:
 
 - `src/`: NPQR runtime, compiler utilities, REST API, and MCP service.
 - `examples/`: checked-in OpenQASM examples for 5, 10, 30, and 50 qubits.
 - `models/default/npqr-default.pt`: default NPQR inference checkpoint.
 - `docs/index.html`: the GitHub Pages compiler console.
 - `docs/项目说明.md`: detailed Chinese technical guide.
+- `docs/playground-user-guide.md`: browser console guide.
 - `docs/ai-collaboration.md`: concise AI collaboration disclosure.
-- `docs/report_latex/main.pdf`: technical report PDF.
+- `docs/report_latex/main.pdf`: 量子信息基础大作业 report PDF.
 - `scripts/`: reproducibility, readiness, and packaging scripts.
 - `tests/`: public API, site, documentation, and release contract tests.
 
@@ -73,10 +90,10 @@ The public REST surface is:
 | `GET /api/examples` | List checked-in OpenQASM examples and default topologies. |
 | `POST /api/validate` | Validate inline OpenQASM against a selected topology. |
 | `POST /api/compile` | Compile a checked-in example or inline QASM. |
-| `POST /api/compile/jobs` | Create an asynchronous compile job with real phase timing. |
+| `POST /api/compile/jobs` | Create an asynchronous compile job with phase timing. |
 | `GET /api/compile/jobs/{job_id}` | Poll an asynchronous compile job. |
 | `GET /api/topology/{name}` | Return topology metadata and JSON-safe edges. |
-| `GET /api/benchmarks` | Return public benchmark and boundary summaries. |
+| `GET /api/benchmarks` | Return public benchmark summaries. |
 | `GET /api/npqr/evidence` | Return machine-readable NPQR evidence. |
 
 Compile a small checked-in example with NPQR:
@@ -103,9 +120,8 @@ curl -s http://127.0.0.1:8765/api/compile \
   -d '{"qasm":"OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\ncx q[0],q[1];\n"}'
 ```
 
-Compile responses include routed QASM, SWAP count, depth, elapsed time,
-route trace events, initial and final mappings, and the SABRE comparison
-baseline. The `components.sabre_fallback` flag is `false` for NPQR results.
+Compile responses include routed QASM, SWAP count, depth, elapsed time, route
+trace events, initial and final mappings, and the SABRE comparison baseline.
 
 ## MCP service
 
@@ -127,17 +143,17 @@ Health check:
 curl -s http://127.0.0.1:8000/health
 ```
 
-The MCP tools expose the same read-only compiler capabilities:
+The MCP tools expose the same compiler capabilities for tool clients:
 
 | Tool | Purpose |
 | --- | --- |
-| `qcompiler_status` | Return compiler, model, and boundary status. |
+| `qcompiler_status` | Return compiler, model, and service status. |
 | `list_examples` | List checked-in QASM examples. |
 | `compile_npqr` | Compile a checked-in example with NPQR. |
 | `compile_sabre` | Compile a checked-in example with SABRE. |
 | `compile_qasm` | Compile user-provided OpenQASM 2 text. |
 | `get_benchmarks` | Return public benchmark summaries. |
-| `get_npqr_boundary` | Return explicit NPQR claims and non-claims. |
+| `get_npqr_boundary` | Return documented evaluation scope. |
 | `get_algorithm_evidence` | Return algorithm component evidence. |
 
 ## Command line
@@ -168,8 +184,8 @@ qcompiler matrix --quick
 
 ## Examples and topologies
 
-Small and medium examples use IBM Tokyo 20Q. Larger examples use selected grid
-topologies that match their input size.
+Small and medium examples use IBM Tokyo 20Q. Extension-scale examples use
+selected grid topologies that match their input size.
 
 | Example | Qubits | Default topology | File |
 | --- | ---: | --- | --- |
@@ -192,9 +208,10 @@ Tokyo has 20 physical qubits. A 30-qubit circuit must use `grid_5x6`, and a
 ## Algorithm overview
 
 Quantum routing is a graph-constrained optimization problem. Physical qubits
-are graph vertices, and hardware couplings are graph edges. A two-qubit gate can
-run directly only when the two mapped physical qubits are adjacent. Otherwise,
-the compiler inserts SWAP gates to move logical states across valid edges.
+are graph vertices, and hardware couplings are graph edges. A two-qubit gate
+can run directly only when the two mapped physical qubits are adjacent.
+Otherwise, the compiler inserts SWAP gates to move logical states across valid
+edges.
 
 NPQR follows this pipeline:
 
@@ -206,30 +223,25 @@ NPQR follows this pipeline:
 6. Apply trigger-gated frontier search on difficult interaction patterns.
 7. Prune low-value actions to control runtime and candidate growth.
 8. Repair difficult suffixes with bounded local search.
-9. Replay the selected trace and emit QASM only after topology validation.
+9. Replay the selected trace and emit QASM after topology validation.
 
 The design combines standard algorithmic ideas: graph modeling, problem
 transformation, greedy local scoring, decremental progress through executed
 gates, space-time tradeoffs in cached distances and candidate states, iterative
 improvement through SWAPs, search pruning, and bounded approximate solving.
 
-## Results and boundaries
+## Results
 
-The public evidence uses SABRE basic as the fixed quality baseline. The final
-local evaluation shows that NPQR completes the representative 10/20-qubit set
-and returns fewer SWAP gates than SABRE basic on all listed rows. The selected
-30/50-qubit examples also complete and show useful scaling behavior.
+The public evidence uses SABRE basic as the fixed quality baseline. The local
+evaluation in the report covers representative 10/20-qubit examples and selected
+30/50-qubit extension examples. The main browser review path remains the 5Q and
+10Q set because those examples are fast and easy to inspect.
 
-| Scale | Cases | NPQR completed | NPQR lower than SABRE basic | Role |
-| --- | ---: | ---: | ---: | --- |
-| Representative 10/20Q | 10 | 10 | 10 | Main quality evidence. |
-| Selected 30/50Q | 4 | 4 | 4 | Bounded scaling evidence. |
-| 80/100Q boundary rows | 4 | 0 | 0 | Boundary definition only. |
-
-The project does not claim that NPQR beats SABRE on every circuit. It does not
-claim state-of-the-art quantum routing. SABRE lookahead is not the primary
-comparison target. The current demonstrated completion boundary is selected
-50-qubit structures under the documented test budget.
+| Scale | Cases | Role |
+| --- | ---: | --- |
+| 5/10Q browser examples | 7 | Fast first-pass review. |
+| Representative 10/20Q | 10 | Main report evidence. |
+| Selected 30/50Q | 4 | Extension-scale report evidence with backend support. |
 
 ## Deployment
 

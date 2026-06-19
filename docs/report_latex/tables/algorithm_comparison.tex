@@ -1,15 +1,15 @@
 \begin{table}[H]
   \centering
-  \caption{量子路由方法对比}
+  \caption{方法对比}
   \label{tab:algorithm-comparison}
   \begin{tabularx}{\linewidth}{lYYY}
     \toprule
     方法 & 核心思想 & 优点 & 本项目中的角色 \\
     \midrule
-    SABRE & 基于前沿门和后续门距离估计选择 SWAP & 稳定、快速、工程上常用 & 强基线，仅用于对比 \\
-    QRoute & 图神经网络辅助蒙特卡洛树搜索 & 能结合学习模型和树搜索 & 理论参照，未作为实现主体 \\
-    AlphaRouter & 强化学习结合搜索策略 & 强调策略学习和多步规划 & 理论参照，未作为实现主体 \\
-    NPQR & 神经评分、映射选择、束搜索、剪枝和修复组合 & 可解释、可接口调用、可复放验证 & 项目自研默认路由流程 \\
+    SABRE & 基于前沿门和后续门距离选择 SWAP & 稳定、快速、工程常用 & 固定质量基线，不参与 NPQR 路线生成。\\
+    QRoute & 图神经网络辅助蒙特卡洛树搜索 & 结合学习模型与树搜索 & 相关方法参考。\\
+    AlphaRouter & 强化学习结合搜索策略 & 强调策略学习和多步规划 & 相关方法参考。\\
+    NPQR & 模型评分、初始映射、束搜索、剪枝和修复组合 & 可解释、可接口调用、可复放验证 & 项目自研默认路由流程。\\
     \bottomrule
   \end{tabularx}
 \end{table}

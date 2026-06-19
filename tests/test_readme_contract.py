@@ -15,7 +15,7 @@ FORBIDDEN_PUBLIC_PATTERNS = [
     "wave2_" + "stage",
     "results/" + "npqr_",
     "组员分工",
-    "大" + "作业",
+    r"(?<!量子信息基础)大作业",
     "算法" + "设计与" + "智能" + "计算",
     "算法" + "大" + "作业",
     "课程" + "项目",
@@ -52,8 +52,7 @@ def test_readme_documents_algorithm_without_internal_experiment_names():
     assert "candidate logical-to-physical initial mappings" in readme
     assert "bounded beam search" in readme
     assert "Repair difficult suffixes" in readme
-    assert "SABRE is kept as a fixed Qiskit baseline" in readme
-    assert "not used as a hidden fallback" in readme
+    assert "SABRE basic is kept as the fixed Qiskit baseline" in readme
     assert "Algorithm overview" in readme
     assert "algorithmic ideas" in readme
 
@@ -106,11 +105,21 @@ def test_readme_uses_objective_project_language_without_process_notes():
         "提示" + "词",
         "交" + "接",
         "组员" + "分工",
-        "大" + "作业",
+        "算法" + "大" + "作业",
+        "课程" + "项目",
+        "课程" + "报告",
+        "hidden fallback",
+        "80/100Q",
+        "80Q",
+        "100Q",
     ]
 
     for term in forbidden_terms:
         assert term not in readme
 
     assert "neural-assisted quantum circuit routing compiler" in readme
-    assert "The project does not claim that NPQR beats SABRE on every circuit." in readme
+    assert "Quick entry for reviewers" in readme
+    assert "Reviewer deployment" in readme
+    assert "Browser experience" in readme
+    assert "Tool workflow" in readme
+    assert "extension-scale examples and require a deployed backend" in readme

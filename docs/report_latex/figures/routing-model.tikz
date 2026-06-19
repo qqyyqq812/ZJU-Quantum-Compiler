@@ -1,0 +1,44 @@
+\begin{tikzpicture}[
+  font=\small,
+  title/.style={font=\bfseries\small, align=center},
+  note/.style={font=\scriptsize, align=center, text=black!72},
+  qnode/.style={circle, draw=blue!60!black, fill=blue!7, minimum size=0.56cm, font=\scriptsize},
+  vnode/.style={circle, draw=black!55, fill=gray!6, minimum size=0.58cm, font=\scriptsize},
+  occ/.style={circle, draw=green!45!black, fill=green!10, minimum size=0.58cm, font=\scriptsize},
+  gate/.style={rectangle, draw=blue!55!black, fill=blue!5, rounded corners=2pt,
+    minimum width=1.34cm, minimum height=0.52cm, align=center, font=\scriptsize},
+  swap/.style={rectangle, draw=orange!70!black, fill=orange!10, rounded corners=2pt,
+    minimum width=1.34cm, minimum height=0.52cm, align=center, font=\scriptsize},
+  arrow/.style={-{Latex[length=2mm]}, thick, draw=black!62},
+  edge/.style={thick, draw=black!42}
+]
+  \node[title] at (-3.95,2.05) {逻辑线路};
+  \node[qnode] (q0) at (-5.25,1.15) {$q_0$};
+  \node[qnode] (q1) at (-4.15,1.15) {$q_1$};
+  \node[qnode] (q2) at (-3.05,1.15) {$q_2$};
+  \node[gate] (g1) at (-4.15,0.25) {目标门\\$CX(q_0,q_2)$};
+  \draw[edge, blue!45!black] (q0) -- (q1);
+  \draw[edge, blue!45!black] (q1) -- (q2);
+  \draw[edge, blue!70!black] (q0) to[bend left=32] (q2);
+
+  \node[title] at (0,2.05) {初始映射};
+  \node[occ] (a0) at (-1.15,1.18) {$v_0/q_0$};
+  \node[vnode] (a1) at (0,1.18) {$v_1$};
+  \node[occ] (a2) at (1.15,1.18) {$v_2/q_2$};
+  \draw[edge] (a0) -- (a1);
+  \draw[edge] (a1) -- (a2);
+  \node[note] at (0,0.27) {$q_0$ 与 $q_2$ 不相邻，\\双比特门不能直接执行};
+
+  \node[title] at (3.95,2.05) {插入 SWAP};
+  \node[vnode] (b0) at (2.80,1.18) {$v_0$};
+  \node[occ] (b1) at (3.95,1.18) {$v_1/q_0$};
+  \node[occ] (b2) at (5.10,1.18) {$v_2/q_2$};
+  \draw[edge] (b0) -- (b1);
+  \draw[edge] (b1) -- (b2);
+  \draw[edge, orange!80!black, line width=1.2pt] (b0) -- node[below=3pt, font=\scriptsize] {SWAP} (b1);
+  \node[note] at (3.95,0.27) {交换后 $q_0$ 与 $q_2$ 相邻，\\原始门可在硬件边上执行};
+
+  \draw[arrow] (-2.35,1.16) -- (-1.55,1.16);
+  \draw[arrow] (1.55,1.16) -- (2.35,1.16);
+  \node[swap] at (0,-0.86) {路由目标：在保持原线路语义的前提下，减少额外 SWAP 和线路深度};
+\end{tikzpicture}

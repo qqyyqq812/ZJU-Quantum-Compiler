@@ -1,0 +1,14 @@
+\begin{table}[H]
+  \centering
+  \caption{消融实验}
+  \label{tab:ablation-study}
+  \begin{tabularx}{\linewidth}{lrrY}
+    \toprule
+    配置 & 完成数 & 完成样例 SWAP 合计 & 观察 \\
+    \midrule
+    完整配置 & 4/4 & 23 & GHZ10、QFT10、QAOA10、VQE10 全部完成。\\
+    单步选择 & 1/4 & 0 & 只完成 QAOA10，长程交互样例容易停滞。\\
+    简单映射 & 2/4 & 22 & QFT10 和 QAOA10 完成，但 QAOA10 需要额外 SWAP。\\
+    \bottomrule
+  \end{tabularx}
+\end{table}

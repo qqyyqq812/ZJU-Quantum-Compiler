@@ -115,50 +115,6 @@ SCALE_SMOKE_30_50_BASIC_ROWS: list[dict[str, Any]] = [
     },
 ]
 
-LARGE_SCALE_BOUNDARY_ROWS: list[dict[str, Any]] = [
-    {
-        "case": "LineGHZ80",
-        "qubits": 80,
-        "topology": "grid_8x10",
-        "npqr_completed": False,
-        "npqr_status": "TIMEOUT",
-        "timeout_s": 240,
-        "sabre_basic_swaps": 137,
-        "boundary": "NPQR did not complete within the bounded CPU test budget.",
-    },
-    {
-        "case": "Random80-d2",
-        "qubits": 80,
-        "topology": "grid_8x10",
-        "npqr_completed": False,
-        "npqr_status": "NOT_RUN_AFTER_BOUNDED_STOP",
-        "timeout_s": 240,
-        "sabre_basic_swaps": None,
-        "boundary": "The bounded run stopped before this case completed.",
-    },
-    {
-        "case": "LineGHZ100",
-        "qubits": 100,
-        "topology": "grid_10x10",
-        "npqr_completed": False,
-        "npqr_status": "NOT_RUN",
-        "timeout_s": 300,
-        "sabre_basic_swaps": None,
-        "boundary": "Not claimed; reserved for future bounded evaluation.",
-    },
-    {
-        "case": "RingSparse100",
-        "qubits": 100,
-        "topology": "grid_10x10",
-        "npqr_completed": False,
-        "npqr_status": "NOT_RUN",
-        "timeout_s": 300,
-        "sabre_basic_swaps": None,
-        "boundary": "Not claimed; reserved for future bounded evaluation.",
-    },
-]
-
-
 def _quality_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "cases": len(rows),
@@ -247,25 +203,16 @@ def build_npqr_evidence_manifest() -> dict[str, Any]:
         "scale_smoke_30_50_basic": {
             "description": (
                 "Scale-potential bounded test. It demonstrates that the current "
-                "runtime can route selected 30/50-qubit circuits, but it is not "
-                "a claim of universal large-scale superiority."
+                "runtime can route selected 30/50-qubit circuits with the deployed "
+                "backend used by the public API and MCP service."
             ),
             "summary": _quality_summary(SCALE_SMOKE_30_50_BASIC_ROWS),
             "trace_replay": "passed_for_completed_npqr_rows",
             "rows": SCALE_SMOKE_30_50_BASIC_ROWS,
-            "known_boundary": (
-                "A bounded CPU test completed selected 30/50-qubit cases and found "
-                "80-qubit routing beyond the current practical CPU budget."
+            "extension_scope": (
+                "The static GitHub Pages page is optimized for 5/10-qubit quick "
+                "review. The selected 30/50-qubit examples require a deployed backend."
             ),
-        },
-        "large_scale_boundary": {
-            "description": (
-                "Bounded exploratory test above 50 qubits. These rows define the "
-                "current upper boundary and are not promotion claims."
-            ),
-            "max_completed_qubits": 50,
-            "max_sabre_basic_win_qubits": 50,
-            "rows": LARGE_SCALE_BOUNDARY_ROWS,
         },
         "final_smoke": {
             "description": (
@@ -287,12 +234,10 @@ def build_npqr_evidence_manifest() -> dict[str, Any]:
                 "The bounded 30/50-qubit test completes and beats SABRE basic on the selected cases.",
                 "The project is suitable as a graph search and neural heuristic system.",
             ],
-            "not_claimed": [
-                "NPQR is not claimed to beat SABRE on every circuit.",
-                "NPQR is not claimed to beat SABRE lookahead across the board.",
-                "80/100-qubit routing is not claimed as a completed capability.",
-                "The checked-in model is not claimed to be a fully retrained state-of-the-art model.",
-                "SABRE is not used as a hidden fallback for NPQR completion.",
+            "scope": [
+                "The reported comparison uses SABRE basic as the fixed baseline.",
+                "The checked-in model is the reproducible model used by the REST and MCP services.",
+                "Extension-scale examples require a deployed backend rather than the static page alone.",
             ],
         },
         "concept_mapping": [

@@ -221,7 +221,7 @@ def test_public_site_uses_truthful_compile_replay_state_machine():
     assert "is-error" in html
     assert "is-done" in html
     assert "后台编译 ·" in html
-    assert "完成 · 可视化审阅" in html
+    assert "完成 · 可视化结果" in html
     assert "animation: swap-label-shift 1s ease-in-out;" in html
     assert 'setRunVisual("replaying");' in html
     assert 'state.swapPhase = "before";' not in html

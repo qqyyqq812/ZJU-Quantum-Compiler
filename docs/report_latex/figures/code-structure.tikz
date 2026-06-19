@@ -1,0 +1,44 @@
+\begin{tikzpicture}[
+  font=\small,
+  layer/.style={rectangle, rounded corners=3pt, draw=black!28, fill=black!2,
+    minimum width=12.0cm, minimum height=1.54cm},
+  label/.style={font=\bfseries\small, anchor=west},
+  box/.style={rectangle, rounded corners=2pt, draw=blue!55!black, fill=blue!6,
+    align=center, minimum width=2.42cm, minimum height=0.58cm, font=\scriptsize},
+  service/.style={rectangle, rounded corners=2pt, draw=green!45!black, fill=green!8,
+    align=center, minimum width=2.42cm, minimum height=0.58cm, font=\scriptsize},
+  proof/.style={rectangle, rounded corners=2pt, draw=orange!70!black, fill=orange!9,
+    align=center, minimum width=2.42cm, minimum height=0.58cm, font=\scriptsize},
+  arrow/.style={-{Latex[length=2mm]}, thick, draw=black!55}
+]
+  \node[layer] (l1) at (0,2.0) {};
+  \node[layer] (l2) at (0,0.08) {};
+  \node[layer] (l3) at (0,-1.84) {};
+
+  \node[label] at (-5.55,2.47) {算法层};
+  \node[label] at (-5.55,0.55) {服务层};
+  \node[label] at (-5.55,-1.37) {展示与证据层};
+
+  \node[box] (parse) at (-4.00,1.90) {线路解析\\依赖关系};
+  \node[box] (map) at (-1.35,1.90) {初始映射\\候选生成};
+  \node[box] (route) at (1.35,1.90) {动作评分\\束搜索};
+  \node[box] (replay) at (4.00,1.90) {轨迹复放\\指标输出};
+
+  \node[service] (web) at (-3.20,-0.02) {GitHub Pages\\网页入口};
+  \node[service] (api) at (0,-0.02) {REST API\\真实编译};
+  \node[service] (mcp) at (3.20,-0.02) {MCP/命令行\\工具调用};
+
+  \node[proof] (examples) at (-3.20,-1.94) {示例线路\\拓扑设置};
+  \node[proof] (tests) at (0,-1.94) {公开测试\\部署配置};
+  \node[proof] (report) at (3.20,-1.94) {实验表格\\报告材料};
+
+  \draw[arrow] (parse) -- (map);
+  \draw[arrow] (map) -- (route);
+  \draw[arrow] (route) -- (replay);
+  \draw[arrow] (replay.south) -- (api.north);
+  \draw[arrow] (api.west) -- (web.east);
+  \draw[arrow] (api.east) -- (mcp.west);
+  \draw[arrow] (web.south) -- (examples.north);
+  \draw[arrow] (api.south) -- (tests.north);
+  \draw[arrow] (mcp.south) -- (report.north);
+\end{tikzpicture}

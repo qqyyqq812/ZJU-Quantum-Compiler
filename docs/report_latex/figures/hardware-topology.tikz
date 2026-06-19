@@ -1,0 +1,43 @@
+\begin{tikzpicture}[
+  q/.style={circle, draw=blue!55!black, fill=blue!6, minimum size=0.58cm, font=\scriptsize},
+  gridq/.style={circle, draw=gray!65!black, fill=gray!7, minimum size=0.48cm, font=\tiny},
+  edge/.style={draw=gray!65, thick},
+  label/.style={font=\small, align=center},
+  note/.style={rectangle, draw=blue!40!black, fill=blue!3, rounded corners=2pt,
+    text width=3.15cm, align=left, inner sep=5pt, font=\scriptsize}
+]
+  \node[label] at (1.2,2.35) {20Q 拓扑};
+  \foreach \i/\x/\name in {0/0/v_0,1/1.1/v_1,2/2.2/v_2}
+    \node[q] (a\i) at (\x,1.6) {$\name$};
+  \foreach \i/\x/\name in {0/0/v_3,1/1.1/v_4,2/2.2/v_5}
+    \node[q] (b\i) at (\x,0.65) {$\name$};
+  \foreach \i/\x/\name in {0/0/v_6,1/1.1/v_7,2/2.2/v_8}
+    \node[q] (c\i) at (\x,-0.3) {$\name$};
+  \foreach \u/\v in {a0/a1,a1/a2,b0/b1,b1/b2,c0/c1,c1/c2,
+    a0/b0,a1/b1,a2/b2,b0/c0,b1/c1,b2/c2,a0/b1,b1/c2}
+    \draw[edge] (\u) -- (\v);
+
+  \node[label] at (6.1,2.35) {网格拓扑};
+  \foreach \i in {0,...,4} {
+    \foreach \j in {0,...,2} {
+      \node[gridq] (g\i\j) at (4.5+0.65*\i,0.35+0.65*\j) {};
+    }
+  }
+  \foreach \i in {0,...,3} {
+    \foreach \j in {0,...,2} {
+      \pgfmathtruncatemacro{\next}{\i+1}
+      \draw[edge] (g\i\j) -- (g\next\j);
+    }
+  }
+  \foreach \i in {0,...,4} {
+    \foreach \j in {0,...,1} {
+      \pgfmathtruncatemacro{\next}{\j+1}
+      \draw[edge] (g\i\j) -- (g\i\next);
+    }
+  }
+
+  \node[note] at (9.35,1.2) {
+    顶点表示物理量子比特，边表示可直接执行双比特门的耦合关系。路由器只允许在边上
+    执行目标门或插入 SWAP。
+  };
+\end{tikzpicture}

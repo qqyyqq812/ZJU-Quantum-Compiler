@@ -1,211 +1,114 @@
 # Quantum Compiler Playground user guide
 
-This guide explains how to use the public Playground and what happens in the
-backend when you compile a circuit. It is written for reviewers, teammates, and
-users who need to run real examples without learning the deployment details
-first.
+This guide explains how to review the public browser console for the 量子信息基础大作业.
+The page is designed for a quick first pass: open it, run a small example, and
+inspect the route trace, QASM output, topology, and NPQR/SABRE comparison.
 
-> **Note:** The GitHub Pages Playground opens in an embedded review mode by
-> default. It can use an HTTPS REST API for live compilation when a maintainer
-> provides one. MCP remains an advanced helper for tool clients and is not the
-> path used by the **Run** button.
+## Three-minute review
 
-## Quick start
+Use this flow for the first browser check.
 
-Use this flow when you want to verify that the page and backend are working.
+1. Open the GitHub Pages console or local `docs/index.html`.
+2. Select `ghz5`, `qft5`, or `qaoa5`.
+3. Click **Run**.
+4. Read the NPQR and SABRE columns: status, SWAP count, depth, and `elapsed_ms`.
+5. Click **Step** to move through the route trace.
+6. Switch between **NPQR QASM** and **SABRE QASM** to inspect the routed output.
+7. Check that the topology panel explains which physical edge is used by each
+   gate or inserted SWAP.
 
-1. Open `docs/index.html`, or open the deployed GitHub Pages version.
-2. Check the small backend indicator in the top bar. **内置** means GitHub Pages
-   is using checked-in example results. **在线** means the page can reach an
-   HTTPS FastAPI REST backend.
-3. Select an example such as `qft5`, `ghz5`, or `qaoa5`.
-4. Click **Run**. In embedded mode, the page loads the checked-in review result
-   for the selected example. With an HTTPS REST API, it sends the same circuit
-   to NPQR and to the fixed SABRE baseline.
-5. Review the two result columns. Each column shows status, SWAP count, depth,
-   and `elapsed_ms`.
-6. Click **Step** to move through the displayed route trace one event at a time.
-7. Switch between **NPQR QASM** and **SABRE QASM** to inspect the routed
-   OpenQASM output for each compiler.
+The 5Q and 10Q examples are the recommended first pass. They load quickly and
+make the route trace easy to inspect. The 30Q and 50Q examples are
+extension-scale examples; `LineGHZ30` and `Random30-d4` use `grid_5x6`, and
+`LineGHZ50` and `RingSparse50` use `grid_5x10`. Use them when a backend service
+is deployed and the runtime budget is sufficient.
 
-If the backend indicator shows an offline state, the web page loaded correctly
-but the configured REST API is not reachable from the browser. GitHub Pages is
-served over HTTPS, so a plain HTTP API can be blocked by browser mixed-content
-rules. Maintainers can override the backend with `?api=https://your-api.example`
-or the Advanced input.
+## What to look at
 
-## Input modes
+The browser page has three review surfaces.
 
-The left side of the Playground controls the circuit that will be compiled.
-Changing the input does not call the backend until you click **Run**.
+| Surface | What it shows | Why it matters |
+| --- | --- | --- |
+| QASM input | Checked-in examples, custom OpenQASM, generated circuits | Confirms the compiler input is visible. |
+| Topology and trace | Physical graph, gate events, SWAP events, mappings | Explains how routing satisfies hardware coupling. |
+| Result columns | NPQR, SABRE, SWAP, depth, elapsed time, routed QASM | Shows the fixed comparison used by the report. |
 
-- **Examples** loads checked-in OpenQASM examples from the project. Use this for
-  demos and repeatable comparisons. The 10/20 group uses IBM Tokyo 20Q, and the
-  30/50 group uses selected grid topologies.
+For a useful review, confirm that the page opens, QASM is readable, the topology
+matches the selected scale, SWAP replay explains the route, and the NPQR/SABRE
+comparison is visible without reading source code.
+
+## Inputs
+
+The left panel controls the circuit.
+
+- **Examples** loads checked-in OpenQASM examples. Use this for repeatable
+  review. The 5Q and 10Q examples use IBM Tokyo 20Q. The 30Q and 50Q examples
+  use grid topologies.
 - **Custom QASM** lets you paste OpenQASM 2 text. The input must start with
-  `OPENQASM 2.0;` and include a valid circuit.
-- **Generate** creates a valid OpenQASM 2 circuit in the editor. It supports
-  GHZ chain, QFT-like, QAOA ring, VQE ansatz, and random CX layers. The
-  generator only writes text; **Run** performs the real compile.
+  `OPENQASM 2.0;`.
+- **Generate** writes a small OpenQASM circuit into the editor. Click **Run** to
+  send it to the compiler.
 
-Use smaller circuits first when you want a fast browser demo. Larger random or
-dense QFT-like circuits may take longer because the backend performs real
-routing work.
+## GitHub Pages, REST API, and MCP
 
-## Controls
+These surfaces serve different users.
 
-The top control strip mirrors a small experiment bench. Each control has a
-different backend effect.
+| Surface | Audience | Role |
+| --- | --- | --- |
+| GitHub Pages | People reading and trying the project | Human-facing browser entry. |
+| REST API | Browser page, scripts, deployments | Real compiler backend for NPQR and SABRE calls. |
+| MCP | Tool clients and automation | Advanced interface; not required for normal browser use. |
 
-- **Run** uses the embedded example result when no HTTPS REST API is configured.
-  With a REST API, it calls `POST /api/compile` twice with the same circuit.
-  One request uses `backend="npqr"`, and the other uses `backend="sabre"`.
-- **Pause** stops the route animation in the browser. It does not cancel a
-  request that has already reached the backend.
-- **Step** advances the currently selected route trace by one event. It does
-  not compile again and does not change the metrics.
-- **Reset** restores the default example and clears the current comparison.
-
-The Playground does not expose SABRE tuning controls to normal users. SABRE is
-the fixed standard baseline, while NPQR is the project compiler being reviewed.
+The browser can use an HTTPS REST API when one is configured. A local HTTP API
+can be used from a local page, but published GitHub Pages may block plain HTTP
+requests through browser security rules. Use the API input or `?api=` query
+parameter when testing a deployed backend.
 
 ## Results
 
-The right side of the page shows a compact comparison. Treat these values as the
-main review surface for a run.
+The result columns show the main metrics.
 
-- **Status** shows whether a backend finished the route. `OK` means a routed
-  circuit was produced. `INCOMPLETE` means the route stopped before all gates
-  were executed. `N/A` usually means the deployment is missing a required model
-  file or dependency.
-- **SWAP** is the number of SWAP gates inserted to satisfy hardware
-  connectivity.
-- **Depth** is the depth of the routed circuit after compilation.
-- **elapsed_ms** is backend compute time in milliseconds for that request. It is
-  not a stable algorithm-quality metric because it depends on server load,
-  warmup, and network timing.
-- **Delta values** compare NPQR with SABRE for SWAP, depth, and runtime. Lower
-  SWAP or depth is better for those two quality metrics.
+- **Status** reports whether the route finished.
+- **SWAP** counts the inserted SWAP gates.
+- **Depth** reports routed circuit depth.
+- **elapsed_ms** reports backend compute time for that request.
+- **Delta values** compare NPQR with SABRE for the selected run.
 
 The **compiled_qasm** panel shows the routed output circuit. Use **NPQR QASM**
-and **SABRE QASM** to switch between the two outputs. The output is physical
-OpenQASM on the active coupling graph, so it may allocate more physical qubits
-than the logical input uses.
+and **SABRE QASM** to switch between outputs.
 
-## Topology and mapping
+## Topology and route trace
 
-The center panel visualizes the active hardware topology. IBM Tokyo 20Q is used
-for circuits with 20 or fewer logical qubits. The 20 points are physical qubits
-on the chip. A line between two points means the hardware can directly run a
-two-qubit operation between those two physical qubits.
+The topology panel shows physical qubits and coupling edges. A two-qubit gate
+can run directly only when the mapped physical qubits are adjacent. If they are
+not adjacent, the compiler inserts SWAP gates along valid hardware edges.
 
-The large examples switch topology automatically. `LineGHZ30` and
-`Random30-d4` use `grid_5x6`, which provides 30 physical qubits. `LineGHZ50`
-and `RingSparse50` use `grid_5x10`, which provides 50 physical qubits. A
-30-qubit or 50-qubit circuit cannot be compiled on Tokyo because Tokyo has only
-20 physical qubits.
+The route trace is returned in the `route_trace` field.
 
-Input QASM uses logical qubits such as `q[0]`, `q[1]`, and `q[2]`. The compiler
-must choose where those logical qubits live on the physical nodes. This is the
-logical-to-physical mapping. For example, a mapping may place logical
-`q[0]` on physical `p3` and logical `q[1]` on physical `p8`.
+- A `gate` event means a routed operation can run at the current physical
+  locations.
+- A `swap` event means the compiler inserted a SWAP before a later gate.
+- `logical_qubits` and `physical_qubits` identify the operation.
+- `mapping_before` and `mapping_after` show how logical qubits move.
 
-If the next two-qubit gate needs logical qubits that are not adjacent on the
-hardware graph, the compiler inserts SWAP gates along allowed edges. A SWAP
-exchanges the logical states stored on two neighboring physical qubits. After a
-SWAP, the mapping changes, and later gates are interpreted using the new
-logical-to-physical positions.
-
-## Route trace
-
-The route trace is the step-by-step explanation behind the animation. It is
-returned by the REST API in the `route_trace` field.
-
-- A `gate` event means a routed operation from the circuit can run at the
-  current physical locations.
-- A `swap` event means the compiler inserted a SWAP before a later gate so the
-  required logical qubits can become adjacent.
-- `logical_qubits` names the logical qubits involved in the event.
-- `physical_qubits` names the Tokyo nodes used by the event.
-- `mapping_before` shows where logical qubits lived before the event.
-- `mapping_after` shows where logical qubits live after the event.
-- `insertion_index` links an inserted SWAP to the point in the original gate
-  stream where it was needed.
-
-The route tabs let you inspect either NPQR or SABRE trace data. The default
-animation focuses on NPQR when NPQR returns a trace. SABRE trace data is shown
-for comparison and review, not as a fake NPQR animation.
+The trace tabs let you inspect NPQR and SABRE routes separately.
 
 ## Backend algorithms
 
-The browser can call the REST API served by `src.server.app:app`, but the
-GitHub Pages path also works without a live API for the checked-in examples.
-The live backend path is:
+NPQR is the project compiler. It parses OpenQASM, builds gate dependencies,
+selects initial mappings, scores legal SWAP actions, keeps bounded search
+candidates, repairs difficult suffixes, and replays the final trace before
+returning routed QASM.
 
-```text
-browser
-  -> docs/index.html
-  -> POST /api/compile
-  -> src.server.app:app
-  -> NPQR and SABRE routing backends
-```
-
-NPQR is the project compiler. It is a neural-assisted selector, search, and repair runtime. It is also described internally as the neural-assisted selector/search/repair runtime:
-
-- It parses the OpenQASM circuit and loads the IBM Tokyo coupling graph.
-- It generates candidate initial logical-to-physical mappings.
-- It uses a learned policy to score valid SWAP actions.
-- It keeps several candidate routes with bounded beam search.
-- It can use trigger-gated frontier search and local suffix repair on difficult
-  cases.
-- It replays the selected action trace and emits routed OpenQASM only when the
-  trace is valid.
-
-SABRE is the fixed baseline. The backend uses Qiskit `SabreSwap` with the
-standard `basic` heuristic, `seed=42`, and `trials=1`. This makes the comparison
-reproducible. SABRE is strong and practical, so the page uses it as the
-reference column rather than letting users tune it.
-
-The page does not claim that NPQR always beats SABRE. It shows the actual result
-for the selected circuit. Some circuits favor NPQR, some tie, and some may favor
-SABRE.
-
-## REST API and MCP
-
-REST API and MCP are separate surfaces.
-
-- The **REST API** is the live compiler path. **Run** calls `/api/compile` when
-  a reachable HTTPS backend is configured. Normal GitHub Pages review of the
-  bundled examples does not require deployment.
-- MCP is an advanced helper for tool clients, reviewers, and automation.
-  It exposes tools such as `compile_qasm`, `compile_npqr`, and `compile_sabre`.
-  The public page keeps MCP in the **Advanced** section because it is not needed
-  for normal browser use.
-
-Maintainers can override the REST API base with `?api=https://your-api.example`
-or the Advanced input. Use HTTPS for GitHub Pages; browser security can block
-plain HTTP requests from the published page.
+SABRE basic is the fixed Qiskit baseline. The comparison uses the same input circuit, topology, and metric fields for both compilers.
 
 ## Troubleshooting
 
-Use these checks when a run does not produce the expected output.
-
-- If the backend indicator is **内置**, the page is using embedded example
-  results and remains usable for review.
-- If the backend indicator is offline, the browser cannot reach the configured
-  REST API.
-- If NPQR shows `N/A` but SABRE shows `OK`, the API is running but the NPQR model
-  file or dependency is missing in that deployment.
-- If both columns show errors, the API may be down, the request may have timed
-  out, the QASM may be invalid, or a custom/generated circuit may have been run
-  without a connected HTTPS REST API.
-- If Custom QASM fails immediately, check that the text starts with
-  `OPENQASM 2.0;` and uses OpenQASM 2 syntax.
-- If a large generated circuit takes a long time, try fewer qubits or fewer
-  layers before treating it as a service failure.
-
-## Next steps
-
-Use the Playground for live review, then save the relevant QASM or metrics for
-reports. For deployment details, use the README, the Dockerfiles, and the Render
-blueprints in the repository root.
+- If the page opens but compile fails, check whether the configured REST API is
+  reachable from the browser.
+- If GitHub Pages is used with a local HTTP API, browser mixed-content rules may
+  block the request.
+- If custom QASM fails immediately, check that the first line is
+  `OPENQASM 2.0;`.
+- If a 30Q or 50Q example takes too long, return to a 5Q or 10Q example for the
+  first review and use a deployed backend for extension-scale runs.

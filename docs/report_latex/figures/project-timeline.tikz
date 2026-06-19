@@ -1,0 +1,38 @@
+\begin{tikzpicture}[
+  node distance=0.45cm,
+  stage/.style={
+    rectangle,
+    draw=blue!45!black,
+    fill=blue!4,
+    rounded corners=2pt,
+    text width=0.18\linewidth,
+    align=left,
+    inner sep=5pt,
+    font=\footnotesize
+  },
+  arrow/.style={-{Latex[length=2.2mm]}, thick, draw=blue!45!black}
+]
+\node[stage] (s1) {
+  \textbf{阶段一}\\
+  基线闭环\\
+  QASM、拓扑、SABRE、最小路由任务
+};
+\node[stage, right=0.45cm of s1] (s2) {
+  \textbf{阶段二}\\
+  NPQR 迭代\\
+  初始映射、模型评分、束搜索、修复
+};
+\node[stage, right=0.45cm of s2] (s3) {
+  \textbf{阶段三}\\
+  系统封装\\
+  REST、MCP、CLI、前端控制台
+};
+\node[stage, right=0.45cm of s3] (s4) {
+  \textbf{阶段四}\\
+  交付整理\\
+  GitHub Pages、华为云、报告与测试
+};
+\draw[arrow] (s1) -- (s2);
+\draw[arrow] (s2) -- (s3);
+\draw[arrow] (s3) -- (s4);
+\end{tikzpicture}

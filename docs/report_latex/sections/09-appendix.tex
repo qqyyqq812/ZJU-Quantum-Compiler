@@ -1,26 +1,58 @@
 \appendix
-\section{附录：复现实验命令}
+\section{附录：复现实验记录}
 
-本附录列出报告中使用的公开检查命令，便于复现实验表格和验证接口状态。正文避免
-展开具体源码结构，本附录只保留必要命令。
+本附录列出报告中使用的公开地址和复现命令。正文讨论结果和分析，附录提供运行入口、
+服务启动方式和测试命令。
 
-\subsection{环境检查}
+\subsection{在线地址}
 
 \begin{verbatim}
+GitHub:
+https://github.com/qqyyqq812/ZJU-Quantum-Compiler
+
+GitHub Pages:
+https://qqyyqq812.github.io/ZJU-Quantum-Compiler/
+\end{verbatim}
+
+\subsection{本地安装}
+
+\begin{verbatim}
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install -e .
 qcompiler info
 \end{verbatim}
 
-\subsection{快速基线矩阵}
+\subsection{REST API}
 
 \begin{verbatim}
-python scripts/experiment_algorithm_matrix.py --quick --json
+uvicorn src.server.app:app --host 0.0.0.0 --port 8765
+curl -s http://127.0.0.1:8765/api/status
+curl -s http://127.0.0.1:8765/api/examples
 \end{verbatim}
 
-\subsection{公开项目检查}
+\subsection{MCP 服务}
 
 \begin{verbatim}
-python scripts/check_submission_readiness.py
+qcompiler-mcp-http
+curl -s http://127.0.0.1:8000/health
+\end{verbatim}
+
+\subsection{示例编译}
+
+\begin{verbatim}
+qcompiler compile --example qft5 --backend npqr
+qcompiler compile --example line_ghz50 \
+  --backend sabre --topology grid_5x10
+\end{verbatim}
+
+\subsection{测试命令}
+
+\begin{verbatim}
 python -m pytest -q tests/test_public_api.py \
+  tests/test_public_site.py \
   tests/test_readme_contract.py \
   tests/test_submission_readiness.py
+python scripts/check_submission_readiness.py
 \end{verbatim}

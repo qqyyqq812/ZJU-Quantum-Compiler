@@ -1,17 +1,20 @@
 \begin{table}[H]
   \centering
-  \caption{NPQR 主要步骤复杂度}
+  \caption{复杂度}
   \label{tab:complexity}
   \begin{tabularx}{\linewidth}{lYY}
     \toprule
-    步骤 & 时间复杂度估计 & 说明 \\
+    阶段 & 时间复杂度估计 & 说明 \\
     \midrule
-    拓扑距离预处理 & $O(n^3)$ 或 $O(n(e+n\log n))$ & 取决于使用 Floyd 或多源最短路；Tokyo 规模较小，开销可控。 \\
-    电路依赖处理 & $O(m)$ & 扫描门序列，维护前沿门和依赖状态。 \\
-    初始映射候选 & $O(K \cdot n^2)$ 量级 & 与候选数和交互评分方式有关。 \\
-    主束搜索 & $O(D \cdot B \cdot A \cdot C_s)$ & $C_s$ 为单次状态评分和更新成本。 \\
-    后缀修复 & $O(A^R)$ 的受限搜索 & 通过小深度 $R$ 限制局部搜索规模。 \\
-    轨迹复放 & $O(m+N_{\mathrm{swap}})$ & 线性验证输出轨迹是否合法。 \\
+    拓扑距离矩阵 & $O(n^3)$ 或 $O(n(e+n\log n))$ & 取决于 Floyd 或多源最短路；固定拓扑下可复用。\\
+    线路依赖图构建 & $O(m)$ & 扫描门序列，维护前沿门和执行依赖。\\
+    逻辑交互图构建 & $O(m)$ & 统计双比特门交互强度，服务初始映射。\\
+    初始映射候选 & $O(K\cdot n^2)$ 量级 & 与候选数量和映射评分方式有关。\\
+    动作生成与掩码 & $O(B\cdot e)$ & 每个保留状态在硬件边上筛选候选 SWAP。\\
+    模型推理 & $O(B\cdot A\cdot C_\theta)$ & $C_\theta$ 为单次模型评分成本。\\
+    束搜索扩展 & $O(D\cdot B\cdot A\cdot C_s)$ & $C_s$ 包括状态复制、执行门和评分更新。\\
+    后缀修复 & $O(A^R)$ 的受限搜索 & 只在接近完成时启动，避免全局穷举。\\
+    轨迹复放 & $O(m+N_{\mathrm{swap}})$ & 线性验证输出轨迹是否合法。\\
     \bottomrule
   \end{tabularx}
 \end{table}

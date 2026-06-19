@@ -1,29 +1,43 @@
 \begin{tikzpicture}[
-  node distance=0.8cm and 0.8cm,
-  routeStep/.style={rectangle, rounded corners=2pt, draw=blue!55!black, fill=blue!6,
-    align=center, minimum width=3.0cm, minimum height=0.9cm, font=\small},
-  verify/.style={diamond, aspect=2.1, draw=green!45!black, fill=green!7,
-    align=center, inner sep=1pt, font=\small},
+  font=\small,
+  phasebox/.style={
+    rectangle,
+    rounded corners=2pt,
+    draw=blue!55!black,
+    fill=blue!6,
+    align=center,
+    minimum width=2.6cm,
+    minimum height=0.78cm
+  },
+  verify/.style={
+    rectangle,
+    rounded corners=2pt,
+    draw=green!45!black,
+    fill=green!8,
+    align=center,
+    minimum width=2.6cm,
+    minimum height=0.78cm
+  },
   arrow/.style={-{Latex[length=2mm]}, thick, draw=gray!70!black}
 ]
-  \node[routeStep] (input) {输入电路\\硬件拓扑};
-  \node[routeStep, right=of input] (pre) {图预处理\\距离矩阵};
-  \node[routeStep, right=of pre] (map) {初始映射\\候选选择};
-  \node[routeStep, below=of map] (frontier) {前沿门\\状态更新};
-  \node[routeStep, left=of frontier] (score) {神经网络\\动作评分};
-  \node[routeStep, left=of score] (beam) {束搜索\\动作剪枝};
-  \node[routeStep, below=of score] (repair) {局部后缀\\修复};
-  \node[verify, below=of frontier] (replay) {轨迹\\复放};
-  \node[routeStep, right=of replay] (output) {路由后电路\\指标输出};
+  \node[phasebox] (input)   at (0,0)       {线路与拓扑};
+  \node[phasebox] (pre)     at (3.4,0)     {图预处理};
+  \node[phasebox] (mapping) at (6.8,0)     {初始映射};
+
+  \node[phasebox] (beam)    at (6.8,-1.65) {束搜索};
+  \node[phasebox] (score)   at (3.4,-1.65) {动作评分};
+  \node[phasebox] (front)   at (0,-1.65)   {前沿推进};
+
+  \node[phasebox] (repair)  at (0,-3.30)   {局部修复};
+  \node[verify]   (replay)  at (3.4,-3.30) {复放验证};
+  \node[verify]   (output)  at (6.8,-3.30) {线路与指标};
 
   \draw[arrow] (input) -- (pre);
-  \draw[arrow] (pre) -- (map);
-  \draw[arrow] (map) -- (frontier);
-  \draw[arrow] (frontier) -- (score);
-  \draw[arrow] (score) -- (beam);
-  \draw[arrow] (beam) |- (frontier);
-  \draw[arrow] (score) -- (repair);
-  \draw[arrow] (repair) -| (frontier);
-  \draw[arrow] (frontier) -- (replay);
+  \draw[arrow] (pre) -- (mapping);
+  \draw[arrow] (mapping) -- (beam);
+  \draw[arrow] (beam) -- (score);
+  \draw[arrow] (score) -- (front);
+  \draw[arrow] (front) -- (repair);
+  \draw[arrow] (repair) -- (replay);
   \draw[arrow] (replay) -- (output);
 \end{tikzpicture}
